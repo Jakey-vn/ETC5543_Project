@@ -1,4 +1,4 @@
-# Forecast Project — Financial Calculating
+# Forecast Project - Financial Calculating
 
 ## Overview
 This project processes SOP volume, customer, and pricing data to calculate forecast revenue values across business units (Farm, Corowa Meat Processing, Laverton Processing, and Meat Sales).
@@ -6,8 +6,8 @@ This project processes SOP volume, customer, and pricing data to calculate forec
 The main output is `GL_DB Template.csv`, structured for GL database input.
 
 ## Files
-- `Financial Calculating.qmd` — Main Quarto script containing all data processing and calculation logic
-- `GL_DB Template.csv` — Output file generated after running the script
+- `Financial Calculating.qmd` - Main Quarto script containing all data processing and calculation logic
+- `GL_DB Template.csv` - Output file generated after running the script
 
 ## Data Sources (not included in repo)
 | File | Description |
@@ -19,7 +19,7 @@ The main output is `GL_DB Template.csv`, structured for GL database input.
 ## How to Run
 1. Open `Financial Calculating.qmd` in RStudio
 2. Ensure all data source files are placed in the correct path
-3. Run all chunks sequentially — the final chunk writes `GL_DB Template.csv`
+3. Run all chunks sequentially - the final chunk writes `GL_DB Template.csv`
 
 ## Key Logic
 - **400000** = External Sales | **400028** = Intercompany Sales
