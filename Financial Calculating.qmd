@@ -1,0 +1,626 @@
+---
+title: "Finance Calculating"
+format: html
+editor: visual
+---
+
+# Prepare Data
+
+## Library Loading
+
+```{r}
+library(readxl)
+library(readr)
+library(dplyr)
+library(openxlsx)
+library(tidyr)
+library(lubridate)
+library(openxlsx2)
+library(stringr)
+```
+
+## Data Input
+
+```{r, warning=FALSE}
+# Read everything as text with no headers
+volume_raw <- read_excel(
+  "C:/Users/ATran2/OneDrive - JBS/Forecast Project - Documents/SOP Volumes.xlsx",
+  sheet = "Sheet1",
+  col_names = FALSE,
+  col_types = "text"
+)
+carcass_price_data <- wb_to_df("C:/Users/ATran2/OneDrive - JBS/Forecast Project - Documents/Prices.xlsb", sheet = "Carcass Price")
+bone_fee_data <- wb_to_df("C:/Users/ATran2/OneDrive - JBS/Forecast Project - Documents/Prices.xlsb", sheet = "Bone Fee")
+kill_fee_data <- wb_to_df("C:/Users/ATran2/OneDrive - JBS/Forecast Project - Documents/Prices.xlsb", sheet = "Kill Fee")
+gl_cc_data <- read_excel("C:/Users/ATran2/OneDrive - JBS/Forecast Project - Documents/Master Data..xlsx", sheet = "GL & CC")
+customer_data <- read_excel("C:/Users/ATran2/OneDrive - JBS/Forecast Project - Documents/Master Data..xlsx", sheet = "Customer")
+```
+
+## Data Processing
+
+```{r}
+# Remove extra spaces in BU naming (e.g. "1. Farming" → "1.Farming")
+gl_cc_data <- gl_cc_data %>%
+  mutate(BU = str_replace_all(BU, "(\\d+\\.)\\s+", "\\1"))
+
+# Split volume_raw into three data types based on col 2 identifier
+volume_farm_raw <- volume_raw %>%
+  filter(`...2` %in% c("Farm", "Kill", "Bone")) %>%
+  select(where(~ !all(is.na(.))))
+
+volume_bone_raw <- volume_raw %>%
+  filter(`...2` %in% c("2.Meat Processing", "6.Laverton Processing")) %>%
+  select(where(~ !all(is.na(.))))
+
+volume_va_raw <- volume_raw %>%
+  filter(`...2` == "3.Meat Sales") %>%
+  select(where(~ !all(is.na(.))))
+
+colnames(volume_farm_raw) <- c("Unicode", "Tab", "Week", "Month", "Year", "Abattoir", "Service", "Int/Ext", "Vendor Type", "Customer Code", "Customer name", "Item type", "Item Code", "Item Description", "Run", "Storage", "Type", "Group", "Primal", "Units", "Avg Weight", "Total Weight")
+
+# Placeholder names since bone and VA not yet used
+colnames(volume_bone_raw) <- paste0("col", seq_along(volume_bone_raw))
+colnames(volume_va_raw)   <- paste0("col", seq_along(volume_va_raw))
+
+```
+
+# Revenue Data
+
+## Farm Section
+
+#### 1.Farming Operations Sales (400000-10001812)
+
+```{r}
+# Sales — external customers
+farm_sales_400000_10001812 <- customer_data %>% 
+  filter(`BU` == "1.Farming Operations") %>% 
+  filter(!`SOP Unicode` %in% c(
+    # These are Intercompany customer which was provided by the company so i filter these customer out
+    "FLAVERTON6WAY",
+    "FCOROWA6Way",
+    "FLAVERTONCommodity",
+    "FCOROWACommodity",
+    "FOtherX",
+    "FLAVERTONSow Commodity"
+  )) 
+farm_sales_400000_10001812_new <- farm_sales_400000_10001812 %>%
+  left_join(
+    gl_cc_data %>% filter(`GL Account` == 400000),
+    by = c("BU" = "BU")
+  ) %>% 
+  # Add Month columns for future use
+  crossing(Period = 1:12)
+```
+
+#### 1.Farming Operations Intercompany Sales (400028-10001812)
+
+```{r}
+# Intercompany Sales — internal transfers 
+farm_sales_400028_10001812 <- customer_data %>% 
+  filter(`BU` == "1.Farming Operations") %>% 
+  filter(`SOP Unicode` %in% c(
+    # These are Intercompany customer which was provided by the company so i filter them in
+    "FLAVERTON6WAY",
+    "FCOROWA6Way",
+    "FLAVERTONCommodity",
+    "FCOROWACommodity",
+    "FOtherX",
+    "FLAVERTONSow Commodity"
+  )) 
+farm_sales_400028_10001812_new <- farm_sales_400028_10001812 %>%
+  left_join(
+    gl_cc_data %>% filter(`GL Account` == 400028),
+    by = c("BU" = "BU")
+  ) %>% 
+  # Add Month columns for future use
+  crossing(Period = 1:12)
+```
+
+## Corowa Meat Processing
+
+### Kill Floor
+
+#### 2.Meat Processing Sales Kill Floor (400000-10201816)
+
+```{r}
+# Sales — external customers
+meat_sales_kill_400000_10201816 <- customer_data %>% 
+  filter(`BU` == "2.Meat Processing") %>% 
+  filter(Tab == "Kill") %>% 
+  filter(!`SOP Unicode` %in% c(
+    # These are Intercompany customers so filter them out
+    "COROWA6Way",
+    "COROWACommodity"
+  )) 
+meat_sales_kill_400000_10201816_new <- meat_sales_kill_400000_10201816 %>%
+  left_join(
+    gl_cc_data %>% filter(`GL Account` == 400000, `Cc Key` == 10201816),
+    by = c("BU" = "BU")
+  ) %>% 
+  # Add Month columns for future use
+  crossing(Period = 1:12)
+```
+
+#### 2.Meat Processing Sales Intercompany Kill Floor (400028-10201816)
+
+```{r}
+# Intercompany Sales — internal transfers
+meat_sales_kill_400028_10201816 <- customer_data %>% 
+  filter(`BU` == "2.Meat Processing") %>% 
+  filter(Tab == "Kill") %>% 
+  filter(`SOP Unicode` %in% c(
+    # These are Intercompany customers so filter them in
+    "COROWA6Way",
+    "COROWACommodity"
+  )) 
+meat_sales_kill_400028_10201816_new <- meat_sales_kill_400028_10201816 %>%
+  left_join(
+    gl_cc_data %>% filter(`GL Account` == 400028, `Cc Key` == 10201816),
+    by = c("BU" = "BU")
+  ) %>% 
+  # Add Month columns for future use
+  crossing(Period = 1:12)
+```
+
+### Boning Room
+
+#### 2.Meat Processing Sales Boning Room (400000-11901816)
+
+```{r}
+# Sales — external customers
+meat_sales_boning_400000_11901816 <- customer_data %>% 
+  filter(`BU` == "2.Meat Processing") %>% 
+  filter(Tab == "Bone") %>% 
+  filter(`Floor` == "Bone") %>% 
+  filter(!`SOP Unicode` %in% c(
+    # These are Intercompany customers so filter them out
+    "COROWA6Way",
+    "COROWACommodity"
+  )) 
+meat_sales_boning_400000_11901816_new <- meat_sales_boning_400000_11901816 %>%
+  left_join(
+    gl_cc_data %>% filter(`GL Account` == 400000, `Cc Key` == 11901816),
+    by = c("BU" = "BU")
+  ) %>% 
+  # Add Month columns for future use
+  crossing(Period = 1:12)
+```
+
+#### 2.Meat Processing Sales Intercompany Boning Room (400028-11901816)
+
+```{r}
+# Intercompany Sales — internal transfers
+meat_sales_boning_400028_11901816 <- customer_data %>% 
+  filter(`BU` == "2.Meat Processing") %>% 
+  filter(Tab == "Bone") %>% 
+  filter(`Floor` == "Bone") %>% 
+  filter(`SOP Unicode` %in% c(
+    # These are Intercompany customers so filter them in
+    "COROWA6Way",
+    "COROWACommodity"
+  )) 
+meat_sales_boning_400028_11901816_new <- meat_sales_boning_400028_11901816 %>%
+  left_join(
+    gl_cc_data %>% filter(`GL Account` == 400028, `Cc Key` == 11901816),
+    by = c("BU" = "BU")
+  ) %>% 
+  # Add Month columns for future use
+  crossing(Period = 1:12)
+```
+
+### Meat Boxed
+
+#### 2.Meat Processing Sale Boxed Meat (400000-10501816)
+
+```{r}
+# Sales — external customers
+meat_sales_boxed_meat_400000_10501816 <- customer_data %>% 
+  filter(`BU` == "2.Meat Processing") %>% 
+  filter(Tab %in% c("Boxed Meat", "Meat Trade")) %>%
+  filter(`Floor` %in% c("Boxed Meat", "Meat Trade")) %>% 
+  filter(!`SOP Unicode` %in% c(
+    # This is an Intercompany customer so filter it out
+    "CommodityChilInternalVA"
+  )) 
+meat_sales_boxed_meat_400000_10501816_new <- meat_sales_boxed_meat_400000_10501816 %>%
+  left_join(
+    gl_cc_data %>% filter(`GL Account` == 400000, `Cc Key` == 10501816),
+    by = c("BU" = "BU")
+  ) %>% 
+  # Add Month columns for future use
+  crossing(Period = 1:12)
+```
+
+#### 2.Meat Processing Sale Intercompany Boxed Meat (400028-10501816)
+
+```{r}
+# Intercompany Sales — internal transfers
+meat_sales_boxed_meat_400028_10501816 <- customer_data %>% 
+  filter(`BU` == "2.Meat Processing") %>% 
+  filter(Tab %in% c("Boxed Meat", "Meat Trade")) %>%
+  filter(`Floor` %in% c("Boxed Meat", "Meat Trade")) %>% 
+  filter(`SOP Unicode` %in% c(
+    # This is an Intercompany customer so filter it in
+    "CommodityChilInternalVA"
+  )) 
+meat_sales_boxed_meat_400028_10501816_new <- meat_sales_boxed_meat_400028_10501816 %>%
+  left_join(
+    gl_cc_data %>% filter(`GL Account` == 400028, `Cc Key` == 10501816),
+    by = c("BU" = "BU")
+  ) %>% 
+  # Add Month columns for future use
+  crossing(Period = 1:12)
+```
+
+## Meat Sales
+
+#### 3.Meat Sales (400000-10001814)
+
+```{r}
+# Sales — external customers, no intercompany filtering needed for this BU
+meat_sales_400000_10001814 <- customer_data %>% 
+  filter(`BU` == "3.Meat Sales") %>% 
+  filter(Tab == "VA") 
+meat_sales_400000_10001814_new <- meat_sales_400000_10001814 %>%
+  left_join(
+    gl_cc_data %>% filter(`GL Account` == 400000, `Cc Key` == 10001814),
+    by = c("BU" = "BU")
+  ) %>% 
+  # Add Month columns for future use
+  crossing(Period = 1:12)
+```
+
+## Laverton Processing
+
+### Kill Floor
+
+#### 6. Laverton Processing Sales Kill Floor (400000-10201854)
+
+```{r}
+# Sales — external customers
+laverton_sales_kill_400000_10201854 <- customer_data %>% 
+  filter(`BU` == "6.Laverton Processing") %>% 
+  filter(Tab == "Kill") %>% 
+  filter(`Floor` == "Kill") %>% 
+  filter(!`SOP Unicode` %in% c(
+  # These are Intercompany customers so filter them out
+  "Laverton6Way",
+  "LavertonCommodity",
+  "LAVERTONEdibleOffal",
+  "LAVERTONLaverton - Purchase",
+  "LAVERTONPW Opportunity - Sow",
+  "LavertonSow",
+  "LAVERTONSow Commodity"
+  )) 
+laverton_sales_kill_400000_10201854_new <- laverton_sales_kill_400000_10201854 %>% 
+  left_join(
+    gl_cc_data %>% filter(`GL Account` == 400000, `Cc Key` == 10201854),
+    by = c("BU" = "BU")
+  ) %>% 
+  # Add Month columns for future use
+  crossing(Period = 1:12)
+```
+
+#### 6. Laverton Processing Sales Intercompany Kill Floor (400028-10201854)
+
+```{r}
+# Intercompany Sales — internal transfers
+laverton_sales_kill_400028_10201854 <- customer_data %>% 
+  filter(`BU` == "6.Laverton Processing") %>% 
+  filter(Tab == "Kill") %>% 
+  filter(`Floor` == "Kill") %>% 
+  filter(`SOP Unicode` %in% c(
+  # These are Intercompany customers so filter them in
+  "Laverton6Way",
+  "LavertonCommodity",
+  "LAVERTONEdibleOffal",
+  "LAVERTONLaverton - Purchase",
+  "LAVERTONPW Opportunity - Sow",
+  "LavertonSow",
+  "LAVERTONSow Commodity"
+  )) 
+laverton_sales_kill_400028_10201854_new <- laverton_sales_kill_400028_10201854 %>% 
+  left_join(
+    gl_cc_data %>% filter(`GL Account` == 400028, `Cc Key` == 10201854),
+    by = c("BU" = "BU")
+  ) %>% 
+  # Add Month columns for future use
+  crossing(Period = 1:12)
+```
+
+### Boning Room
+
+#### 6. Laverton Processing Sales Boning Room (400000-11901854)
+
+```{r}
+# Sales — external customers
+laverton_sales_boning_400000_11901854 <- customer_data %>% 
+  filter(`BU` == "6.Laverton Processing") %>% 
+  filter(Tab == "Bone") %>%
+  filter(`Floor` == "Bone") %>% 
+  filter(!`SOP Unicode` %in% c(
+  # These are Intercompany customers so filter them out
+  "Laverton6Way",
+  "LavertonCommodity",
+  "LAVERTONLaverton - Purchase",
+  "LAVERTONPW Opportunity - Sow",
+  "LAVERTONSow Commodity"
+  )) 
+laverton_sales_boning_400000_11901854_new <- laverton_sales_boning_400000_11901854 %>% 
+  left_join(
+    gl_cc_data %>% filter(`GL Account` == 400000, `Cc Key` == 11901854),
+    by = c("BU" = "BU")
+  ) %>% 
+  # Add Month columns for future use
+  crossing(Period = 1:12)
+```
+
+#### 6. Laverton Processing Sales Intercompany Boning Room (400028-11901854)
+
+```{r}
+# Intercompany Sales — internal transfers
+laverton_sales_boning_400028_11901854 <- customer_data %>% 
+  filter(`BU` == "6.Laverton Processing") %>% 
+  filter(Tab == "Bone") %>% 
+  filter(`Floor` == "Bone") %>% 
+  filter(`SOP Unicode` %in% c(
+  # These are Intercompany customers so filter them in
+  "Laverton6Way",
+  "LavertonCommodity",
+  "LAVERTONLaverton - Purchase",
+  "LAVERTONPW Opportunity - Sow",
+  "LAVERTONSow Commodity"
+  )) 
+laverton_sales_boning_400028_11901854_new <- laverton_sales_boning_400028_11901854 %>% 
+  left_join(
+    gl_cc_data %>% filter(`GL Account` == 400028, `Cc Key` == 11901854),
+    by = c("BU" = "BU")
+  ) %>% 
+  # Add Month columns for future use
+  crossing(Period = 1:12)
+```
+
+### Boxed Meat
+
+#### 6. Laverton Processing Sales Boxed Meat (400000-10501854)
+
+```{r}
+# Sales — external customers
+laverton_sales_boxed_meat_400000_10501854 <- customer_data %>% 
+  filter(`BU` == "6.Laverton Processing") %>% 
+  filter(Tab == "Bone") %>%
+  filter(`Floor` == "Boxed Meat") %>% 
+  filter(!`SOP Unicode` %in% c(
+  # These are Intercompany customers so filter them out
+  "LavertonSow",
+  "LavertonCommodity",
+  "Laverton6Way"
+  )) 
+laverton_sales_boxed_meat_400000_10501854_new <- laverton_sales_boxed_meat_400000_10501854 %>% 
+  left_join(
+    gl_cc_data %>% filter(`GL Account` == 400000, `Cc Key` == 10501854),
+    by = c("BU" = "BU")
+  ) %>% 
+  # Add Month columns for future use
+  crossing(Period = 1:12)
+```
+
+#### 6. Laverton Processing Sales Intercompany Boxed Meat (400028-10501854)
+
+```{r}
+# Intercompany Sales — internal transfers
+laverton_sales_boxed_meat_400028_10501854 <- customer_data %>% 
+  filter(`BU` == "6.Laverton Processing") %>% 
+  filter(Tab == "Bone") %>% 
+  filter(`Floor` == "Boxed Meat") %>% 
+  filter(`SOP Unicode` %in% c(
+  # These are Intercompany customers so filter them in
+  "LavertonSow",
+  "LavertonCommodity",
+  "Laverton6Way"
+  )) 
+laverton_sales_boxed_meat_400028_10501854_new <- laverton_sales_boxed_meat_400028_10501854 %>% 
+  left_join(
+    gl_cc_data %>% filter(`GL Account` == 400028, `Cc Key` == 10501854),
+    by = c("BU" = "BU")
+  ) %>% 
+  # Add Month columns for future use
+  crossing(Period = 1:12)
+```
+
+# Final Stage
+
+## Join all prepared data together to create the main data
+
+```{r}
+all_revenue <- bind_rows(
+  farm_sales_400000_10001812_new,
+  farm_sales_400028_10001812_new,
+  meat_sales_kill_400000_10201816_new,
+  meat_sales_kill_400028_10201816_new,
+  meat_sales_boning_400000_11901816_new,
+  meat_sales_boning_400028_11901816_new,
+  meat_sales_boxed_meat_400000_10501816_new,
+  meat_sales_boxed_meat_400028_10501816_new,
+  meat_sales_400000_10001814_new,
+  laverton_sales_kill_400000_10201854_new,
+  laverton_sales_kill_400028_10201854_new,
+  laverton_sales_boning_400000_11901854_new,
+  laverton_sales_boning_400028_11901854_new,
+  laverton_sales_boxed_meat_400000_10501854_new,
+  laverton_sales_boxed_meat_400028_10501854_new
+  )
+```
+
+## Some changes to the main data based on guidance
+
+```{r}
+# Here are some special conditions, filtering that i applied due to guidance from my manager, some are only tempotarily, some are because of the way data was recorded (unwanted data get in the way so need to be filter out)
+all_revenue <- all_revenue %>%
+  mutate(Abattoir = if_else(is.na(Abattoir) | Abattoir == "", "EXTERNAL", Abattoir)) %>%  # fill blank Abattoir and also when its External because external mean the process did not happen within the company so there is no need to include this result
+  mutate(`Customer name` = if_else(
+    BU == "2.Meat Processing" & Tab %in% c("Boxed Meat", "Meat Trade") & `SOP Unicode` == "CommodityChilInternalVA",
+    "Commodity to VA",
+    `Customer name`
+    # Change name for some customer based on guidance
+  )) %>%
+  mutate(Month = month.name[Period]) %>%
+  mutate(`Customer Group` = if_else(`Customer Group` == "Wangarrata", "Wangaratta", `Customer Group`)) %>%  # fix typo
+  filter(!(toupper(Abattoir) == "LAVERTON" & Tab == "Kill" & str_detect(`Customer name`, "6Way|Commodity")))  # remove intercompany rows already captured elsewhere
+```
+
+## Join Volume and Weight to the Main Data
+
+```{r}
+all_revenue_new <- all_revenue %>%
+  # Standardise key columns to uppercase before joining
+  mutate(
+    `SOP Unicode` = toupper(`SOP Unicode`),
+    Abattoir = toupper(Abattoir),
+    Month = toupper(Month),
+    Tab = toupper(Tab)
+  ) %>%
+  left_join(
+    volume_farm_raw %>%
+      filter(!(`Int/Ext` %in% "External" & Tab == "Farm")) %>%   # exclude external Farm rows
+      filter(!(Service == "live" & Tab %in% c("Kill", "Bone"))) %>%  # exclude live service rows
+      mutate(
+        Unicode = toupper(Unicode),
+        Abattoir = toupper(Abattoir),
+        Month = toupper(Month),
+        Tab = toupper(Tab),
+        Units = as.numeric(Units),
+        `Avg Weight` = as.numeric(`Avg Weight`),
+        `Total Weight` = as.numeric(`Total Weight`)
+      ) %>%
+      # Aggregate to one row per key to avoid row duplication on join
+      group_by(Unicode, Abattoir, Month, Tab) %>%
+      summarise(
+        `Item Code` = first(`Item Code`),
+        Units = sum(Units, na.rm = TRUE),
+        `Avg Weight` = mean(`Avg Weight`, na.rm = TRUE),
+        `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+        .groups = "drop"
+      ),
+    by = c("SOP Unicode" = "Unicode", "Abattoir" = "Abattoir", "Month" = "Month", "Tab" = "Tab")
+  )
+```
+
+## Join Price to the Main Data
+
+```{r}
+# Split by Tab to apply the correct price source for each type
+all_revenue_final <- bind_rows(
+  # Join Farm Tab to Carcass Price, add condition: FCOROWAWoolworths inherits price from FEXTERNALBig River Pork - Coles
+  all_revenue_new %>%
+    mutate(`SOP Unicode` = str_trim(`SOP Unicode`)) %>%
+    filter(Tab == "FARM") %>%
+    left_join(
+      carcass_price_data %>%
+        mutate(`Farm Unicode` = toupper(str_trim(`Farm Unicode`)), Abattoir = toupper(Abbatoir)) %>%
+        pivot_longer(cols = matches("^\\d+$"), names_to = "Period", values_to = "Carcass Price") %>%
+        mutate(Period = as.integer(Period)) %>%
+        select(`Farm Unicode`, Abattoir, Period, `Carcass Price`) %>%
+        bind_rows(
+          filter(., `Farm Unicode` == toupper(str_trim("FEXTERNALBig River Pork - Coles"))) %>%
+            mutate(`Farm Unicode` = toupper(str_trim("FCOROWAWoolworths")))
+        ),
+      by = c("SOP Unicode" = "Farm Unicode", "Abattoir", "Period")
+    ),
+  # Join Bone Tab to Fee Data
+  all_revenue_new %>%
+    mutate(`SOP Unicode` = str_trim(`SOP Unicode`)) %>%
+    filter(Tab == "BONE") %>%
+    left_join(
+      bone_fee_data %>%
+        mutate(`SOP Unicode` = toupper(str_trim(`SOP Unicode`)), Abattoir = toupper(Abbatoir)) %>%
+        pivot_longer(cols = matches("^\\d+$"), names_to = "Period", values_to = "Fee") %>%
+        mutate(Period = as.integer(Period)) %>%
+        select(`SOP Unicode`, Abattoir, Period, Fee),
+      by = c("SOP Unicode", "Abattoir", "Period")
+    ),
+  # join Kill tab to Fee Data 
+  all_revenue_new %>%
+    mutate(`SOP Unicode` = str_trim(`SOP Unicode`)) %>%
+    filter(Tab == "KILL") %>%
+    left_join(
+      kill_fee_data %>%
+        mutate(`SOP Unicode` = toupper(str_trim(`SOP Unicode`)), Abattoir = toupper(Abbatoir)) %>%
+        pivot_longer(cols = matches("^\\d+$"), names_to = "Period", values_to = "Fee") %>%
+        mutate(Period = as.integer(Period)) %>%
+        select(`SOP Unicode`, Abattoir, Period, Fee),
+      by = c("SOP Unicode", "Abattoir", "Period")
+    ),
+  # All other Tab types — no price applied
+  all_revenue_new %>%
+    filter(is.na(Tab) | !Tab %in% c("FARM", "BONE", "KILL"))
+)
+```
+
+## Calculation for Value by Weight x Carcass Price
+
+```{r}
+# Farm: Total Weight x Carcass Price | Bone/Kill: Units x Fee
+all_revenue_calculated <- all_revenue_final %>%
+  mutate(Value = case_when(
+    Tab == "FARM" ~ `Total Weight` * `Carcass Price`,
+    Tab %in% c("BONE", "KILL") ~ Units * Fee,
+    TRUE ~ NA_real_))
+```
+
+## Write down the file
+
+```{r}
+write.csv(all_revenue_calculated, "GL_DB Template.csv", row.names = FALSE)
+```
+
+# Extra Debugging Code
+
+### Check whether Unit x Avg Weight = Total Weight for every Unicode (result should only return TRUE and NA for check column)
+
+```{r}
+check_1 <- all_revenue_new %>%
+  mutate(check = round(Units * `Avg Weight`, 2) == round(`Total Weight`, 2)) 
+check_1
+```
+
+### Check whether the same item has different Item Code (must return 0)
+
+```{r}
+check_2 <- volume_farm_raw %>%
+  mutate(
+    Unicode = toupper(Unicode),
+    Abattoir = toupper(Abattoir),
+    Month = toupper(Month),
+    Tab = toupper(Tab)
+  ) %>%
+  group_by(Unicode, Abattoir, Month, Tab) %>%
+  summarise(n_item_codes = n_distinct(`Item Code`), .groups = "drop") %>%
+  filter(n_item_codes > 1)
+check_2
+```
+
+### Checking Unmatched Customers (the result should ideally return 0)
+
+```{r}
+all_captured <- bind_rows(
+  farm_sales_400000_10001812,
+  farm_sales_400028_10001812,
+  meat_sales_kill_400000_10201816,
+  meat_sales_kill_400028_10201816,
+  meat_sales_boning_400000_11901816,
+  meat_sales_boning_400028_11901816,
+  meat_sales_boxed_meat_400000_10501816,
+  meat_sales_boxed_meat_400028_10501816,
+  meat_sales_400000_10001814,
+  laverton_sales_kill_400000_10201854,
+  laverton_sales_kill_400028_10201854,
+  laverton_sales_boning_400000_11901854,
+  laverton_sales_boning_400028_11901854,
+  laverton_sales_boxed_meat_400000_10501854,
+  laverton_sales_boxed_meat_400028_10501854
+)
+check_3 <- customer_data %>%
+  anti_join(all_captured, by = names(customer_data))
+check_3
+```
