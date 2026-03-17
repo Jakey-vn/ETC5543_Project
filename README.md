@@ -16,6 +16,8 @@ The main output is `GL_DB Template.csv`, structured for GL database input.
 | `Prices.xlsb` | Carcass Price, Bone Fee, Kill Fee by period |
 | `Master Data..xlsx` | GL & CC account mappings and customer data |
 
+> **Note on excluded files:** All raw data files and output files (including `GL_DB Template.csv`) are intentionally excluded from this repository. This project is developed within the Finance Team and these files contain sensitive and confidential company financial data. Publishing them is strictly prohibited. Only the code and logic are shared here.
+
 ## How to Run
 1. Open `Financial Calculating.qmd` in RStudio
 2. Ensure all data source files are placed in the correct path
