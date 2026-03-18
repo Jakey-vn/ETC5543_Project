@@ -58,12 +58,14 @@ volume_va_raw <- volume_raw %>%
   filter(`...2` == "3.Meat Sales") %>%
   select(1:23)
 
+# Assign names for each separate data
 colnames(volume_farm_raw) <- c("Unicode", "Tab", "Week", "Month", "Year", "Abattoir", "Service", "Int/Ext", "Vendor Type", "Customer Code", "Customer name", "Item type", "Item Code", "Item Description", "Run", "Storage", "Type", "Group", "Primal", "Units", "Avg Weight", "Total Weight", "Production check")
 
 colnames(volume_bone_raw) <- c("Unicode", "Tab", "Week", "Month", "Year", "Abattoir", "Service", "Int/Ext", "Vendor Type", "Customer Code", "Customer name", "Item type", "Item Code", "Item Description", "Run", "Storage", "Type", "Group", "Primal", "Units", "Avg Weight", "Total Weight", "Production check")
 
 colnames(volume_va_raw)   <- c("Unicode", "Tab", "Week", "Month", "Year", "Abattoir", "Service", "Int/Ext", "Vendor Type", "Customer Code", "Customer name", "Item type", "Item Code", "Item Description", "Run", "Storage", "Type", "Group", "Primal", "Units", "Avg Weight", "Total Weight", "Production check")
 
+# Remove duplicated Item to prevent potential error in the future
 item_price_data <- item_price_data %>%
   select(-`Item Description`) %>%
   mutate(`Item Key` = str_trim(`Item Key`)) %>%
@@ -522,6 +524,8 @@ inedible_offal_sales_400000_10801854_new <- inedible_offal_sales_400000_10801854
   crossing(Period = 1:12)
 ```
 
+# Commodity Data (Boxed Meat Floor)
+
 # Farm Data Final Stage
 
 ## Join all prepared data together to create the main data
@@ -704,7 +708,7 @@ volume_bone_valued <- volume_bone_raw %>%
   ) %>%
   mutate(Value = `Total Weight` * `Current Price`)
 
-
+# Group value for Corowa and filter out unrelevant data for Offal Data
 volume_bone_offal_corowa <- volume_bone_valued %>%
   mutate(Type = toupper(Type)) %>%
   filter(toupper(Abattoir) == "COROWA") %>%
@@ -734,6 +738,7 @@ volume_bone_offal_corowa <- volume_bone_valued %>%
     .groups = "drop"
   )
 
+# Group value for Corowa and filter out unrelevant data for Offal Data and apply special discount for Laverton since this site ship the offal to Lineage whom charge a special discount which is also the reason why Corowa and Laverton was splitted
 volume_bone_offal_laverton <- volume_bone_valued %>%
   mutate(Type = toupper(Type)) %>%
   filter(toupper(Abattoir) == "LAVERTON") %>%
@@ -764,6 +769,7 @@ volume_bone_offal_laverton <- volume_bone_valued %>%
   ) %>%
   mutate(Value = if_else(`Customer Group` == "Edible Offal", Value - 0.51 * `Total Weight`, Value))
 
+# Combine Laverton and Corowa 
 volume_bone_offal <- bind_rows(volume_bone_offal_corowa, volume_bone_offal_laverton)
 
 # Join item-level volume + value into the bone revenue data on BU + Abattoir + Month
