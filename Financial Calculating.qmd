@@ -64,8 +64,12 @@ colnames(volume_bone_raw) <- c("Unicode", "Tab", "Week", "Month", "Year", "Abatt
 
 colnames(volume_va_raw)   <- c("Unicode", "Tab", "Week", "Month", "Year", "Abattoir", "Service", "Int/Ext", "Vendor Type", "Customer Code", "Customer name", "Item type", "Item Code", "Item Description", "Run", "Storage", "Type", "Group", "Primal", "Units", "Avg Weight", "Total Weight", "Production check")
 
-item_price_data <- item_price_data %>% 
-  select(-`Item Description`)
+item_price_data <- item_price_data %>%
+  select(-`Item Description`) %>%
+  mutate(`Item Key` = str_trim(`Item Key`)) %>%
+  group_by(`Item Key`) %>%
+  slice(1) %>%
+  ungroup()
 ```
 
 # Revenue Data
@@ -691,19 +695,21 @@ volume_bone_valued <- volume_bone_raw %>%
     Abattoir    = toupper(Abattoir),
     Month       = toupper(Month),
     Units       = as.numeric(Units),
+    `Total Weight` = as.numeric(`Total Weight`),
     `Item Code` = str_trim(`Item Code`)
   ) %>%
   left_join(
-    item_price_data %>%
-      mutate(`Item Key` = str_trim(`Item Key`)),
+    item_price_data,
     by = c("Item Code" = "Item Key")
   ) %>%
-  mutate(Value = Units * `Current Price`)
+  mutate(Value = `Total Weight` * `Current Price`)
 
 
-volume_bone_offal <- volume_bone_valued %>%
+volume_bone_offal_corowa <- volume_bone_valued %>%
   mutate(Type = toupper(Type)) %>%
-  filter(Type %in% c("INEDIBLE", "OFFALS")) %>%
+  filter(toupper(Abattoir) == "COROWA") %>%
+  filter(Type %in% c("INEDIBLE", "OFFALS", "BACON CUTS")) %>%
+  filter(toupper(Run) == "TOTAL KILL") %>%
   mutate(
     Unicode           = toupper(Unicode),
     Abattoir          = toupper(Abattoir),
@@ -713,12 +719,13 @@ volume_bone_offal <- volume_bone_valued %>%
     `Avg Weight`      = as.numeric(`Avg Weight`),
     `Total Weight`    = as.numeric(`Total Weight`),
     `Customer Group`  = case_when(
-      Type == "INEDIBLE" ~ "Inedible Offal",
-      Type == "OFFALS"   ~ "Edible Offal",
+      Type == "INEDIBLE"    ~ "Inedible Offal",
+      Type == "OFFALS"      ~ "Edible Offal",
+      Type == "BACON CUTS"  ~ "Edible Offal",
       TRUE ~ NA_character_
     )
   ) %>%
-  group_by(Tab, Abattoir, Month, `Customer Group`) %>%
+  group_by(Tab, Abattoir, Month, `Customer Group`, `Customer name`) %>%
   summarise(
     Units          = sum(Units, na.rm = TRUE),
     `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
@@ -726,6 +733,38 @@ volume_bone_offal <- volume_bone_valued %>%
     Value          = sum(Value, na.rm = TRUE),
     .groups = "drop"
   )
+
+volume_bone_offal_laverton <- volume_bone_valued %>%
+  mutate(Type = toupper(Type)) %>%
+  filter(toupper(Abattoir) == "LAVERTON") %>%
+  filter(Type %in% c("INEDIBLE", "OFFALS", "BACON CUTS")) %>%
+  filter(toupper(Run) == "TOTAL KILL") %>%
+  mutate(
+    Unicode           = toupper(Unicode),
+    Abattoir          = toupper(Abattoir),
+    Month             = toupper(Month),
+    Tab               = toupper(Tab),
+    Units             = as.numeric(Units),
+    `Avg Weight`      = as.numeric(`Avg Weight`),
+    `Total Weight`    = as.numeric(`Total Weight`),
+    `Customer Group`  = case_when(
+      Type == "INEDIBLE"    ~ "Inedible Offal",
+      Type == "OFFALS"      ~ "Edible Offal",
+      Type == "BACON CUTS"  ~ "Edible Offal",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  group_by(Tab, Abattoir, Month, `Customer Group`, `Customer name`) %>%
+  summarise(
+    Units          = sum(Units, na.rm = TRUE),
+    `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
+    `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+    Value          = sum(Value, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(Value = if_else(`Customer Group` == "Edible Offal", Value - 0.51 * `Total Weight`, Value))
+
+volume_bone_offal <- bind_rows(volume_bone_offal_corowa, volume_bone_offal_laverton)
 
 # Join item-level volume + value into the bone revenue data on BU + Abattoir + Month
 all_revenue_bone_calculated <- all_revenue_bone_std %>%
@@ -805,15 +844,22 @@ check_3
 ```{r}
 Corowa_edible_check <- volume_bone_valued %>%
   filter(Abattoir == "COROWA") %>%
-  filter(Type %in% c("OFFALS")) 
+  mutate(Type = toupper(Type)) %>%
+  filter(Type %in% c("INEDIBLE", "OFFALS", "BACON CUTS")) %>%
+  filter(toupper(Run) == "TOTAL KILL")
+
+Laverton_edible_check <- volume_bone_valued %>%
+  filter(Abattoir == "LAVERTON") %>%
+  mutate(Type = toupper(Type)) %>%
+  filter(Type %in% c("INEDIBLE", "OFFALS", "BACON CUTS")) %>%
+  filter(toupper(Run) == "TOTAL KILL")
 ```
 
 ```{r}
 write.csv(Corowa_edible_check, "Corowa_edible_check.csv", row.names = FALSE)
+write.csv(Laverton_edible_check, "Laverton_edible_check.csv", row.names = FALSE)
 ```
 
 ```{r}
-all_revenue_farm %>%
-  filter(str_detect(tolower(`Customer name`), "commodity"))
-
+check_data <- read_csv("GL_DB Template.csv")
 ```
