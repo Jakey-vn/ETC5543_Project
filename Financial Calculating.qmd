@@ -33,6 +33,7 @@ volume_raw <- read_excel(
 carcass_price_data <- wb_to_df("C:/Users/ATran2/OneDrive - JBS/Forecast Project - Documents/Prices.xlsb", sheet = "Carcass Price")
 bone_fee_data <- wb_to_df("C:/Users/ATran2/OneDrive - JBS/Forecast Project - Documents/Prices.xlsb", sheet = "Bone Fee")
 kill_fee_data <- wb_to_df("C:/Users/ATran2/OneDrive - JBS/Forecast Project - Documents/Prices.xlsb", sheet = "Kill Fee")
+item_price_data <- wb_to_df("C:/Users/ATran2/OneDrive - JBS/Forecast Project - Documents/Prices.xlsb", sheet = "BM PRice")
 gl_cc_data <- read_excel("C:/Users/ATran2/OneDrive - JBS/Forecast Project - Documents/Master Data..xlsx", sheet = "GL & CC")
 customer_data <- read_excel("C:/Users/ATran2/OneDrive - JBS/Forecast Project - Documents/Master Data..xlsx", sheet = "Customer")
 ```
@@ -62,6 +63,9 @@ colnames(volume_farm_raw) <- c("Unicode", "Tab", "Week", "Month", "Year", "Abatt
 colnames(volume_bone_raw) <- c("Unicode", "Tab", "Week", "Month", "Year", "Abattoir", "Service", "Int/Ext", "Vendor Type", "Customer Code", "Customer name", "Item type", "Item Code", "Item Description", "Run", "Storage", "Type", "Group", "Primal", "Units", "Avg Weight", "Total Weight", "Production check")
 
 colnames(volume_va_raw)   <- c("Unicode", "Tab", "Week", "Month", "Year", "Abattoir", "Service", "Int/Ext", "Vendor Type", "Customer Code", "Customer name", "Item type", "Item Code", "Item Description", "Run", "Storage", "Type", "Group", "Primal", "Units", "Avg Weight", "Total Weight", "Production check")
+
+item_price_data <- item_price_data %>% 
+  select(-`Item Description`)
 ```
 
 # Revenue Data
@@ -443,7 +447,7 @@ laverton_sales_boxed_meat_400028_10501854_new <- laverton_sales_boxed_meat_40002
 edible_offal_sales_400000_10001816 <- customer_data %>% 
   filter(`BU` == "2.Meat Processing") %>% 
   filter(Tab == "Kill") %>% 
-  filter(`Floor` == "Kill Floor") %>% 
+  filter(`Floor` == "Kill") %>% 
   filter(`Customer Group` == "Edible Offal")
 
 edible_offal_sales_400000_10001816_new <- edible_offal_sales_400000_10001816 %>%
@@ -462,7 +466,7 @@ edible_offal_sales_400000_10001816_new <- edible_offal_sales_400000_10001816 %>%
 inedible_offal_sales_400000_10801816 <- customer_data %>% 
   filter(`BU` == "2.Meat Processing") %>% 
   filter(Tab == "Kill") %>% 
-  filter(`Floor` == "Kill Floor") %>% 
+  filter(`Floor` == "Kill") %>% 
   filter(`Customer Group` == "Inedible Offal")
 
 inedible_offal_sales_400000_10801816_new <- inedible_offal_sales_400000_10801816 %>%
@@ -483,7 +487,7 @@ inedible_offal_sales_400000_10801816_new <- inedible_offal_sales_400000_10801816
 edible_offal_sales_400028_10001854 <- customer_data %>% 
   filter(`BU` == "6.Laverton Processing") %>% 
   filter(Tab == "Kill") %>% 
-  filter(`Floor` == "Kill Floor") %>% 
+  filter(`Floor` == "Kill") %>% 
   filter(`Customer Group` == "Edible Offal")
 
 edible_offal_sales_400028_10001854_new <- edible_offal_sales_400028_10001854 %>%
@@ -502,7 +506,7 @@ edible_offal_sales_400028_10001854_new <- edible_offal_sales_400028_10001854 %>%
 inedible_offal_sales_400000_10801854 <- customer_data %>% 
   filter(`BU` == "6.Laverton Processing") %>% 
   filter(Tab == "Kill") %>% 
-  filter(`Floor` == "Kill Floor") %>% 
+  filter(`Floor` == "Kill") %>% 
   filter(`Customer Group` == "Inedible Offal")
 
 inedible_offal_sales_400000_10801854_new <- inedible_offal_sales_400000_10801854 %>%
@@ -514,7 +518,7 @@ inedible_offal_sales_400000_10801854_new <- inedible_offal_sales_400000_10801854
   crossing(Period = 1:12)
 ```
 
-# Final Stage
+# Farm Data Final Stage
 
 ## Join all prepared data together to create the main data
 
@@ -536,12 +540,6 @@ all_revenue_farm <- bind_rows(
   laverton_sales_boxed_meat_400000_10501854_new,
   laverton_sales_boxed_meat_400028_10501854_new
   )
-all_revenue_bone <- bind_rows(
-  edible_offal_sales_400000_10001816_new,
-  inedible_offal_sales_400000_10801816_new,
-  edible_offal_sales_400028_10001854_new,
-  inedible_offal_sales_400000_10801854_new
-  )
 ```
 
 ## Some changes to the main data based on guidance
@@ -558,7 +556,7 @@ all_revenue_farm <- all_revenue_farm %>%
   )) %>%
   mutate(Month = month.name[Period]) %>%
   mutate(`Customer Group` = if_else(`Customer Group` == "Wangarrata", "Wangaratta", `Customer Group`)) %>%  # fix typo
-  filter(!(toupper(Abattoir) == "LAVERTON" & Tab == "Kill" & str_detect(`Customer name`, "6Way|Commodity")))  # remove intercompany rows already captured elsewhere
+filter(!(toupper(Abattoir) == "LAVERTON" & Tab == "Kill" & str_detect(toupper(`Customer name`), "6WAY|COMMODITY"))) #Temporarily special condition
 ```
 
 ## Join Volume and Weight to the Main Data
@@ -598,49 +596,15 @@ all_revenue_farm_new <- all_revenue_farm_std %>%
       ),
     by = c("SOP Unicode" = "Unicode", "Abattoir", "Month", "Tab")
   )
-
-# Pre-standardise keys once
-all_revenue_bone_std <- all_revenue_bone %>%
-  mutate(
-    `SOP Unicode` = toupper(`SOP Unicode`),
-    BU            = toupper(BU),
-    Abattoir      = toupper(Abattoir),
-    Month         = toupper(month.name[Period])
-  )
-
-# Join volume_bone_raw on BU + Abattoir + Month
-all_revenue_bone_new <- all_revenue_bone_std %>%
-  left_join(
-    volume_bone_raw %>%
-      mutate(
-        Tab            = toupper(Tab),
-        Abattoir       = toupper(Abattoir),
-        Month          = toupper(Month),
-        Units          = as.numeric(Units),
-        `Avg Weight`   = as.numeric(`Avg Weight`),
-        `Total Weight` = as.numeric(`Total Weight`)
-      ) %>%
-      group_by(Tab, Abattoir, Month) %>%
-      summarise(
-        `Item Code`    = first(`Item Code`),
-        Units          = sum(Units, na.rm = TRUE),
-        `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
-        `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
-        .groups = "drop"
-      ),
-    by = c("BU" = "Tab", "Abattoir", "Month")
-  )
-
-all_revenue_new <- bind_rows(all_revenue_farm_new, all_revenue_bone_new)
 ```
 
 ## Join Price to the Main Data
 
 ```{r}
 # Split by Tab to apply the correct price source for each type
-all_revenue_final <- bind_rows(
+all_revenue_farm_final <- bind_rows(
   # Join Farm Tab to Carcass Price, add condition: FCOROWAWoolworths inherits price from FEXTERNALBig River Pork - Coles
-  all_revenue_new %>%
+  all_revenue_farm_new %>%
     mutate(`SOP Unicode` = str_trim(`SOP Unicode`)) %>%
     filter(Tab == "FARM") %>%
     left_join(
@@ -656,7 +620,7 @@ all_revenue_final <- bind_rows(
       by = c("SOP Unicode" = "Farm Unicode", "Abattoir", "Period")
     ),
   # Join Bone Tab to Fee Data
-  all_revenue_new %>%
+  all_revenue_farm_new %>%
     mutate(`SOP Unicode` = str_trim(`SOP Unicode`)) %>%
     filter(Tab == "BONE") %>%
     left_join(
@@ -668,7 +632,7 @@ all_revenue_final <- bind_rows(
       by = c("SOP Unicode", "Abattoir", "Period")
     ),
   # join Kill tab to Fee Data 
-  all_revenue_new %>%
+  all_revenue_farm_new %>%
     mutate(`SOP Unicode` = str_trim(`SOP Unicode`)) %>%
     filter(Tab == "KILL") %>%
     left_join(
@@ -680,7 +644,7 @@ all_revenue_final <- bind_rows(
       by = c("SOP Unicode", "Abattoir", "Period")
     ),
   # All other Tab types — no price applied
-  all_revenue_new %>%
+  all_revenue_farm_new %>%
     filter(is.na(Tab) | !Tab %in% c("FARM", "BONE", "KILL"))
 )
 ```
@@ -689,17 +653,98 @@ all_revenue_final <- bind_rows(
 
 ```{r}
 # Farm: Total Weight x Carcass Price | Bone/Kill: Units x Fee
-all_revenue_calculated <- all_revenue_final %>%
+all_revenue_farm_calculated <- all_revenue_farm_final %>%
   mutate(Value = case_when(
     Tab == "FARM" ~ `Total Weight` * `Carcass Price`,
     Tab %in% c("BONE", "KILL") ~ Units * Fee,
     TRUE ~ NA_real_))
 ```
 
-## Write down the file
+# Bone Data Final Stage
+
+## Join all data to create main data
 
 ```{r}
-write.csv(all_revenue_calculated, "GL_DB Template.csv", row.names = FALSE)
+all_revenue_bone <- bind_rows(
+  edible_offal_sales_400000_10001816_new,
+  inedible_offal_sales_400000_10801816_new,
+  edible_offal_sales_400028_10001854_new,
+  inedible_offal_sales_400000_10801854_new
+  )
+# Pre-standardise keys once
+all_revenue_bone_std <- all_revenue_bone %>%
+  mutate(
+    `SOP Unicode` = toupper(`SOP Unicode`),
+    BU            = toupper(BU),
+    Abattoir      = toupper(Abattoir),
+    Month         = toupper(month.name[Period])
+  )
+```
+
+## Join Price Data to Volume Data for Bone Data in order to calculate the value for each item
+
+```{r}
+# Join volume_bone_raw with item_price_data on Item Code, calculate Value per item, then aggregate by BU/Abattoir/Month
+volume_bone_valued <- volume_bone_raw %>%
+  mutate(
+    Tab         = toupper(Tab),
+    Abattoir    = toupper(Abattoir),
+    Month       = toupper(Month),
+    Units       = as.numeric(Units),
+    `Item Code` = str_trim(`Item Code`)
+  ) %>%
+  left_join(
+    item_price_data %>%
+      mutate(`Item Key` = str_trim(`Item Key`)),
+    by = c("Item Code" = "Item Key")
+  ) %>%
+  mutate(Value = Units * `Current Price`)
+
+
+volume_bone_offal <- volume_bone_valued %>%
+  mutate(Type = toupper(Type)) %>%
+  filter(Type %in% c("INEDIBLE", "OFFALS")) %>%
+  mutate(
+    Unicode           = toupper(Unicode),
+    Abattoir          = toupper(Abattoir),
+    Month             = toupper(Month),
+    Tab               = toupper(Tab),
+    Units             = as.numeric(Units),
+    `Avg Weight`      = as.numeric(`Avg Weight`),
+    `Total Weight`    = as.numeric(`Total Weight`),
+    `Customer Group`  = case_when(
+      Type == "INEDIBLE" ~ "Inedible Offal",
+      Type == "OFFALS"   ~ "Edible Offal",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  group_by(Tab, Abattoir, Month, `Customer Group`) %>%
+  summarise(
+    Units          = sum(Units, na.rm = TRUE),
+    `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
+    `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+    Value          = sum(Value, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Join item-level volume + value into the bone revenue data on BU + Abattoir + Month
+all_revenue_bone_calculated <- all_revenue_bone_std %>%
+  left_join(
+    volume_bone_offal,
+    by = c("BU" = "Tab", "Abattoir", "Month", "Customer Group")
+  )
+```
+
+# Join all final data together
+
+```{r}
+final_file <- bind_rows(all_revenue_bone_calculated, all_revenue_farm_calculated)
+```
+
+# Write down the file
+
+```{r}
+write.csv(final_file, "GL_DB Template.csv", row.names = FALSE)
 ```
 
 # Extra Debugging Code
@@ -707,7 +752,7 @@ write.csv(all_revenue_calculated, "GL_DB Template.csv", row.names = FALSE)
 ### Check whether Unit x Avg Weight = Total Weight for every Unicode (result should only return TRUE and NA for check column)
 
 ```{r}
-check_1 <- all_revenue_new %>%
+check_1 <- all_revenue_farm_new %>%
   mutate(check = round(Units * `Avg Weight`, 2) == round(`Total Weight`, 2)) 
 check_1
 ```
@@ -746,7 +791,11 @@ all_captured <- bind_rows(
   laverton_sales_boning_400000_11901854,
   laverton_sales_boning_400028_11901854,
   laverton_sales_boxed_meat_400000_10501854,
-  laverton_sales_boxed_meat_400028_10501854
+  laverton_sales_boxed_meat_400028_10501854,
+  edible_offal_sales_400000_10001816_new,
+  inedible_offal_sales_400000_10801816_new,
+  edible_offal_sales_400028_10001854_new,
+  inedible_offal_sales_400000_10801854_new
 )
 check_3 <- customer_data %>%
   anti_join(all_captured, by = names(customer_data))
@@ -754,20 +803,17 @@ check_3
 ```
 
 ```{r}
-testing <- all_revenue_new %>%
-  filter(`Customer Group` %in% c("Edible Offal", "Inedible Offal")) %>%
-  print(n = Inf)
-
+Corowa_edible_check <- volume_bone_valued %>%
+  filter(Abattoir == "COROWA") %>%
+  filter(Type %in% c("OFFALS")) 
 ```
 
 ```{r}
-testing <- volume_bone_raw %>%
-      mutate(
-        Tab            = toupper(Tab),
-        Abattoir       = toupper(Abattoir),
-        Month          = toupper(Month),
-        Units          = as.numeric(Units),
-        `Avg Weight`   = as.numeric(`Avg Weight`),
-        `Total Weight` = as.numeric(`Total Weight`)
-      )
+write.csv(Corowa_edible_check, "Corowa_edible_check.csv", row.names = FALSE)
+```
+
+```{r}
+all_revenue_farm %>%
+  filter(str_detect(tolower(`Customer name`), "commodity"))
+
 ```
