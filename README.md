@@ -8,7 +8,7 @@ The main output is `GL_DB Template.csv`, structured for GL database input.
 ## Files
 - `Financial Calculating.qmd` - Main Quarto script containing all data processing and calculation logic
 - `GL_DB Template.csv` - Output file generated after running the script
-- `Data Template.xlsx` - A sample template to help readers understand the structure of the data used to build the database. Note that due to the complexity of the data, various conditions and filtering rules are applied throughout the project code — the raw data alone does not reflect all the logic involved.
+- `Data Template.xlsx` - A sample template to help readers understand the structure of the data used to build the database. Note that due to the complexity of the data, various conditions and filtering rules are applied throughout the project code - the raw data alone does not reflect all the logic involved.
 
 ## Data Sources (not included in repo)
 | File | Description |

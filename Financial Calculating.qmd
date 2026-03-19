@@ -526,9 +526,148 @@ inedible_offal_sales_400000_10801854_new <- inedible_offal_sales_400000_10801854
 
 # Commodity Data (Boxed Meat Floor)
 
-# Farm Data Final Stage
+## Commodity Data Corowa
 
-## Join all prepared data together to create the main data
+### Corowa 6Way Data Frozen (400000-10501816)
+
+```{r}
+# Sales — external customers for corowa 6way frozen products
+corowa_6way_frz_400000_10501816 <- customer_data %>% 
+  filter(`BU` == "2.Meat Processing") %>% 
+  filter(`Floor` == "Boxed Meat") %>% 
+  filter(`Customer Group` == "6 Way") %>% 
+  filter(`Sales Type` == "FRZ")
+
+corowa_6way_frz_400000_10501816_new <- corowa_6way_frz_400000_10501816 %>%
+  left_join(
+    gl_cc_data %>% filter(`GL Account` == 400000, `Cc Key` == 10501816),
+    by = c("BU" = "BU")
+  ) %>% 
+  # Add Month columns for future use
+  crossing(Period = 1:12)
+```
+
+### Corowa Commodity Data Frozen (400000-10501816)
+
+```{r}
+# Sales — external customers for corowa 6way frozen products
+corowa_commodity_frz_400000_10501816 <- customer_data %>% 
+  filter(`BU` == "2.Meat Processing") %>% 
+  filter(`Floor` == "Boxed Meat") %>% 
+  filter(`Customer Group` == "Commodity") %>% 
+  filter(`Sales Type` == "FRZ")
+
+corowa_commodity_frz_400000_10501816_new <- corowa_commodity_frz_400000_10501816 %>%
+  left_join(
+    gl_cc_data %>% filter(`GL Account` == 400000, `Cc Key` == 10501816),
+    by = c("BU" = "BU")
+  ) %>% 
+  # Add Month columns for future use
+  crossing(Period = 1:12)
+```
+
+### Corowa Commodity Data Frozen (400028-10501816) (equivalent to VA sales)
+
+```{r}
+# Sales — Intercompany as those products are transfering to VA 
+corowa_commodity_frz_400028_10501816 <- customer_data %>% 
+  filter(`BU` == "2.Meat Processing") %>% 
+  filter(`Floor` == "Boxed Meat") %>% 
+  filter(`Customer Group` == "Commodity") %>% 
+  filter(`Sales Type` == "FRZ")
+
+corowa_commodity_frz_400028_10501816_new <- corowa_commodity_frz_400028_10501816 %>%
+  left_join(
+    gl_cc_data %>% filter(`GL Account` == 400028, `Cc Key` == 10501816),
+    by = c("BU" = "BU")
+  ) %>% 
+  # Add Month columns for future use
+  crossing(Period = 1:12)
+```
+
+## Commodity Data Laverton
+
+### Laverton 6Way Data Frozen (400028-10501854)
+
+```{r}
+# Sales — Intercompany as those products are transfering to corowa 
+laverton_6way_frz_400028_10501854 <- customer_data %>% 
+  filter(`BU` == "6.Laverton Processing") %>% 
+  filter(`Floor` == "Boxed Meat") %>% 
+  filter(`Customer Group` == "6 Way") %>% 
+  filter(`Sales Type` == "FRZ")
+
+laverton_6way_frz_400028_10501854_new <- laverton_6way_frz_400028_10501854 %>%
+  left_join(
+    gl_cc_data %>% filter(`GL Account` == 400028, `Cc Key` == 10501854),
+    by = c("BU" = "BU")
+  ) %>% 
+  # Add Month columns for future use
+  crossing(Period = 1:12)
+```
+
+### Laverton Sow Data Frozen (400000-10501854)
+
+```{r}
+# Sales — external customers for corowa 6way frozen products - Only Laverton has Sow account
+laverton_6way_frz_400000_10501854 <- customer_data %>% 
+  filter(`BU` == "6.Laverton Processing") %>% 
+  filter(`Floor` == "Boxed Meat") %>% 
+  filter(`Customer Group` == "Sow") %>% 
+  filter(`Sales Type` == "FRZ")
+
+laverton_6way_frz_400000_10501854_new <- laverton_6way_frz_400000_10501854 %>%
+  left_join(
+    gl_cc_data %>% filter(`GL Account` == 400000, `Cc Key` == 10501854),
+    by = c("BU" = "BU")
+  ) %>% 
+  # Add Month columns for future use
+  crossing(Period = 1:12)
+```
+
+### Laverton Commodity Data Frozen (400028-10501854)
+
+```{r}
+# Sales — Intercompany since the product will be frozen before moving to Corowa
+laverton_commodity_frz_400028_10501854 <- customer_data %>% 
+  filter(`BU` == "6.Laverton Processing") %>% 
+  filter(`Floor` == "Boxed Meat") %>% 
+  filter(`Customer Group` == "Commodity") %>% 
+  filter(`Sales Type` == "FRZ")
+
+laverton_commodity_frz_400028_10501854_new <- laverton_commodity_frz_400028_10501854 %>%
+  left_join(
+    gl_cc_data %>% filter(`GL Account` == 400028, `Cc Key` == 10501854),
+    by = c("BU" = "BU")
+  ) %>% 
+  # Add Month columns for future use
+  crossing(Period = 1:12)
+```
+
+### Laverton Commodity Data Chilled (400000-10501854)
+
+```{r}
+# Sales — external customers for laverton commodity chilled products
+laverton_commodity_chil_400000_10501854 <- customer_data %>% 
+  filter(`BU` == "6.Laverton Processing") %>% 
+  filter(`Floor` == "Boxed Meat") %>% 
+  filter(`Customer Group` == "Commodity") %>% 
+  filter(`Sales Type` == "Chil")
+
+laverton_commodity_chil_400000_10501854_new <- laverton_commodity_chil_400000_10501854 %>%
+  left_join(
+    gl_cc_data %>% filter(`GL Account` == 400000, `Cc Key` == 10501854),
+    by = c("BU" = "BU")
+  ) %>% 
+  # Add Month columns for future use
+  crossing(Period = 1:12)
+```
+
+# Final Stage: Join data, apply calculation and apply special condition for each specific data
+
+## Farm Data
+
+### Join all prepared data together to create the main data
 
 ```{r}
 all_revenue_farm <- bind_rows(
@@ -550,7 +689,7 @@ all_revenue_farm <- bind_rows(
   )
 ```
 
-## Some changes to the main data based on guidance
+### Some changes to the main data based on guidance
 
 ```{r}
 # Here are some special conditions, filtering that i applied due to guidance from my manager, some are only tempotarily, some are because of the way data was recorded (unwanted data get in the way so those data need to be filter out)
@@ -564,10 +703,10 @@ all_revenue_farm <- all_revenue_farm %>%
   )) %>%
   mutate(Month = month.name[Period]) %>%
   mutate(`Customer Group` = if_else(`Customer Group` == "Wangarrata", "Wangaratta", `Customer Group`)) %>%  # fix typo
-filter(!(toupper(Abattoir) == "LAVERTON" & Tab == "Kill" & str_detect(toupper(`Customer name`), "6WAY|COMMODITY"))) #Temporarily special condition
+filter(!(toupper(Abattoir) == "LAVERTON" & Tab == "Kill" & str_detect(toupper(`Customer name`), "6WAY|COMMODITY"))) # Temporarily special condition
 ```
 
-## Join Volume and Weight to the Main Data
+### Join Volume and Weight to the Main Data
 
 ```{r}
 # Pre-standardise keys once
@@ -606,7 +745,7 @@ all_revenue_farm_new <- all_revenue_farm_std %>%
   )
 ```
 
-## Join Price to the Main Data
+### Join Price to the Main Data
 
 ```{r}
 # Split by Tab to apply the correct price source for each type
@@ -657,7 +796,7 @@ all_revenue_farm_final <- bind_rows(
 )
 ```
 
-## Calculation for Value by Weight x Carcass Price
+### Calculation for Value by Weight x Carcass Price
 
 ```{r}
 # Farm: Total Weight x Carcass Price | Bone/Kill: Units x Fee
@@ -668,32 +807,11 @@ all_revenue_farm_calculated <- all_revenue_farm_final %>%
     TRUE ~ NA_real_))
 ```
 
-# Bone Data Final Stage
-
-## Join all data to create main data
-
-```{r}
-all_revenue_bone <- bind_rows(
-  edible_offal_sales_400000_10001816_new,
-  inedible_offal_sales_400000_10801816_new,
-  edible_offal_sales_400028_10001854_new,
-  inedible_offal_sales_400000_10801854_new
-  )
-# Pre-standardise keys once
-all_revenue_bone_std <- all_revenue_bone %>%
-  mutate(
-    `SOP Unicode` = toupper(`SOP Unicode`),
-    BU            = toupper(BU),
-    Abattoir      = toupper(Abattoir),
-    Month         = toupper(month.name[Period])
-  )
-```
-
 ## Join Price Data to Volume Data for Bone Data in order to calculate the value for each item
 
 ```{r}
 # Join volume_bone_raw with item_price_data on Item Code, calculate Value per item, then aggregate by BU/Abattoir/Month
-volume_bone_valued <- volume_bone_raw %>%
+volume_bone_price_calculated <- volume_bone_raw %>%
   mutate(
     Tab         = toupper(Tab),
     Abattoir    = toupper(Abattoir),
@@ -707,9 +825,34 @@ volume_bone_valued <- volume_bone_raw %>%
     by = c("Item Code" = "Item Key")
   ) %>%
   mutate(Value = `Total Weight` * `Current Price`)
+```
 
+## Offal Data from Bone Data
+
+### Join all data to create main data
+
+```{r}
+all_revenue_offal_data <- bind_rows(
+  edible_offal_sales_400000_10001816_new,
+  inedible_offal_sales_400000_10801816_new,
+  edible_offal_sales_400028_10001854_new,
+  inedible_offal_sales_400000_10801854_new
+  )
+# Pre-standardise keys once
+all_revenue_offal_data_std <- all_revenue_offal_data %>%
+  mutate(
+    `SOP Unicode` = toupper(`SOP Unicode`),
+    BU            = toupper(BU),
+    Abattoir      = toupper(Abattoir),
+    Month         = toupper(month.name[Period])
+  )
+```
+
+### Filter calculated bone data for offal data
+
+```{r}
 # Group value for Corowa and filter out unrelevant data for Offal Data
-volume_bone_offal_corowa <- volume_bone_valued %>%
+volume_offal_corowa <- volume_bone_price_calculated %>%
   mutate(Type = toupper(Type)) %>%
   filter(toupper(Abattoir) == "COROWA") %>%
   filter(Type %in% c("INEDIBLE", "OFFALS", "BACON CUTS")) %>%
@@ -739,7 +882,7 @@ volume_bone_offal_corowa <- volume_bone_valued %>%
   )
 
 # Group value for Corowa and filter out unrelevant data for Offal Data and apply special discount for Laverton since this site ship the offal to Lineage whom charge a special discount which is also the reason why Corowa and Laverton was splitted
-volume_bone_offal_laverton <- volume_bone_valued %>%
+volume_offal_laverton <- volume_bone_price_calculated %>%
   mutate(Type = toupper(Type)) %>%
   filter(toupper(Abattoir) == "LAVERTON") %>%
   filter(Type %in% c("INEDIBLE", "OFFALS", "BACON CUTS")) %>%
@@ -770,20 +913,233 @@ volume_bone_offal_laverton <- volume_bone_valued %>%
   mutate(Value = if_else(`Customer Group` == "Edible Offal", Value - 0.51 * `Total Weight`, Value))
 
 # Combine Laverton and Corowa 
-volume_bone_offal <- bind_rows(volume_bone_offal_corowa, volume_bone_offal_laverton)
+volume_offal_combined <- bind_rows(volume_offal_corowa, volume_offal_laverton)
 
 # Join item-level volume + value into the bone revenue data on BU + Abattoir + Month
-all_revenue_bone_calculated <- all_revenue_bone_std %>%
+all_revenue_offal_data_calculated <- all_revenue_offal_data_std %>%
   left_join(
-    volume_bone_offal,
+    volume_offal_combined,
     by = c("BU" = "Tab", "Abattoir", "Month", "Customer Group")
   )
 ```
 
-# Join all final data together
+## 6Way and Sow Data from Bone Data
+
+### Join all data to create main data
 
 ```{r}
-final_file <- bind_rows(all_revenue_bone_calculated, all_revenue_farm_calculated)
+all_revenue_6way_sow_data <- bind_rows(
+  corowa_6way_frz_400000_10501816_new,
+  laverton_6way_frz_400028_10501854_new,
+  laverton_6way_frz_400000_10501854_new
+  )
+
+# Pre-standardise keys once
+all_revenue_6way_sow_data_std <- all_revenue_6way_sow_data %>%
+  mutate(
+    `SOP Unicode` = toupper(`SOP Unicode`),
+    BU            = toupper(BU),
+    Abattoir      = toupper(Abattoir),
+    Month         = toupper(month.name[Period])
+  )
+```
+
+### Filter calculated bone data for 6 way and sow data
+
+```{r}
+# Group value for Corowa and filter out unrelevant data for commodity Data 
+volume_6way_sow_corowa <- volume_bone_price_calculated %>%
+  mutate(Type = toupper(Type)) %>%
+  filter(toupper(Abattoir) == "COROWA") %>%
+  filter(toupper(Run) == "6 WAY") %>%
+  mutate(
+    Unicode           = toupper(Unicode),
+    Abattoir          = toupper(Abattoir),
+    Month             = toupper(Month),
+    Tab               = toupper(Tab),
+    Units             = as.numeric(Units),
+    `Avg Weight`      = as.numeric(`Avg Weight`),
+    `Total Weight`    = as.numeric(`Total Weight`),
+    `Customer Group`  = "6 Way"
+    ) %>%
+  group_by(Tab, Abattoir, Month, `Customer Group`, `Customer name`) %>%
+  summarise(
+    Units          = sum(Units, na.rm = TRUE),
+    `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
+    `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+    Value          = sum(Value, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Group value for Laverton and filter out unrelevant data for commodity Data 
+volume_6way_sow_laverton <- volume_bone_price_calculated %>%
+  mutate(Type = toupper(Type)) %>%
+  filter(toupper(Abattoir) == "LAVERTON") %>%
+  filter(toupper(Run) %in% c("6 WAY", "SOW BONE")) %>%
+  mutate(
+    Unicode           = toupper(Unicode),
+    Abattoir          = toupper(Abattoir),
+    Month             = toupper(Month),
+    Tab               = toupper(Tab),
+    Units             = as.numeric(Units),
+    `Avg Weight`      = as.numeric(`Avg Weight`),
+    `Total Weight`    = as.numeric(`Total Weight`),
+    `Customer Group` = case_when(
+    toupper(Run) == "6 WAY" ~ "6 Way",
+    toupper(Run) == "SOW B"   ~ "Sow",
+    TRUE ~ NA_character_
+    )) %>%
+  group_by(Tab, Abattoir, Month, `Customer Group`, `Customer name`) %>%
+  summarise(
+    Units          = sum(Units, na.rm = TRUE),
+    `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
+    `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+    Value          = sum(Value, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(Value = if_else(`Customer Group` == "6 Way", Value - 0.51 * `Total Weight`, Value))
+
+# Combine Corowa and Laverton
+volume_6way_sow_combined <- bind_rows(volume_6way_sow_corowa, volume_6way_sow_laverton)
+
+# Join item-level volume + value into the bone revenue data on BU + Abattoir + Month
+all_revenue_6way_sow_data_calculated <- all_revenue_6way_sow_data_std %>%
+  left_join(
+    volume_6way_sow_combined,
+    by = c("BU" = "Tab", "Abattoir", "Month", "Customer Group")
+  )
+```
+
+## Commodity Data from Bone Data (special)
+
+### Join all data to create main data
+
+```{r}
+all_revenue_commodity_data <- bind_rows(
+  corowa_commodity_frz_400000_10501816_new,
+  corowa_commodity_frz_400028_10501816_new,
+  laverton_commodity_frz_400028_10501854_new,
+  laverton_commodity_chil_400000_10501854_new
+  )
+
+# Pre-standardise keys once
+all_revenue_commodity_data_std <- all_revenue_commodity_data %>%
+  mutate(
+    `SOP Unicode` = toupper(`SOP Unicode`),
+    BU            = toupper(BU),
+    Abattoir      = toupper(Abattoir),
+    Month         = toupper(month.name[Period])
+  )
+```
+
+### Separate value of 400000 and 400028 for Corowa from 3.Meat Sales
+
+```{r}
+# Get internal VA sales which is equivalent to 400028 volume from 3.Meat Sales as the volume source for Corowa commodity bone
+volume_commodity_corowa_400028 <- volume_va_raw %>%
+  filter(`Vendor Type` == "Internal") %>%
+  filter(`Service` == "Procurement") %>%
+  mutate(
+    `Item Code`    = str_trim(`Item Code`),
+    Month          = toupper(Month),
+    Abattoir       = toupper(Abattoir),
+    `Total Weight` = as.numeric(`Total Weight`),
+    `Customer Group` = "Commodity"
+  )
+
+# Filter for Corowa commodity bone and assign Customer Group - covers both 400000 and 400028
+volume_commodity_corowa <- volume_bone_raw %>%
+  filter(toupper(Abattoir) == "COROWA") %>%
+  filter(toupper(Run) == "COMMODITY BONE") %>%
+  mutate(
+    Unicode          = toupper(Unicode),
+    Abattoir         = toupper(Abattoir),
+    Month            = toupper(Month),
+    Tab              = toupper(Tab),
+    Units            = NA_real_,
+    `Avg Weight`     = NA_real_,
+    `Total Weight`   = as.numeric(`Total Weight`),
+    `Customer Group` = "Commodity"
+  ) 
+
+# 400000 = total (volume_commodity_corowa) minus 400028 (internal), matched by Item Code + Week
+volume_commodity_corowa_400000 <- volume_commodity_corowa %>%
+  left_join(
+    volume_commodity_corowa_400028 %>%
+      rename(Weight_400028 = `Total Weight`),
+    by = c("Item Code", "Week")
+  ) %>%
+  mutate(`Total Weight` = `Total Weight` - coalesce(Weight_400028, 0)) %>%
+  select(-Weight_400028)
+```
+
+### Calculate Value for 400000 and 400028 of Corowa from 3.Meat Sales
+
+```{r}
+volume_commodity_corowa_400028_calculated <- volume_commodity_corowa_400028 %>%
+  mutate(
+    Tab         = toupper(Tab),
+    Abattoir    = toupper(Abattoir),
+    Month       = toupper(Month),
+    Units       = as.numeric(Units),
+    `Total Weight` = as.numeric(`Total Weight`),
+    `Item Code` = str_trim(`Item Code`)
+  ) %>%
+  left_join(
+    item_price_data,
+    by = c("Item Code" = "Item Key")
+  ) %>%
+  mutate(Value = `Total Weight` * `Current Price`)
+  
+
+volume_commodity_corowa_400000_calculated <- volume_commodity_corowa_400000 %>%
+  mutate(
+    Tab         = toupper(Tab),
+    Abattoir    = toupper(Abattoir),
+    Month       = toupper(Month),
+    Units       = as.numeric(Units),
+    `Total Weight` = as.numeric(`Total Weight`),
+    `Item Code` = str_trim(`Item Code`)
+  ) %>%
+  left_join(
+    item_price_data,
+    by = c("Item Code" = "Item Key")
+  ) %>%
+  mutate(Value = `Total Weight` * `Current Price`)
+```
+
+### Filter calculated bone data for commodity data
+
+```{r}
+# Group value for Corowa and filter out unrelevant data for commodity Data 
+volume_6way_sow_corowa <- volume_bone_price_calculated %>%
+  mutate(Type = toupper(Type)) %>%
+  filter(toupper(Abattoir) == "COROWA") %>%
+  filter(toupper(Run) == "6 WAY") %>%
+  mutate(
+    Unicode           = toupper(Unicode),
+    Abattoir          = toupper(Abattoir),
+    Month             = toupper(Month),
+    Tab               = toupper(Tab),
+    Units             = as.numeric(Units),
+    `Avg Weight`      = as.numeric(`Avg Weight`),
+    `Total Weight`    = as.numeric(`Total Weight`),
+    `Customer Group`  = "6 Way"
+    ) %>%
+  group_by(Tab, Abattoir, Month, `Customer Group`, `Customer name`) %>%
+  summarise(
+    Units          = sum(Units, na.rm = TRUE),
+    `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
+    `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+    Value          = sum(Value, na.rm = TRUE),
+    .groups = "drop"
+  )
+```
+
+## Rejoin all calculated data together before writing it down
+
+```{r}
+final_file <- bind_rows(all_revenue_offal_data_calculated, all_revenue_farm_calculated, all_revenue_6way_sow_data_calculated, all_revenue_commodity_corowa_calculated)
 ```
 
 # Write down the file
@@ -847,25 +1203,49 @@ check_3 <- customer_data %>%
 check_3
 ```
 
+### Code to print out offal data before it was grouped
+
 ```{r}
-Corowa_edible_check <- volume_bone_valued %>%
+Corowa_edible_check <- volume_bone_price_calculated %>%
   filter(Abattoir == "COROWA") %>%
   mutate(Type = toupper(Type)) %>%
   filter(Type %in% c("INEDIBLE", "OFFALS", "BACON CUTS")) %>%
   filter(toupper(Run) == "TOTAL KILL")
-
-Laverton_edible_check <- volume_bone_valued %>%
+Laverton_edible_check <- volume_bone_price_calculated %>%
   filter(Abattoir == "LAVERTON") %>%
   mutate(Type = toupper(Type)) %>%
   filter(Type %in% c("INEDIBLE", "OFFALS", "BACON CUTS")) %>%
   filter(toupper(Run) == "TOTAL KILL")
-```
-
-```{r}
 write.csv(Corowa_edible_check, "Corowa_edible_check.csv", row.names = FALSE)
 write.csv(Laverton_edible_check, "Laverton_edible_check.csv", row.names = FALSE)
 ```
 
+### Check volume_commodity_corowa = 400000 + 400028 (The differences must be 0)
+
 ```{r}
-check_data <- read_csv("GL_DB Template.csv")
+total_combined <- sum(volume_commodity_corowa$`Total Weight`, na.rm = TRUE)
+total_400000   <- sum(volume_commodity_corowa_400000$`Total Weight`, na.rm = TRUE)
+total_400028   <- sum(volume_commodity_corowa_400028$`Total Weight`, na.rm = TRUE)
+check_4 <- data.frame(
+  total_combined  = total_combined,
+  sum_400000_400028 = total_400000 + total_400028,
+  difference      = total_combined - (total_400000 + total_400028)
+)
+```
+
+### Check for negative Total Weight in volume_commodity_corowa_400000 (It must give 0 observations)
+
+```{r}
+check_5 <- volume_commodity_corowa_400000 %>%
+  filter(`Total Weight` < 0)
+```
+
+Check for item in VA procuments but not in 3.Meat Sales
+
+```{r}
+anti_join(
+  volume_commodity_corowa_400028 %>% distinct(`Item Code`),
+  volume_commodity_corowa        %>% distinct(`Item Code`),
+  by = "Item Code"
+)
 ```
