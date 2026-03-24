@@ -1066,7 +1066,7 @@ volume_commodity_corowa <- volume_bone_raw %>%
 volume_commodity_corowa_400000 <- volume_commodity_corowa %>%
   left_join(
     volume_commodity_corowa_400028 %>%
-      rename(Weight_400028 = `Total Weight`),
+      select(`Item Code`, Week, Weight_400028 = `Total Weight`),
     by = c("Item Code", "Week")
   ) %>%
   mutate(`Total Weight` = `Total Weight` - coalesce(Weight_400028, 0)) %>%
@@ -1240,7 +1240,7 @@ check_5 <- volume_commodity_corowa_400000 %>%
   filter(`Total Weight` < 0)
 ```
 
-Check for item in VA procuments but not in 3.Meat Sales
+### Check for item in VA procuments but not in 3.Meat Sales
 
 ```{r}
 anti_join(
