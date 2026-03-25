@@ -1,0 +1,116 @@
+---
+title: "Debug Code"
+format: html
+editor: visual
+---
+
+# Extra Debugging Code
+
+### Check whether Unit x Avg Weight = Total Weight for every Unicode (result should only return TRUE and NA for check column)
+
+```{r}
+check_1 <- all_revenue_farm_new %>%
+  mutate(check = round(Units * `Avg Weight`, 2) == round(`Total Weight`, 2)) 
+check_1
+```
+
+### Check whether the same item has different Item Code (must return 0)
+
+```{r}
+check_2 <- volume_farm_raw %>%
+  mutate(
+    Unicode = toupper(Unicode),
+    Abattoir = toupper(Abattoir),
+    Month = toupper(Month),
+    Tab = toupper(Tab)
+  ) %>%
+  group_by(Unicode, Abattoir, Month, Tab) %>%
+  summarise(n_item_codes = n_distinct(`Item Code`), .groups = "drop") %>%
+  filter(n_item_codes > 1)
+check_2
+```
+
+### Checking Unmatched Customers (the result should ideally return 0)
+
+```{r}
+all_captured <- bind_rows(
+  farm_sales_400000_10001812_new,
+  farm_sales_400028_10001812_new,
+  meat_sales_kill_400000_10201816_new,
+  meat_sales_kill_400028_10201816_new,
+  meat_sales_boning_400000_11901816_new,
+  meat_sales_boning_400028_11901816_new,
+  meat_sales_boxed_meat_400000_10501816_new,
+  meat_sales_boxed_meat_400028_10501816_new,
+  meat_sales_400000_10001814_new,
+  laverton_sales_kill_400000_10201854_new,
+  laverton_sales_kill_400028_10201854_new,
+  laverton_sales_boning_400000_11901854_new,
+  laverton_sales_boning_400028_11901854_new,
+  laverton_sales_boxed_meat_400000_10501854_new,
+  laverton_sales_boxed_meat_400028_10501854_new,
+  edible_offal_sales_400000_10001816_new,
+  inedible_offal_sales_400000_10801816_new,
+  edible_offal_sales_400028_10001854_new,
+  inedible_offal_sales_400000_10801854_new,
+  corowa_6way_frz_400000_10501816_new,
+  corowa_commodity_frz_400000_10501816_new,
+  corowa_commodity_frz_400028_10501816_new,
+  laverton_6way_frz_400028_10501854_new,
+  laverton_6way_frz_400000_10501854_new,
+  laverton_commodity_frz_400028_10501854_new,
+  laverton_commodity_chil_400000_10501854_new,
+  meat_trade_data_new,
+  all_revenue_farm_new
+)
+check_3 <- customer_data %>%
+  anti_join(all_captured, by = intersect(names(customer_data), names(all_captured)))
+check_3
+```
+
+### Code to print out offal data before it was grouped
+
+```{r}
+Corowa_edible_check <- volume_bone_price_calculated %>%
+  filter(Abattoir == "COROWA") %>%
+  mutate(Type = toupper(Type)) %>%
+  filter(Type %in% c("INEDIBLE", "OFFALS", "BACON CUTS")) %>%
+  filter(toupper(Run) == "TOTAL KILL")
+Laverton_edible_check <- volume_bone_price_calculated %>%
+  filter(Abattoir == "LAVERTON") %>%
+  mutate(Type = toupper(Type)) %>%
+  filter(Type %in% c("INEDIBLE", "OFFALS", "BACON CUTS")) %>%
+  filter(toupper(Run) == "TOTAL KILL")
+write.csv(Corowa_edible_check, "Corowa_edible_check.csv", row.names = FALSE)
+write.csv(Laverton_edible_check, "Laverton_edible_check.csv", row.names = FALSE)
+```
+
+### Check volume_commodity_corowa = 400000 + 400028 (The differences must be 0)
+
+```{r}
+total_combined <- sum(volume_commodity_corowa$`Total Weight`, na.rm = TRUE)
+total_400000   <- sum(volume_commodity_corowa_400000$`Total Weight`, na.rm = TRUE)
+total_400028   <- sum(volume_commodity_corowa_400028$`Total Weight`, na.rm = TRUE)
+check_4 <- data.frame(
+  total_combined  = total_combined,
+  sum_400000_400028 = total_400000 + total_400028,
+  difference      = total_combined - (total_400000 + total_400028)
+)
+```
+
+### Check for negative Total Weight in volume_commodity_corowa_400000 (It must give 0 observations)
+
+```{r}
+check_5 <- volume_commodity_corowa_400000 %>%
+  filter(`Total Weight` < 0)
+```
+
+### Check for item in VA procuments but not in commodity data for corowa
+
+```{r}
+anti_join(
+  volume_commodity_corowa_400028 %>% distinct(`Item Code`),
+  volume_commodity_corowa        %>% distinct(`Item Code`),
+  by = "Item Code"
+)
+```
