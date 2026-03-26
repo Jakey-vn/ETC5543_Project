@@ -115,7 +115,7 @@ anti_join(
 )
 ```
 
-### Code to check for problem related to column 
+### Code to check for problem related to column
 
 ```{r}
 lapply(list(
