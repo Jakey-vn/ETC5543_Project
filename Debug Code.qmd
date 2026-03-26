@@ -114,3 +114,19 @@ anti_join(
   by = "Item Code"
 )
 ```
+
+### Code to check for problem related to column 
+
+```{r}
+lapply(list(
+  all_revenue_offal_data_calculated,
+  all_revenue_farm_calculated,
+  all_revenue_6way_sow_data_calculated,
+  all_revenue_commodity_corowa_calculated,
+  all_revenue_commodity_laverton_calculated,
+  all_revenue_meat_trade_data_calculated,
+  all_revenue_meat_sales_data_calculated,
+  all_revenue_new_team_calculated,
+  all_vevenue_corowa_laverton_expense_farm),
+       function(df) grep("\\.x$|\\.y$", names(df), value = TRUE))
+```
