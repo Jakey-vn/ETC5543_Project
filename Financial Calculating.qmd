@@ -95,6 +95,7 @@ farm_sales_400000_10001812 <- customer_data %>%
     "FLAVERTONSow Commodity"
   )) 
 farm_sales_400000_10001812_new <- farm_sales_400000_10001812 %>%
+  select(-any_of("Floor")) %>%
   left_join(
     gl_cc_data %>% filter(`GL Account` == 400000, `Cc Key` == 10001812),
     by = c("BU" = "BU")
@@ -119,6 +120,7 @@ farm_sales_400028_10001812 <- customer_data %>%
     "FLAVERTONSow Commodity"
   )) 
 farm_sales_400028_10001812_new <- farm_sales_400028_10001812 %>%
+  select(-any_of("Floor")) %>%
   left_join(
     gl_cc_data %>% filter(`GL Account` == 400028, `Cc Key` == 10001812),
     by = c("BU" = "BU")
@@ -145,6 +147,7 @@ meat_sales_kill_400000_10201816 <- customer_data %>%
     "COROWACommodity"
   ))
 meat_sales_kill_400000_10201816_new <- meat_sales_kill_400000_10201816 %>%
+  select(-any_of("Floor")) %>%
   left_join(
     gl_cc_data %>% filter(`GL Account` == 400000, `Cc Key` == 10201816),
     by = c("BU" = "BU")
@@ -167,6 +170,7 @@ meat_sales_kill_400028_10201816 <- customer_data %>%
     "COROWACommodity"
   ))
 meat_sales_kill_400028_10201816_new <- meat_sales_kill_400028_10201816 %>%
+  select(-any_of("Floor")) %>%
   left_join(
     gl_cc_data %>% filter(`GL Account` == 400028, `Cc Key` == 10201816),
     by = c("BU" = "BU")
@@ -191,6 +195,7 @@ meat_sales_boning_400000_11901816 <- customer_data %>%
     "COROWACommodity"
   )) 
 meat_sales_boning_400000_11901816_new <- meat_sales_boning_400000_11901816 %>%
+  select(-any_of("Floor")) %>%
   left_join(
     gl_cc_data %>% filter(`GL Account` == 400000, `Cc Key` == 11901816),
     by = c("BU" = "BU")
@@ -213,6 +218,7 @@ meat_sales_boning_400028_11901816 <- customer_data %>%
     "COROWACommodity"
   )) 
 meat_sales_boning_400028_11901816_new <- meat_sales_boning_400028_11901816 %>%
+  select(-any_of("Floor")) %>%
   left_join(
     gl_cc_data %>% filter(`GL Account` == 400028, `Cc Key` == 11901816),
     by = c("BU" = "BU")
@@ -236,6 +242,7 @@ meat_sales_boxed_meat_400000_10501816 <- customer_data %>%
     "CommodityChilInternalVA"
   )) 
 meat_sales_boxed_meat_400000_10501816_new <- meat_sales_boxed_meat_400000_10501816 %>%
+  select(-any_of("Floor")) %>%
   left_join(
     gl_cc_data %>% filter(`GL Account` == 400000, `Cc Key` == 10501816),
     by = c("BU" = "BU")
@@ -257,6 +264,7 @@ meat_sales_boxed_meat_400028_10501816 <- customer_data %>%
     "CommodityChilInternalVA"
   )) 
 meat_sales_boxed_meat_400028_10501816_new <- meat_sales_boxed_meat_400028_10501816 %>%
+  select(-any_of("Floor")) %>%
   left_join(
     gl_cc_data %>% filter(`GL Account` == 400028, `Cc Key` == 10501816),
     by = c("BU" = "BU")
@@ -275,6 +283,7 @@ meat_sales_400000_10001814 <- customer_data %>%
   filter(`BU` == "3.Meat Sales") %>% 
   filter(Tab == "VA") 
 meat_sales_400000_10001814_new <- meat_sales_400000_10001814 %>%
+  select(-any_of("Floor")) %>%
   left_join(
     gl_cc_data %>% filter(`GL Account` == 400000, `Cc Key` == 10001814),
     by = c("BU" = "BU")
@@ -307,6 +316,7 @@ laverton_sales_kill_400000_10201854 <- customer_data %>%
   "LAVERTONSow Commodity"
   ))
 laverton_sales_kill_400000_10201854_new <- laverton_sales_kill_400000_10201854 %>% 
+  select(-any_of("Floor")) %>%
   left_join(
     gl_cc_data %>% filter(`GL Account` == 400000, `Cc Key` == 10201854),
     by = c("BU" = "BU")
@@ -335,6 +345,7 @@ laverton_sales_kill_400028_10201854 <- customer_data %>%
   "LAVERTONSow Commodity"
   ))
 laverton_sales_kill_400028_10201854_new <- laverton_sales_kill_400028_10201854 %>% 
+  select(-any_of("Floor")) %>%
   left_join(
     gl_cc_data %>% filter(`GL Account` == 400028, `Cc Key` == 10201854),
     by = c("BU" = "BU")
@@ -362,6 +373,7 @@ laverton_sales_boning_400000_11901854 <- customer_data %>%
   "LAVERTONSow Commodity"
   )) 
 laverton_sales_boning_400000_11901854_new <- laverton_sales_boning_400000_11901854 %>% 
+  select(-any_of("Floor")) %>%
   left_join(
     gl_cc_data %>% filter(`GL Account` == 400000, `Cc Key` == 11901854),
     by = c("BU" = "BU")
@@ -387,6 +399,7 @@ laverton_sales_boning_400028_11901854 <- customer_data %>%
   "LAVERTONSow Commodity"
   )) 
 laverton_sales_boning_400028_11901854_new <- laverton_sales_boning_400028_11901854 %>% 
+  select(-any_of("Floor")) %>%
   left_join(
     gl_cc_data %>% filter(`GL Account` == 400028, `Cc Key` == 11901854),
     by = c("BU" = "BU")
@@ -412,6 +425,7 @@ laverton_sales_boxed_meat_400000_10501854 <- customer_data %>%
   "Laverton6Way"
   )) 
 laverton_sales_boxed_meat_400000_10501854_new <- laverton_sales_boxed_meat_400000_10501854 %>% 
+  select(-any_of("Floor")) %>%
   left_join(
     gl_cc_data %>% filter(`GL Account` == 400000, `Cc Key` == 10501854),
     by = c("BU" = "BU")
@@ -435,6 +449,7 @@ laverton_sales_boxed_meat_400028_10501854 <- customer_data %>%
   "Laverton6Way"
   )) 
 laverton_sales_boxed_meat_400028_10501854_new <- laverton_sales_boxed_meat_400028_10501854 %>% 
+  select(-any_of("Floor")) %>%
   left_join(
     gl_cc_data %>% filter(`GL Account` == 400028, `Cc Key` == 10501854),
     by = c("BU" = "BU")
@@ -458,6 +473,7 @@ edible_offal_sales_400000_10001816 <- customer_data %>%
   filter(`Customer Group` == "Edible Offal")
 
 edible_offal_sales_400000_10001816_new <- edible_offal_sales_400000_10001816 %>%
+  select(-any_of("Floor")) %>%
   left_join(
     gl_cc_data %>% filter(`GL Account` == 400000, `Cc Key` == 10001816),
     by = c("BU" = "BU")
@@ -477,6 +493,7 @@ inedible_offal_sales_400000_10801816 <- customer_data %>%
   filter(`Customer Group` == "Inedible Offal")
 
 inedible_offal_sales_400000_10801816_new <- inedible_offal_sales_400000_10801816 %>%
+  select(-any_of("Floor")) %>%
   left_join(
     gl_cc_data %>% filter(`GL Account` == 400000, `Cc Key` == 10801816),
     by = c("BU" = "BU")
@@ -498,6 +515,7 @@ edible_offal_sales_400028_10001854 <- customer_data %>%
   filter(`Customer Group` == "Edible Offal")
 
 edible_offal_sales_400028_10001854_new <- edible_offal_sales_400028_10001854 %>%
+  select(-any_of("Floor")) %>%
   left_join(
     gl_cc_data %>% filter(`GL Account` == 400028, `Cc Key` == 10001854),
     by = c("BU" = "BU")
@@ -517,6 +535,7 @@ inedible_offal_sales_400000_10801854 <- customer_data %>%
   filter(`Customer Group` == "Inedible Offal")
 
 inedible_offal_sales_400000_10801854_new <- inedible_offal_sales_400000_10801854 %>%
+  select(-any_of("Floor")) %>%
   left_join(
     gl_cc_data %>% filter(`GL Account` == 400000, `Cc Key` == 10801854),
     by = c("BU" = "BU")
@@ -540,6 +559,7 @@ corowa_6way_frz_400000_10501816 <- customer_data %>%
   filter(`Sales Type` == "FRZ")
 
 corowa_6way_frz_400000_10501816_new <- corowa_6way_frz_400000_10501816 %>%
+  select(-any_of("Floor")) %>%
   left_join(
     gl_cc_data %>% filter(`GL Account` == 400000, `Cc Key` == 10501816),
     by = c("BU" = "BU")
@@ -559,6 +579,7 @@ corowa_commodity_frz_400000_10501816 <- customer_data %>%
   filter(`Sales Type` == "FRZ")
 
 corowa_commodity_frz_400000_10501816_new <- corowa_commodity_frz_400000_10501816 %>%
+  select(-any_of("Floor")) %>%
   left_join(
     gl_cc_data %>% filter(`GL Account` == 400000, `Cc Key` == 10501816),
     by = c("BU" = "BU")
@@ -578,6 +599,7 @@ corowa_commodity_frz_400028_10501816 <- customer_data %>%
   filter(`Sales Type` == "FRZ")
 
 corowa_commodity_frz_400028_10501816_new <- corowa_commodity_frz_400028_10501816 %>%
+  select(-any_of("Floor")) %>%
   left_join(
     gl_cc_data %>% filter(`GL Account` == 400028, `Cc Key` == 10501816),
     by = c("BU" = "BU")
@@ -597,6 +619,7 @@ laverton_6way_frz_400028_10501854 <- customer_data %>%
   filter(`Sales Type` == "FRZ")
 
 laverton_6way_frz_400028_10501854_new <- laverton_6way_frz_400028_10501854 %>%
+  select(-any_of("Floor")) %>%
   left_join(
     gl_cc_data %>% filter(`GL Account` == 400028, `Cc Key` == 10501854),
     by = c("BU" = "BU")
@@ -616,6 +639,7 @@ laverton_6way_frz_400000_10501854 <- customer_data %>%
   filter(`Sales Type` == "FRZ")
 
 laverton_6way_frz_400000_10501854_new <- laverton_6way_frz_400000_10501854 %>%
+  select(-any_of("Floor")) %>%
   left_join(
     gl_cc_data %>% filter(`GL Account` == 400000, `Cc Key` == 10501854),
     by = c("BU" = "BU")
@@ -635,6 +659,7 @@ laverton_commodity_frz_400028_10501854 <- customer_data %>%
   filter(`Sales Type` == "FRZ")
 
 laverton_commodity_frz_400028_10501854_new <- laverton_commodity_frz_400028_10501854 %>%
+  select(-any_of("Floor")) %>%
   left_join(
     gl_cc_data %>% filter(`GL Account` == 400028, `Cc Key` == 10501854),
     by = c("BU" = "BU")
@@ -654,6 +679,7 @@ laverton_commodity_chil_400000_10501854 <- customer_data %>%
   filter(`Sales Type` == "Chil")
 
 laverton_commodity_chil_400000_10501854_new <- laverton_commodity_chil_400000_10501854 %>%
+  select(-any_of("Floor")) %>%
   left_join(
     gl_cc_data %>% filter(`GL Account` == 400000, `Cc Key` == 10501854),
     by = c("BU" = "BU")
@@ -674,6 +700,7 @@ meat_trade_data <- customer_data %>%
 
 
 meat_trade_data_new <- meat_trade_data %>%
+  select(-any_of("Floor")) %>%
   left_join(
     gl_cc_data %>% filter(`GL Account` == 400000, `Cc Key` == 10501816),
     by = c("BU" = "BU")
@@ -937,7 +964,7 @@ volume_offal_combined <- bind_rows(volume_offal_corowa, volume_offal_laverton)
 # Join item-level volume + value into the bone revenue data on BU + Abattoir + Month
 all_revenue_offal_data_calculated <- all_revenue_offal_data_std %>%
   left_join(
-    volume_offal_combined,
+    volume_offal_combined %>% select(-`Customer name`),
     by = c("BU" = "Tab", "Abattoir", "Month", "Customer Group")
   )
 ```
@@ -1024,7 +1051,7 @@ volume_6way_sow_combined <- bind_rows(volume_6way_sow_corowa, volume_6way_sow_la
 # Join item-level volume + value into the bone revenue data on BU + Abattoir + Month
 all_revenue_6way_sow_data_calculated <- all_revenue_6way_sow_data_std %>%
   left_join(
-    volume_6way_sow_combined,
+    volume_6way_sow_combined %>% select(-`Customer name`),
     by = c("BU" = "Tab", "Abattoir", "Month", "Customer Group")
   )
 ```
@@ -1245,14 +1272,14 @@ volume_commodity_laverton_frz <- volume_bone_price_calculated %>%
 all_revenue_commodity_laverton_chil <- all_revenue_commodity_data_std %>%
   filter(`GL Account` == 400000, toupper(Abattoir) == "LAVERTON") %>%
   left_join(
-    volume_commodity_laverton_chil,
+    volume_commodity_laverton_chil %>% select(-`Customer name`),
     by = c("BU" = "Tab", "Abattoir", "Month", "Customer Group", "Period")
   )
 
 all_revenue_commodity_laverton_frz <- all_revenue_commodity_data_std %>%
   filter(`GL Account` == 400028, toupper(Abattoir) == "LAVERTON") %>%
   left_join(
-    volume_commodity_laverton_frz,
+    volume_commodity_laverton_frz %>% select(-`Customer name`),
     by = c("BU" = "Tab", "Abattoir", "Month", "Customer Group", "Period")
   )
 
@@ -1376,8 +1403,8 @@ volume_meat_trade_combined <- bind_rows(volume_meat_trade_6way, volume_meat_trad
 # Join item-level volume + value into the bone revenue data on BU + Abattoir + Month
 all_revenue_meat_trade_data_calculated <- all_revenue_meat_trade_data_std %>%
   left_join(
-    volume_meat_trade_combined,
-    by = c("BU" = "Tab", "Month", "Customer Group", "Service")
+    volume_meat_trade_combined %>% select(-`Customer name`),
+    by = c("BU" = "Tab", "Abattoir", "Month", "Customer Group", "Service", "Period")
   )
 ```
 
@@ -1435,7 +1462,7 @@ all_revenue_meat_sales <- volume_VA_price_calculated %>%
 # Join each to their respective GL account rows, then combine
 all_revenue_meat_sales_data_calculated <- all_revenue_meat_sales_data_std %>%
   left_join(
-    all_revenue_meat_sales,
+    all_revenue_meat_sales %>% select(-`Customer name`),
     by = c("BU" = "Tab", "Abattoir", "Month", "Customer Group", "Period")
   )
 ```
@@ -1454,6 +1481,7 @@ farm_sales_400350_10001812 <- customer_data %>%
     "FLAVERTONNew Team"
   ))
 farm_sales_400350_10001812_new <- farm_sales_400350_10001812 %>%
+  select(-any_of("Floor")) %>%
   left_join(
     gl_cc_data %>% filter(`GL Account` == 400350, `Cc Key` == 10001812),
     by = c("BU" = "BU")
@@ -1472,6 +1500,7 @@ farm_costs_510157_10001812 <- customer_data %>%
     "FLAVERTONNew Team"
   ))
 farm_costs_510157_10001812_new <- farm_costs_510157_10001812 %>%
+  select(-any_of("Floor")) %>%
   left_join(
     gl_cc_data %>% filter(`GL Account` == 510157, `Cc Key` == 10001812),
     by = c("BU" = "BU")
@@ -1496,6 +1525,7 @@ corowa_farm_510167_10501816 <- customer_data %>%
          `BU` = "2.Meat Processing")
   
 corowa_farm_510167_10501816_new <- corowa_farm_510167_10501816 %>%
+  select(-any_of("Floor")) %>%
   left_join(
     gl_cc_data %>% filter(`GL Account` == 510167, `Cc Key` == 10501816),
     by = c("BU" = "BU")
@@ -1517,6 +1547,7 @@ laverton_farm_510167_10501854 <- customer_data %>%
          `BU` = "6.Laverton Processing")
   
 laverton_farm_510167_10501854_new <- laverton_farm_510167_10501854 %>%
+  select(-any_of("Floor")) %>%
   left_join(
     gl_cc_data %>% filter(`GL Account` == 510167, `Cc Key` == 10501854),
     by = c("BU" = "BU")
@@ -1536,25 +1567,27 @@ external_VA_price_calculated <- volume_va_raw %>%
   filter(`Vendor Type` == "External") %>%
   filter(`Service` == "Procurement") %>%
   mutate(
-    `Item Code`    = str_trim(`Item Code`),
+    Unicode        = toupper(str_trim(Unicode)),
     Month          = toupper(Month),
     Abattoir       = toupper(Abattoir),
     `Total Weight` = as.numeric(`Total Weight`),
-    `Total Weight` = as.numeric(`Total Weight`),
-    `Item Code` = str_trim(`Item Code`)
+    Period         = match(Month, toupper(month.name))
   ) %>%
   left_join(
-    item_price_data,
-    by = c("Item Code" = "Item Key")
+    carcass_price_data %>%
+      filter(`Customer name` == "Other Transactions") %>%
+      pivot_longer(cols = matches("^\\d+$"), names_to = "Period", values_to = "Carcass Price") %>%
+      mutate(Period = as.integer(Period)) %>%
+      select(Period, `Carcass Price`),
+    by = "Period"
   ) %>%
-  mutate(Value = `Total Weight` * `Current Price`) %>%
-      group_by(Month) %>%
-      summarise(
-        `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
-        Value          = sum(Value, na.rm = TRUE),
-        .groups = "drop"
-      )   %>% 
-  mutate(Period = match(Month, toupper(month.name))) %>% 
+  mutate(Value = `Total Weight` * `Carcass Price`) %>%
+  group_by(Month, Period) %>%
+  summarise(
+    `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+    Value          = sum(Value, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
   mutate(Tab = "1.Farming Operations")
 ```
 
@@ -1579,89 +1612,202 @@ farm_costs_510157_10001812_calculated <- farm_costs_510157_10001812_new %>%
 all_revenue_new_team_calculated <- bind_rows(farm_sales_400350_10001812_calculated, farm_costs_510157_10001812_calculated)
 ```
 
-## Expense for Corowa and Laverton by buying pig from Farm
+## Expense for Corowa by buying pig, killing pig and boning them from Farm
 
 ```{r}
 # Prepare separated data for Corowa and Laverton so it is easier to debug in the future
 corowa_laverton_transactions <- volume_farm_raw %>%
       filter(!(`Int/Ext` %in% "External" ))
 
-# Expense for Corowa
-corowa_farm_510167_10501816_calculated <- corowa_farm_510167_10501816_new %>%
+# Calculate pig fee by buying from farm
+# Start from transactions to preserve real customer names (one row per customer per period)
+corowa_farm_510167_10501816_buy_calculated <- corowa_laverton_transactions %>%
+  filter(toupper(Abattoir) == "COROWA") %>%
+  filter(toupper(Unicode) %in% c("FCOROWA6WAY", "COROWA6WAY", "FCOROWACOMMODITY", "COROWACOMMODITY")) %>%
+  mutate(
+    Unicode        = toupper(Unicode),
+    Abattoir       = toupper(Abattoir),
+    Month          = toupper(Month),
+    Units          = as.numeric(Units),
+    `Avg Weight`   = as.numeric(`Avg Weight`),
+    `Total Weight` = as.numeric(`Total Weight`),
+    Period         = match(Month, toupper(month.name))
+  ) %>%
   left_join(
-    corowa_laverton_transactions %>%
-      filter(toupper(Abattoir) == "COROWA") %>%
-      filter(toupper(Unicode) %in% c("FCOROWA6WAY", "COROWA6WAY", "FCOROWACOMMODITY", "COROWACOMMODITY")) %>%
-      mutate(
-        Unicode        = toupper(Unicode),
-        Abattoir       = toupper(Abattoir),
-        Month          = toupper(Month),
-        Units          = as.numeric(Units),
-        `Avg Weight`   = as.numeric(`Avg Weight`),
-        `Total Weight` = as.numeric(`Total Weight`),
-        Period         = match(Month, toupper(month.name))
-      ) %>%
-      left_join(
-        carcass_price_data %>%
-          mutate(`Farm Unicode` = toupper(str_trim(`Farm Unicode`)), Abattoir = toupper(Abbatoir)) %>%
-          pivot_longer(cols = matches("^\\d+$"), names_to = "Period", values_to = "Carcass Price") %>%
-          mutate(Period = as.integer(Period)) %>%
-          select(`Farm Unicode`, Abattoir, Period, `Carcass Price`),
-        by = c("Unicode" = "Farm Unicode", "Abattoir", "Period")
-      ) %>%
-      mutate(Value = `Total Weight` * `Carcass Price`) %>%
-      group_by(Month, Period) %>%
-      summarise(
-        Units          = sum(Units, na.rm = TRUE),
-        `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
-        `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
-        Value          = sum(Value, na.rm = TRUE),
-        .groups = "drop"
-      ),
-    by = "Period"
-  )
+    carcass_price_data %>%
+      mutate(`Farm Unicode` = toupper(str_trim(`Farm Unicode`)), Abattoir = toupper(Abbatoir)) %>%
+      pivot_longer(cols = matches("^\\d+$"), names_to = "Period", values_to = "Carcass Price") %>%
+      mutate(Period = as.integer(Period)) %>%
+      select(`Farm Unicode`, Abattoir, Period, `Carcass Price`),
+    by = c("Unicode" = "Farm Unicode", "Abattoir", "Period")
+  ) %>%
+  mutate(Value = `Total Weight` * `Carcass Price`) %>%
+  group_by(`Customer name`, Month, Period) %>%
+  summarise(
+    Units          = sum(Units, na.rm = TRUE),
+    `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
+    `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+    Value          = sum(Value, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  left_join(
+    corowa_farm_510167_10501816 %>% select(`Customer name`, `SOP Unicode`, `Customer Group`, Tab),
+    by = "Customer name"
+  ) %>%
+  mutate(BU = "2.Meat Processing") %>%
+  select(-any_of("Floor")) %>%
+  left_join(
+    gl_cc_data %>% filter(`GL Account` == 510167, `Cc Key` == 10501816),
+    by = "BU"
+  ) %>% 
+  mutate(Tab = "Farm")
 
+# Calculated Kill fee for the pig from farm
+corowa_farm_510167_10501816_kill_calculated <- corowa_laverton_transactions %>%
+  filter(toupper(Abattoir) == "COROWA") %>%
+  filter(toupper(Tab) == "KILL") %>%
+  filter(toupper(Unicode) %in% c("FCOROWA6WAY", "COROWA6WAY", "FCOROWACOMMODITY", "COROWACOMMODITY")) %>%
+  mutate(
+    Unicode        = toupper(Unicode),
+    Abattoir       = toupper(Abattoir),
+    Month          = toupper(Month),
+    Units          = as.numeric(Units),
+    `Avg Weight`   = as.numeric(`Avg Weight`),
+    `Total Weight` = as.numeric(`Total Weight`),
+    Period         = match(Month, toupper(month.name))
+  ) %>%
+  left_join(
+    kill_fee_data %>%
+      mutate(`SOP Unicode` = toupper(str_trim(`SOP Unicode`)), Abattoir = toupper(Abbatoir)) %>%
+      filter(`SOP Unicode` %in% c("COROWACOMMODITY", "COROWA6WAY")) %>%
+      pivot_longer(cols = matches("^\\d+$"), names_to = "Period", values_to = "Fee") %>%
+      mutate(Period = as.integer(Period)) %>%
+      group_by(Abattoir, Period) %>%
+      summarise(Fee = mean(Fee, na.rm = TRUE), .groups = "drop"),
+    by = c("Abattoir", "Period")
+  ) %>%
+  mutate(Value = Units * Fee) %>%
+  group_by(`Customer name`, Month, Period) %>%
+  summarise(
+    Units          = sum(Units, na.rm = TRUE),
+    `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
+    `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+    Fee            = mean(Fee, na.rm = TRUE),
+    Value          = sum(Value, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  left_join(
+    corowa_farm_510167_10501816 %>% select(`Customer name`, `SOP Unicode`, `Customer Group`, Tab),
+    by = "Customer name"
+  ) %>%
+  mutate(BU = "2.Meat Processing") %>%
+  select(-any_of("Floor")) %>%
+  left_join(
+    gl_cc_data %>% filter(`GL Account` == 510167, `Cc Key` == 10501816),
+    by = "BU"
+  ) %>% 
+  mutate(Tab = "Kill")
 
+# Calculated Bone fee for the pig from farm
+corowa_farm_510167_10501816_bone_calculated <- corowa_laverton_transactions %>%
+  filter(toupper(Abattoir) == "COROWA") %>%
+  filter(toupper(Tab) == "BONE") %>%
+  filter(toupper(Unicode) %in% c("FCOROWA6WAY", "COROWA6WAY", "FCOROWACOMMODITY", "COROWACOMMODITY")) %>%
+  mutate(
+    Unicode        = toupper(Unicode),
+    Abattoir       = toupper(Abattoir),
+    Month          = toupper(Month),
+    Units          = as.numeric(Units),
+    `Avg Weight`   = as.numeric(`Avg Weight`),
+    `Total Weight` = as.numeric(`Total Weight`),
+    Period         = match(Month, toupper(month.name))
+  ) %>%
+  left_join(
+    bone_fee_data %>%
+      mutate(`SOP Unicode` = toupper(str_trim(`SOP Unicode`)), Abattoir = toupper(Abbatoir)) %>%
+      filter(`SOP Unicode` %in% c("COROWACOMMODITY", "COROWA6WAY")) %>%
+      pivot_longer(cols = matches("^\\d+$"), names_to = "Period", values_to = "Fee") %>%
+      mutate(Period = as.integer(Period)) %>%
+      group_by(Abattoir, Period) %>%
+      summarise(Fee = mean(Fee, na.rm = TRUE), .groups = "drop"),
+    by = c("Abattoir", "Period")
+  ) %>%
+  mutate(Value = Units * Fee) %>%
+  group_by(`Customer name`, Month, Period) %>%
+  summarise(
+    Units          = sum(Units, na.rm = TRUE),
+    `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
+    `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+    Fee            = mean(Fee, na.rm = TRUE),
+    Value          = sum(Value, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  left_join(
+    corowa_farm_510167_10501816 %>% select(`Customer name`, `SOP Unicode`, `Customer Group`, Tab),
+    by = "Customer name"
+  ) %>%
+  mutate(BU = "2.Meat Processing") %>%
+  select(-any_of("Floor")) %>%
+  left_join(
+    gl_cc_data %>% filter(`GL Account` == 510167, `Cc Key` == 10501816),
+    by = "BU"
+  ) %>%
+  mutate(Tab = "Bone")
+```
+
+## Expense for Corowa by buying pig, killing pig and boning them from Farm
+
+```{r}
 # Expense for Laverton
-laverton_farm_510167_10501854_calculated <- laverton_farm_510167_10501854_new %>%
+# Start from transactions to preserve real customer names (one row per customer per period)
+laverton_farm_510167_10501854_calculated <- corowa_laverton_transactions %>%
+  filter(toupper(Abattoir) == "LAVERTON") %>%
+  filter(toupper(Unicode) %in% c("FLAVERTON6WAY", "LAVERTON6WAY", "LAVERTONCOMMODITY", "FLAVERTONCOMMODITY", "FLAVERTONSOW COMMODITY", "FLAVERTONOTHERS(SOW)", "FLAVERTONPW OPPORTUNITY - SOW")) %>%
+  mutate(
+    Unicode        = toupper(Unicode),
+    Abattoir       = toupper(Abattoir),
+    Month          = toupper(Month),
+    Units          = as.numeric(Units),
+    `Avg Weight`   = as.numeric(`Avg Weight`),
+    `Total Weight` = as.numeric(`Total Weight`),
+    Period         = match(Month, toupper(month.name))
+  ) %>%
   left_join(
-    corowa_laverton_transactions %>%
-      filter(toupper(Abattoir) == "LAVERTON") %>%
-      filter(toupper(Unicode) %in% c("FLAVERTON6WAY", "LAVERTON6WAY", "LAVERTONCOMMODITY", "FLAVERTONCOMMODITY")) %>%
-      mutate(
-        Unicode        = toupper(Unicode),
-        Abattoir       = toupper(Abattoir),
-        Month          = toupper(Month),
-        Units          = as.numeric(Units),
-        `Avg Weight`   = as.numeric(`Avg Weight`),
-        `Total Weight` = as.numeric(`Total Weight`),
-        Period         = match(Month, toupper(month.name))
-      ) %>%
-      left_join(
-        carcass_price_data %>%
-          mutate(`Farm Unicode` = toupper(str_trim(`Farm Unicode`)), Abattoir = toupper(Abbatoir)) %>%
-          pivot_longer(cols = matches("^\\d+$"), names_to = "Period", values_to = "Carcass Price") %>%
-          mutate(Period = as.integer(Period)) %>%
-          select(`Farm Unicode`, Abattoir, Period, `Carcass Price`),
-        by = c("Unicode" = "Farm Unicode", "Abattoir", "Period")
-      ) %>%
-      mutate(Value = `Total Weight` * `Carcass Price`) %>%
-      group_by(Month, Period) %>%
-      summarise(
-        Units          = sum(Units, na.rm = TRUE),
-        `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
-        `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
-        Value          = sum(Value, na.rm = TRUE),
-        .groups = "drop"
-      ),
-    by = "Period"
+    carcass_price_data %>%
+      mutate(`Farm Unicode` = toupper(str_trim(`Farm Unicode`)), Abattoir = toupper(Abbatoir)) %>%
+      pivot_longer(cols = matches("^\\d+$"), names_to = "Period", values_to = "Carcass Price") %>%
+      mutate(Period = as.integer(Period)) %>%
+      select(`Farm Unicode`, Abattoir, Period, `Carcass Price`),
+    by = c("Unicode" = "Farm Unicode", "Abattoir", "Period")
+  ) %>%
+  mutate(Value = `Total Weight` * `Carcass Price`) %>%
+  group_by(`Customer name`, Month, Period) %>%
+  summarise(
+    Units          = sum(Units, na.rm = TRUE),
+    `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
+    `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+    Value          = sum(Value, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  left_join(
+    laverton_farm_510167_10501854 %>% select(`Customer name`, `SOP Unicode`, `Customer Group`, Tab),
+    by = "Customer name"
+  ) %>%
+  mutate(BU = "6.Laverton Processing") %>%
+  select(-any_of("Floor")) %>%
+  left_join(
+    gl_cc_data %>% filter(`GL Account` == 510167, `Cc Key` == 10501854),
+    by = "BU"
   )
+
 ```
 
 ### Join Expense Account buying from Farm for both Corowa and Laverton
 
 ```{r}
-all_vevenue_corowa_laverton_expense_farm <- bind_rows(corowa_farm_510167_10501816_calculated, laverton_farm_510167_10501854_calculated)
+all_vevenue_corowa_laverton_expense_farm <- bind_rows(corowa_farm_510167_10501816_buy_calculated,
+corowa_farm_510167_10501816_kill_calculated,               
+corowa_farm_510167_10501816_bone_calculated,            laverton_farm_510167_10501854_calculated)
 ```
 
 # Rejoin all calculated data together before writing it down
@@ -1684,4 +1830,8 @@ final_file <- bind_rows(
 
 ```{r}
 write.csv(final_file, "GL_DB Template.csv", row.names = FALSE)
+```
+
+```{r}
+laverton_farm_510167_10501854_calculated
 ```
