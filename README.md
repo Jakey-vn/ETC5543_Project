@@ -25,7 +25,7 @@ The main output is `GL_DB Template.csv`, structured for GL database input.
 | `Prices.xlsb` | BM PRice | Item-level unit prices used for Boxed Meat, Offal, and Commodity value calculations |
 | `Master Data..xlsx` | GL & CC | GL account and cost centre mappings by BU |
 | `Master Data..xlsx` | Customer | Customer list with SOP Unicode, BU, Tab, Floor, and Customer Group |
-| `Master Data..xlsx` | VA | VA brand data used for V&V sell and buy-back calculations |
+| `Master Data..xlsx` | VA | VA brand data - maps Item Code to Brand name, used to assign customer names in Meat Sales output |
 
 > **Note on excluded files:** All raw data files and output files (including `GL_DB Template.csv`) are intentionally excluded from this repository. This project is developed within the Finance Team and these files contain sensitive and confidential company financial data. Publishing them is strictly prohibited. Only the code and logic are shared here.
 
@@ -59,11 +59,14 @@ Volume data from `SOP Volumes.xlsx` is split into three datasets based on the `T
 | Boxed Meat | Total Weight × Item Price | `BM PRice` sheet in `Prices.xlsb` |
 | Offal (Edible/Inedible) | Total Weight × Item Price | `BM PRice` sheet in `Prices.xlsb` |
 | Commodity | Total Weight × Item Price | `BM PRice` sheet in `Prices.xlsb` |
+| Meat Sales (VA) | Total Weight × Price | `Price` column in `SOP Volumes.xlsx` (not BM PRice) |
+| Meat Trade | Total Weight × Item Price | `BM PRice` sheet in `Prices.xlsb` (sourced from Laverton bone data) |
 
 ### Special Conditions
 - **Laverton Edible Offal - $0.51/kg discount**: Laverton ships edible offal to Lineage, which charges a storage/handling fee. This discount is subtracted from the calculated value. This is the main reason Corowa and Laverton offal are calculated separately.
 - **Laverton Edible Offal - Intercompany (400028)**: Laverton consolidates its edible offal with Corowa and sells under Corowa's name. As a result, Laverton edible offal is recorded as an intercompany transfer (400028) rather than an external sale (400000).
 - **Laverton 6Way - $0.51/kg discount**: Same Lineage handling fee applies to Laverton 6Way products.
+- **Laverton Commodity Frozen - $0.51/kg discount**: The same Lineage handling fee also applies to Laverton Commodity Frozen (400028-10501854). Laverton Commodity Chilled (400000-10501854) is not discounted.
 - **Corowa Commodity 400000 vs 400028**: The 400028 volume comes from internal VA sales (Procurement rows in Meat Sales tab). The 400000 volume is the remainder: Total Commodity Bone minus the 400028 internal portion.
 - **FCOROWAWoolworths inherits price from FEXTERNALBig River Pork - Coles**: A special price inheritance rule applied during the Farm carcass price join.
 - **Laverton Kill - 6Way/Commodity customers temporarily excluded**: A temporary filter removes rows where Abattoir is Laverton, Tab is Kill, and the customer name contains "6WAY" or "COMMODITY".
@@ -77,16 +80,30 @@ Volume data from `SOP Volumes.xlsx` is split into three datasets based on the `T
 | 2. Meat Processing | Kill Floor | 400000 / 400028 | 10201816 |
 | 2. Meat Processing | Boning Room | 400000 / 400028 | 11901816 |
 | 2. Meat Processing | Boxed Meat | 400000 / 400028 | 10501816 |
+| 2. Meat Processing | Meat Trade (from Laverton) | 400000 | 10501816 |
 | 2. Meat Processing | Edible Offal | 400000 | 10001816 |
 | 2. Meat Processing | Inedible Offal | 400000 | 10801816 |
 | 2. Meat Processing | Pig from Farm (Expense) | 510167 | 10501816 |
 | 3. Meat Sales | VA | 400000 | 10001814 |
 | 6. Laverton Processing | Kill Floor | 400000 / 400028 | 10201854 |
 | 6. Laverton Processing | Boning Room | 400000 / 400028 | 11901854 |
-| 6. Laverton Processing | Boxed Meat | 400000 / 400028 | 10501854 |
+| 6. Laverton Processing | Boxed Meat (6Way FRZ, Commodity FRZ) | 400028 | 10501854 |
+| 6. Laverton Processing | Boxed Meat (Commodity Chilled) | 400000 | 10501854 |
+| 6. Laverton Processing | Sow | 400000 | 10501854 |
 | 6. Laverton Processing | Edible Offal | 400028 | 10001854 |
 | 6. Laverton Processing | Inedible Offal | 400000 | 10801854 |
 | 6. Laverton Processing | Pig from Farm (Expense) | 510167 | 10501854 |
+
+### Meat Trade Logic (Laverton → Corowa)
+Corowa's Boxed Meat section includes a **Meat Trade** category that consolidates Laverton products sold through Corowa. The volume source is Laverton bone data, remapped to Corowa as the selling entity (`Abattoir = COROWA`, `GL Account = 400000`, `Cc Key = 10501816`). Three product types are included:
+
+| Meat Trade Type | Laverton Source Filter |
+|----------------|----------------------|
+| 6 Way | `Run == "6 WAY"` (Laverton) |
+| Commodity | `Run == "COMMODITY BONE"` + `Storage == "FROZEN"` (Laverton) |
+| Edible Offal | `Type IN ("OFFALS", "BACON CUTS")` + `Run == "TOTAL KILL"` (Laverton) |
+
+The join key to the customer account table is `Service` (values: `6 Way`, `Commodity`, `Edible Offal`). Note that the $0.51 Lineage discount is **not** applied here - it is already applied in the separate Laverton Edible Offal / 6Way / Commodity Frozen accounts.
 
 ### Expense Account Logic (In Progress)
 The expense account section is still being developed. Currently it covers two scenarios:
@@ -98,7 +115,11 @@ The expense account section is still being developed. Currently it covers two sc
 
 **Intercompany Pig Purchase from Farm - Corowa and Laverton (510167)**
 - Filters internal (non-External) farm volume rows for Corowa 6Way/Commodity unicodes and Laverton 6Way/Commodity unicodes respectively
-- Joins to carcass price data and computes `Total Weight × Carcass Price`
+- **Corowa** produces three expense row types per customer per period:
+  - Buy: `Total Weight × Carcass Price` (Farm tab)
+  - Kill: `Units × Kill Fee` (Kill tab, averaged across COROWA6WAY and COROWACOMMODITY unicodes)
+  - Bone: `Units × Bone Fee` (Bone tab, averaged across COROWA6WAY and COROWACOMMODITY unicodes)
+- **Laverton** produces one expense row type: `Total Weight × Carcass Price` (Farm tab only)
 - Produces separate expense rows for Corowa (510167-10501816) and Laverton (510167-10501854)
 - Note: There is a known mismatch between customer data and GL & CC account for this section - still under investigation
 
