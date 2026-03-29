@@ -130,3 +130,31 @@ lapply(list(
   all_vevenue_corowa_laverton_expense_farm),
        function(df) grep("\\.x$|\\.y$", names(df), value = TRUE))
 ```
+
+### Check if carcass price exists for Laverton unicodes (NA means no price found for that unicode/period)
+
+```{r}
+laverton_unicodes <- c("FLAVERTON6WAY", "LAVERTON6WAY", "LAVERTONCOMMODITY", "FLAVERTONCOMMODITY",
+                       "FLAVERTONSOW COMMODITY", "FLAVERTONOTHERS(SOW)", "FLAVERTONPW OPPORTUNITY - SOW")
+
+carcass_price_laverton_check <- carcass_price_data %>%
+  mutate(`Farm Unicode` = toupper(str_trim(`Farm Unicode`)), Abattoir = toupper(Abbatoir)) %>%
+  filter(`Farm Unicode` %in% laverton_unicodes, Abattoir == "LAVERTON") %>%
+  pivot_longer(cols = matches("^\\d+$"), names_to = "Period", values_to = "Carcass Price") %>%
+  mutate(Period = as.integer(Period)) %>%
+  select(`Farm Unicode`, Abattoir, Period, `Carcass Price`)
+
+# Summary: which unicodes have prices and which are missing entirely
+data.frame(Unicode = laverton_unicodes) %>%
+  mutate(Has_Price = Unicode %in% carcass_price_laverton_check$`Farm Unicode`)
+```
+
+### Check total Value for laverton_farm_510167_10501854_calculated
+
+```{r}
+sum(corowa_farm_510167_10501816_bone_calculated$`Value`, na.rm = TRUE)
+```
+
+```{r}
+"Other Transactions" %in% carcass_price_data$`Customer name`
+```
