@@ -105,29 +105,20 @@ check_5 <- volume_commodity_corowa_400000 %>%
   filter(`Total Weight` < 0)
 ```
 
-### Check for item in VA procuments but not in commodity data for corowa
+### Check for item in VA procuments but not in commodity data for corowa (ideally should be 0)
 
 ```{r}
-anti_join(
+check_6 <- anti_join(
   volume_commodity_corowa_400028 %>% distinct(`Item Code`),
   volume_commodity_corowa        %>% distinct(`Item Code`),
   by = "Item Code"
 )
 ```
 
-### Code to check for problem related to column
+### Code to check for problem related to column (should be 0)
 
 ```{r}
-lapply(list(
-  all_revenue_offal_data_calculated,
-  all_revenue_farm_calculated,
-  all_revenue_6way_sow_data_calculated,
-  all_revenue_commodity_corowa_calculated,
-  all_revenue_commodity_laverton_calculated,
-  all_revenue_meat_trade_data_calculated,
-  all_revenue_meat_sales_data_calculated,
-  all_revenue_new_team_calculated,
-  all_vevenue_corowa_laverton_expense_farm),
+check_7 <- lapply(list(final_file),
        function(df) grep("\\.x$|\\.y$", names(df), value = TRUE))
 ```
 
@@ -145,16 +136,76 @@ carcass_price_laverton_check <- carcass_price_data %>%
   select(`Farm Unicode`, Abattoir, Period, `Carcass Price`)
 
 # Summary: which unicodes have prices and which are missing entirely
-data.frame(Unicode = laverton_unicodes) %>%
+check_8 <- data.frame(Unicode = laverton_unicodes) %>%
   mutate(Has_Price = Unicode %in% carcass_price_laverton_check$`Farm Unicode`)
 ```
 
 ### Check total Value for laverton_farm_510167_10501854_calculated
 
 ```{r}
-sum(corowa_farm_510167_10501816_bone_calculated$`Value`, na.rm = TRUE)
+sum(volume_6way_sow_laverton %>% filter(`Customer Group` == "6 Way") %>% pull(Value), na.rm = TRUE)
+```
+
+### Check which Item has positive Total Weight but has no price input (must be 0 for both checks)
+
+```{r}
+check_9 <- volume_va_raw %>%
+  filter(`Service` == "Procurement") %>%
+  mutate(
+    Tab            = toupper(Tab),
+    Abattoir       = toupper(Abattoir),
+    Month          = toupper(Month),
+    Units          = as.numeric(Units),
+    `Avg Weight`   = as.numeric(`Avg Weight`),
+    `Total Weight` = as.numeric(`Total Weight`),
+    `Item Code`    = str_trim(`Item Code`),
+    Period         = match(Month, toupper(month.name))
+  ) %>%
+  left_join(
+    item_price_data,
+    by = c("Item Code" = "Item Key")
+  ) %>%
+  filter(`Total Weight` > 0, is.na(`Current Price`) | `Current Price` == 0) %>%
+  arrange(`Item Code`)
+
+check_10 <- volume_va_raw %>%
+  filter(`Service` == "VA Sales") %>%
+  mutate(
+    Tab            = toupper(Tab),
+    Abattoir       = toupper(Abattoir),
+    Month          = toupper(Month),
+    Units          = as.numeric(Units),
+    `Avg Weight`   = as.numeric(`Avg Weight`),
+    `Total Weight` = as.numeric(`Total Weight`),
+    `Item Code`    = str_trim(`Item Code`),
+    Period         = match(Month, toupper(month.name))
+  ) %>%
+  left_join(
+    item_price_data,
+    by = c("Item Code" = "Item Key")
+  ) %>%
+  filter(`Total Weight` > 0, is.na(`Price`) | `Price` == 0) %>%
+  arrange(`Item Code`)
+```
+
+### Code to check which item does not have packaging price for meat sales
+
+```{r}
+check_11 <- volume_expense_VA_sales_packaging_calculated %>%
+  filter(`Total Weight` > 0, is.na(Price) | Price == 0) %>%
+  group_by(`Item Code`, `Item Description`, Price) %>%
+  summarise(`Total Weight` = sum(`Total Weight`, na.rm = TRUE), .groups = "drop") %>%
+  arrange(`Item Code`)
 ```
 
 ```{r}
-"Other Transactions" %in% carcass_price_data$`Customer name`
+sum(volume_expense_VA_sales_packaging_calculated$Value, na.rm = TRUE)
+sum(volume_expense_VA_sales_pallet_calculated$Value, na.rm = TRUE)
+
+sum(volume_expense_VA_sales_packaging_calculated$`Total Weight`, na.rm = TRUE)
+sum(volume_expense_VA_sales_pallet_calculated$`Total Weight`, na.rm = TRUE)
+
+sum(all_expense_packaging_pallet_calculated$`Total Weight`, na.rm = TRUE)
+sum(all_expense_packaging_pallet_calculated$Value, na.rm = TRUE)
+
 ```
