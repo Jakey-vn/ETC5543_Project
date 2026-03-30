@@ -34,9 +34,11 @@ carcass_price_data <- wb_to_df("C:/Users/ATran2/OneDrive - JBS/Forecast Project 
 bone_fee_data <- wb_to_df("C:/Users/ATran2/OneDrive - JBS/Forecast Project - Documents/Prices.xlsb", sheet = "Bone Fee")
 kill_fee_data <- wb_to_df("C:/Users/ATran2/OneDrive - JBS/Forecast Project - Documents/Prices.xlsb", sheet = "Kill Fee")
 item_price_data <- wb_to_df("C:/Users/ATran2/OneDrive - JBS/Forecast Project - Documents/Prices.xlsb", sheet = "BM PRice")
+packaging_price_data <- wb_to_df("C:/Users/ATran2/OneDrive - JBS/Forecast Project - Documents/Prices.xlsb", sheet = "Packaging VA")
 gl_cc_data <- read_excel("C:/Users/ATran2/OneDrive - JBS/Forecast Project - Documents/Master Data..xlsx", sheet = "GL & CC")
 customer_data <- read_excel("C:/Users/ATran2/OneDrive - JBS/Forecast Project - Documents/Master Data..xlsx", sheet = "Customer")
 VA_brand_data <- read_excel("C:/Users/ATran2/OneDrive - JBS/Forecast Project - Documents/Master Data..xlsx", sheet = "VA")
+
 ```
 
 ## Data Processing
@@ -1556,6 +1558,154 @@ laverton_farm_510167_10501854_new <- laverton_farm_510167_10501854 %>%
   crossing(Period = 1:12)
 ```
 
+### Inter-company Cost of Sales for Meat Trades from Laverton to Corowa (510167-10501816)
+
+```{r}
+# Expense account for corowa meat trade coming from meat trasfering from corowa to laverton
+meat_trade_510167_10501816 <- customer_data %>% 
+  filter(`BU` == "2.Meat Processing") %>% 
+  filter(`Customer Group` %in% c(
+    "Meat Trade"
+  )) 
+  
+meat_trade_510167_10501816_new <- meat_trade_510167_10501816 %>%
+  select(-any_of("Floor")) %>%
+  left_join(
+    gl_cc_data %>% filter(`GL Account` == 510167, `Cc Key` == 10501816),
+    by = c("BU" = "BU")
+  ) %>% 
+  # Add Month columns for future use
+  crossing(Period = 1:12)
+```
+
+### 3.Meat Sales Cost of Sales from procurement internal transactions (510167-10001814)
+
+```{r}
+# Expense account for buying meat from internal 
+meat_sales_internal_510167_10001814 <- customer_data %>% 
+  filter(`BU` == "3.Meat Sales") %>% 
+  filter(`Customer Group` == "Meat Purchase")
+
+meat_sales_internal_510167_10001814_new <- meat_sales_internal_510167_10001814 %>%
+  select(-any_of("Floor")) %>%
+  left_join(
+    gl_cc_data %>% filter(`GL Account` == 510167, `Cc Key` == 10001814),
+    by = c("BU" = "BU")
+  ) %>% 
+  # Add Month columns for future use
+  crossing(Period = 1:12)
+```
+
+### 3.Meat Sales Cost of Sales from procurement external transactions (500031-1001814)
+
+```{r}
+# Expense account for buying meat from external
+meat_sales_external_500031_10001814 <- customer_data %>% 
+  filter(`BU` == "3.Meat Sales") %>% 
+  filter(`Customer Group` == "Meat Purchase")
+
+meat_sales_external_500031_10001814_new <- meat_sales_external_500031_10001814 %>%
+  select(-any_of("Floor")) %>%
+  left_join(
+    gl_cc_data %>% filter(`GL Account` == 500031, `Cc Key` == 10001814),
+    by = c("BU" = "BU")
+  ) %>% 
+  # Add Month columns for future use
+  crossing(Period = 1:12)
+```
+
+## Packaging and Pallet expense account
+
+### 3. Meat Sales Packaging Account (650311-10001814)
+
+```{r}
+# Expense account for packaging from Value Add product
+meat_sales_packaging_650311_10001814 <- customer_data %>% 
+  filter(`BU` == "3.Meat Sales") 
+
+meat_sales_packaging_650311_10001814_new <- meat_sales_packaging_650311_10001814 %>%
+  select(-any_of("Floor")) %>%
+  left_join(
+    gl_cc_data %>% filter(`GL Account` == 650311, `Cc Key` == 10001814),
+    by = c("BU" = "BU")
+  ) %>% 
+  # Add Month columns for future use
+  crossing(Period = 1:12)
+```
+
+### 3. Meat Sales Pallet Account (650303-10001814)
+
+```{r}
+# Expense account for packaging from Value Add product
+meat_sales_pallet_650303_10001814 <- customer_data %>% 
+  filter(`BU` == "3.Meat Sales") 
+
+meat_sales_pallet_650303_10001814_new <- meat_sales_pallet_650303_10001814 %>%
+  select(-any_of("Floor")) %>%
+  left_join(
+    gl_cc_data %>% filter(`GL Account` == 650303, `Cc Key` == 10001814),
+    by = c("BU" = "BU")
+  ) %>% 
+  # Add Month columns for future use
+  crossing(Period = 1:12)
+```
+
+## Freight In Expense Account
+
+### 1.Farming Operations Freight In (500195-10001812)
+
+```{r}
+# Expense account for farming packaging
+farm_freight_in_500195_10001812 <- customer_data %>% 
+  filter(`BU` == "1.Farming Operations") %>% 
+  filter(`Customer name` == "Freight In")
+
+farm_freight_in_500195_10001812_new <- farm_freight_in_500195_10001812 %>%
+  select(-any_of("Floor")) %>%
+  left_join(
+    gl_cc_data %>% filter(`GL Account` == 500195, `Cc Key` == 10001812),
+    by = c("BU" = "BU")
+  ) %>% 
+  # Add Month columns for future use
+  crossing(Period = 1:12)
+```
+
+### 2.Meat Processing Freight (500195-10001816)
+
+```{r}
+# Expense account for corowa packaging
+corowa_freight_in_500195_10001816 <- customer_data %>% 
+  filter(`BU` == "2.Meat Processing") %>% 
+  filter(`Customer name` == "Freight In")
+
+corowa_freight_in_500195_10001816_new <- corowa_freight_in_500195_10001816 %>%
+  select(-any_of("Floor")) %>%
+  left_join(
+    gl_cc_data %>% filter(`GL Account` == 500195, `Cc Key` == 10001816),
+    by = c("BU" = "BU")
+  ) %>% 
+  # Add Month columns for future use
+  crossing(Period = 1:12)
+```
+
+### 6.Laverton Processing Freight (500195-10501854)
+
+```{r}
+# Expense account for corowa packaging
+laverton_freight_in_500195_10501854 <- customer_data %>% 
+  filter(`BU` == "6.Laverton Processing") %>% 
+  filter(`Customer name` == "Freight In")
+
+corowa_freight_in_500195_10001816_new <- corowa_freight_in_500195_10001816 %>%
+  select(-any_of("Floor")) %>%
+  left_join(
+    gl_cc_data %>% filter(`GL Account` == 500195, `Cc Key` == 10501854),
+    by = c("BU" = "BU")
+  ) %>% 
+  # Add Month columns for future use
+  crossing(Period = 1:12)
+```
+
 # Processing Data for Expense Account
 
 ## V&V Data
@@ -1594,11 +1744,15 @@ external_VA_price_calculated <- volume_va_raw %>%
 ### Join Farm Sell and Buy Back from V&V Data with account
 
 ```{r}
+# Convert Gross Sales - Other variables into negative according to account adjustment
 farm_sales_400350_10001812_calculated <- farm_sales_400350_10001812_new %>%
   left_join(
     external_VA_price_calculated ,
     by = c("BU" = "Tab","Period")
-  )
+  ) %>%
+  mutate(Value = -Value)
+
+# This one reflect the cost of sales for farm and positive value in opposite to Gross Sales - Other
 farm_costs_510157_10001812_calculated <- farm_costs_510157_10001812_new %>%
   left_join(
     external_VA_price_calculated ,
@@ -1609,7 +1763,7 @@ farm_costs_510157_10001812_calculated <- farm_costs_510157_10001812_new %>%
 ### Join gross sales and cost of sales data
 
 ```{r}
-all_revenue_new_team_calculated <- bind_rows(farm_sales_400350_10001812_calculated, farm_costs_510157_10001812_calculated)
+all_expense_new_team_calculated <- bind_rows(farm_sales_400350_10001812_calculated, farm_costs_510157_10001812_calculated)
 ```
 
 ## Expense for Corowa by buying pig, killing pig and boning them from Farm
@@ -1799,15 +1953,212 @@ laverton_farm_510167_10501854_calculated <- corowa_laverton_transactions %>%
     gl_cc_data %>% filter(`GL Account` == 510167, `Cc Key` == 10501854),
     by = "BU"
   )
-
 ```
 
 ### Join Expense Account buying from Farm for both Corowa and Laverton
 
 ```{r}
-all_vevenue_corowa_laverton_expense_farm <- bind_rows(corowa_farm_510167_10501816_buy_calculated,
-corowa_farm_510167_10501816_kill_calculated,               
-corowa_farm_510167_10501816_bone_calculated,            laverton_farm_510167_10501854_calculated)
+all_expense_corowa_laverton_expense_farm <- bind_rows(corowa_farm_510167_10501816_buy_calculated,
+corowa_farm_510167_10501816_kill_calculated,
+corowa_farm_510167_10501816_bone_calculated,            laverton_farm_510167_10501854_calculated) %>%
+  mutate(Value = -Value)
+```
+
+## Expense for Corowa by transferring meat from Laverton include edible offal, 6way and commodity frozen
+
+```{r}
+# Volume for intercompany meat trade from Laverton to Corowa
+volume_meat_trade_laverton_intercompany <- bind_rows(
+  volume_offal_laverton %>% filter(`Customer Group` == "Edible Offal"),
+  volume_6way_sow_laverton %>% filter(`Customer Group` == "6 Way"),
+  volume_commodity_laverton_frz
+) %>%
+  mutate(Period = match(Month, toupper(month.name))) %>%
+  select(-Tab, -Abattoir, -`Customer name`)
+
+all_expense_meat_trade_laverton_corowa_calculated <- meat_trade_510167_10501816_new %>%
+  left_join(
+    volume_meat_trade_laverton_intercompany,
+    by = c("Period", "Service" = "Customer Group")
+  ) %>%
+  mutate(Value = -Value)
+```
+
+## Expense for Meat Sales from buying meat from Internal and External Vendor with Procurement Service
+
+```{r}
+# Standardise the data
+meat_sales_internal_510167_10001814_new_std <- meat_sales_internal_510167_10001814_new %>%
+  mutate(
+    `SOP Unicode` = toupper(`SOP Unicode`),
+    BU            = toupper(BU),
+    Abattoir      = toupper(Abattoir),
+    Month         = toupper(month.name[Period])
+  ) 
+
+# Standardise the data
+meat_sales_external_500031_10001814_new_std <- meat_sales_external_500031_10001814_new %>%
+  mutate(
+    `SOP Unicode` = toupper(`SOP Unicode`),
+    BU            = toupper(BU),
+    Abattoir      = toupper(Abattoir),
+    Month         = toupper(month.name[Period])
+  ) 
+
+# Prepare data for expense of meat sales
+volume_expense_VA_calculated <- volume_va_raw %>%
+  filter(`Service` == "Procurement") %>%
+  mutate(
+    Tab            = toupper(Tab),
+    Abattoir       = toupper(Abattoir),
+    Month          = toupper(Month),
+    Units          = as.numeric(Units),
+    `Avg Weight`   = as.numeric(`Avg Weight`),
+    `Total Weight` = as.numeric(`Total Weight`),
+    `Item Code`    = str_trim(`Item Code`),
+    Period         = match(Month, toupper(month.name))
+  ) %>%
+  left_join(
+    item_price_data,
+    by = c("Item Code" = "Item Key")
+  ) %>%
+  mutate(Value = `Total Weight` * `Current Price`) %>%
+  group_by(Tab, Abattoir, Month, Period, `Vendor Type`) %>%
+  summarise(
+    Units          = sum(Units, na.rm = TRUE),
+    `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
+    `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+    Value          = sum(Value, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Internal vendor → 510167-10001814
+meat_sales_internal_510167_10001814_calculated <- meat_sales_internal_510167_10001814_new_std %>%
+  select(-any_of("Abattoir")) %>%
+  left_join(
+    volume_expense_VA_calculated %>% filter(`Vendor Type` == "Internal"),
+    by = c("BU" = "Tab", "Period", "Month")
+  ) %>%
+  mutate(Value = -Value)
+
+# External vendor → 500031-10001814
+meat_sales_external_500031_10001814_calculated <- meat_sales_external_500031_10001814_new_std %>%
+  select(-any_of("Abattoir")) %>%
+  left_join(
+    volume_expense_VA_calculated %>% filter(`Vendor Type` == "External"),
+    by = c("BU" = "Tab", "Period", "Month")
+  ) %>%
+  mutate(Value = -Value)
+
+# Join both Internal and External Expense for Meat Sales
+all_expense_meat_sales_internal_external_calculated <- bind_rows(
+  meat_sales_internal_510167_10001814_calculated %>% select(-any_of("Vendor Type")),
+  meat_sales_external_500031_10001814_calculated %>% select(-any_of("Vendor Type"))
+)
+```
+
+## Expense for packaging and pallet for value added from 3.Meat Sales
+
+```{r}
+# Standardise the data
+meat_sales_packaging_650311_10001814_new_std <- meat_sales_packaging_650311_10001814_new %>%
+  mutate(
+    `SOP Unicode` = toupper(`SOP Unicode`),
+    BU            = toupper(BU),
+    Abattoir      = toupper(Abattoir),
+    Month         = toupper(month.name[Period])
+  ) %>% 
+  mutate(Abattoir = "VALUE ADD")
+
+# Standardise the data
+meat_sales_pallet_650303_10001814_new_std <- meat_sales_pallet_650303_10001814_new %>%
+  mutate(
+    `SOP Unicode` = toupper(`SOP Unicode`),
+    BU            = toupper(BU),
+    Abattoir      = toupper(Abattoir),
+    Month         = toupper(month.name[Period])
+  ) %>% 
+  mutate(Abattoir = "VALUE ADD")
+
+# Prepare data for expense of meat sales
+volume_expense_VA_sales_calculated <- volume_va_raw %>%
+  filter(`Service` == "VA Sales") %>%
+  mutate(
+    Tab            = toupper(Tab),
+    Abattoir       = toupper(Abattoir),
+    Month          = toupper(Month),
+    Units          = as.numeric(Units),
+    `Avg Weight`   = as.numeric(`Avg Weight`),
+    `Total Weight` = as.numeric(`Total Weight`),
+    `Item Code`    = str_trim(`Item Code`),
+    Period         = match(Month, toupper(month.name))
+  ) %>%
+  left_join(
+    VA_brand_data %>% select(`Item Code`, Brand),
+    by = "Item Code"
+  ) %>%
+  mutate(
+    `Customer name` = if_else(!is.na(Brand), Brand, `Customer name`)
+  ) %>%
+  select(-Brand) 
+
+# Calculate the packaging cost 
+volume_expense_VA_sales_packaging_calculated <- volume_expense_VA_sales_calculated %>%
+  select(-Price) %>%
+  left_join(
+    packaging_price_data %>%
+      filter(VARIANT == 2) %>%
+      select(BOM, PACKAGING) %>%
+      mutate(BOM = as.character(BOM)),
+    by = c("Item Code" = "BOM")
+  ) %>%
+  rename(Price = PACKAGING) %>%
+  mutate(Value = `Total Weight` * Price)
+
+# Calculate the pallet cost 
+volume_expense_VA_sales_pallet_calculated <- volume_expense_VA_sales_calculated %>%
+  select(-Price) %>%
+  left_join(
+    packaging_price_data %>%
+      filter(VARIANT == 2) %>%
+      select(BOM, PALLETS) %>%
+      mutate(BOM = as.character(BOM)),
+    by = c("Item Code" = "BOM")
+  ) %>%
+  rename(Price = PALLETS) %>%
+  mutate(Value = `Total Weight` * Price)
+
+meat_sales_packaging_650311_10001814_calculated <- meat_sales_packaging_650311_10001814_new_std %>%
+  left_join(
+    volume_expense_VA_sales_packaging_calculated %>%
+      group_by(Tab, Abattoir, Month, Period, `Customer name`) %>%
+      summarise(
+        Units          = sum(Units, na.rm = TRUE),
+        `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
+        `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+        Value          = sum(Value, na.rm = TRUE),
+        .groups = "drop"
+      ),
+    by = c("BU" = "Tab", "Abattoir", "Month", "Period", "Customer name")
+  ) %>%
+  mutate(Value = -Value)
+
+meat_sales_pallet_650303_10001814_calculated <- meat_sales_pallet_650303_10001814_new_std %>%
+  left_join(
+    volume_expense_VA_sales_pallet_calculated %>%
+      group_by(Tab, Abattoir, Month, Period, `Customer name`) %>%
+      summarise(
+        Units          = sum(Units, na.rm = TRUE),
+        `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
+        `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+        Value          = sum(Value, na.rm = TRUE),
+        .groups = "drop"
+      ),
+    by = c("BU" = "Tab", "Abattoir", "Month", "Period", "Customer name")
+  ) %>%
+  mutate(Value = -Value)
+
+all_expense_packaging_pallet_calculated <- bind_rows(meat_sales_packaging_650311_10001814_calculated, meat_sales_pallet_650303_10001814_calculated)
 ```
 
 # Rejoin all calculated data together before writing it down
@@ -1821,8 +2172,11 @@ final_file <- bind_rows(
   all_revenue_commodity_laverton_calculated,
   all_revenue_meat_trade_data_calculated,
   all_revenue_meat_sales_data_calculated,
-  all_revenue_new_team_calculated,
-  all_vevenue_corowa_laverton_expense_farm
+  all_expense_new_team_calculated,
+  all_expense_corowa_laverton_expense_farm,
+  all_expense_meat_trade_laverton_corowa_calculated,
+  all_expense_meat_sales_internal_external_calculated,
+  all_expense_packaging_pallet_calculated
 )
 ```
 
@@ -1830,8 +2184,4 @@ final_file <- bind_rows(
 
 ```{r}
 write.csv(final_file, "GL_DB Template.csv", row.names = FALSE)
-```
-
-```{r}
-laverton_farm_510167_10501854_calculated
 ```
