@@ -198,12 +198,42 @@ check_11 <- volume_expense_VA_sales_packaging_calculated %>%
   arrange(`Item Code`)
 ```
 
-```{r}
-sum(volume_expense_VA_sales_packaging_calculated$Value, na.rm = TRUE)
-sum(volume_expense_VA_sales_pallet_calculated$Value, na.rm = TRUE)
+### Code to check which item does not have packaging and Pallet price for Corowa 
 
-sum(volume_expense_VA_sales_packaging_calculated$`Total Weight`, na.rm = TRUE)
-sum(volume_expense_VA_sales_pallet_calculated$`Total Weight`, na.rm = TRUE)
+```{r}
+check_12 <- volume_commodity_packaging_calculated %>%
+  left_join(
+    packaging_price_data %>%
+      filter(VARIANT == 4) %>%
+      select(BOM, PACKAGING) %>%
+      mutate(BOM = as.character(BOM)),
+    by = c("Item Code" = "BOM")
+  ) %>%
+  filter(`Total Weight` > 0, is.na(PACKAGING) | PACKAGING == 0) %>%
+  group_by(`Item Code`, `Item Description`, PACKAGING) %>%
+  summarise(`Total Weight` = sum(`Total Weight`, na.rm = TRUE), .groups = "drop") %>%
+  arrange(`Item Code`)
+
+check_13 <- volume_6way_packaging_calculated %>%
+  left_join(
+    packaging_price_data %>%
+      filter(VARIANT == 4) %>%
+      select(BOM, PACKAGING) %>%
+      mutate(BOM = as.character(BOM)),
+    by = c("Item Code" = "BOM")
+  ) %>%
+  filter(`Total Weight` > 0, is.na(PACKAGING) | PACKAGING == 0) %>%
+  group_by(`Item Code`, `Item Description`, PACKAGING) %>%
+  summarise(`Total Weight` = sum(`Total Weight`, na.rm = TRUE), .groups = "drop") %>%
+  arrange(`Item Code`)
+```
+
+```{r}
+sum(volume_ww_data_packaging_calculated$Value, na.rm = TRUE)
+sum(volume_ww_data_pallet_calculated$Value, na.rm = TRUE)
+
+sum(volume_ww_data_packaging_calculated$`Total Weight`, na.rm = TRUE)
+sum(volume_ww_data_pallet_calculated$`Total Weight`, na.rm = TRUE)
 
 sum(all_expense_packaging_pallet_calculated$`Total Weight`, na.rm = TRUE)
 sum(all_expense_packaging_pallet_calculated$Value, na.rm = TRUE)
