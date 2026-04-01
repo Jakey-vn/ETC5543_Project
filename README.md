@@ -42,7 +42,12 @@ The main output is `GL_DB Template.csv`, structured for GL database input.
 - **400028** = Intercompany Sales (internal transfers between business units)
 - **400350** = Gross Sales - V&V sell and buy-back (Farming Operations)
 - **510157** = Cost of Sales - V&V sell and buy-back (Farming Operations)
-- **510167** = Expense - Intercompany pig purchases from Farm (Corowa and Laverton)
+- **510167** = Expense - Intercompany pig purchases / meat trade cost of sales
+- **500031** = External Meat Purchase Cost of Sales (3.Meat Sales)
+- **500195** = Freight In Expense
+- **650301** = Packaging Expense
+- **650303** = Pallet Expense
+- **650311** = Packaging and Margin Expense (special contracts: Woolworths, DRJ, Meat Sales)
 
 ### Volume Data Split
 Volume data from `SOP Volumes.xlsx` is split into three datasets based on the `Tab` column:
@@ -77,6 +82,7 @@ Volume data from `SOP Volumes.xlsx` is split into three datasets based on the `T
 | 1. Farming Operations | Farm | 400000 / 400028 | 10001812 |
 | 1. Farming Operations | V&V Gross Sales | 400350 | 10001812 |
 | 1. Farming Operations | V&V Cost of Sales | 510157 | 10001812 |
+| 1. Farming Operations | Freight In | 500195 | 10001812 |
 | 2. Meat Processing | Kill Floor | 400000 / 400028 | 10201816 |
 | 2. Meat Processing | Boning Room | 400000 / 400028 | 11901816 |
 | 2. Meat Processing | Boxed Meat | 400000 / 400028 | 10501816 |
@@ -84,7 +90,23 @@ Volume data from `SOP Volumes.xlsx` is split into three datasets based on the `T
 | 2. Meat Processing | Edible Offal | 400000 | 10001816 |
 | 2. Meat Processing | Inedible Offal | 400000 | 10801816 |
 | 2. Meat Processing | Pig from Farm (Expense) | 510167 | 10501816 |
+| 2. Meat Processing | Meat Trade Cost of Sales | 510167 | 10501816 |
+| 2. Meat Processing | Freight In | 500195 | 10001816 |
+| 2. Meat Processing | Edible Offal Packaging | 650301 | 10001816 |
+| 2. Meat Processing | Edible Offal Pallet | 650303 | 10001816 |
+| 2. Meat Processing | 6 Way FRZ Packaging | 650301 | 10501816 |
+| 2. Meat Processing | 6 Way FRZ Pallet | 650303 | 10501816 |
+| 2. Meat Processing | Commodity FRZ Packaging | 650301 | 10501816 |
+| 2. Meat Processing | Commodity FRZ Pallet | 650303 | 10501816 |
+| 2. Meat Processing | Woolworths Packaging (special contract) | 650301 | 11901816 |
+| 2. Meat Processing | Woolworths Margin (special contract) | 650311 | 11901816 |
+| 2. Meat Processing | DRJ Packaging (special contract) | 650301 | 11901816 |
+| 2. Meat Processing | DRJ Margin (special contract) | 650311 | 11901816 |
 | 3. Meat Sales | VA | 400000 | 10001814 |
+| 3. Meat Sales | Meat Purchase - Internal | 510167 | 10001814 |
+| 3. Meat Sales | Meat Purchase - External | 500031 | 10001814 |
+| 3. Meat Sales | Packaging | 650311 | 10001814 |
+| 3. Meat Sales | Pallet | 650303 | 10001814 |
 | 6. Laverton Processing | Kill Floor | 400000 / 400028 | 10201854 |
 | 6. Laverton Processing | Boning Room | 400000 / 400028 | 11901854 |
 | 6. Laverton Processing | Boxed Meat (6Way FRZ, Commodity FRZ) | 400028 | 10501854 |
@@ -93,6 +115,15 @@ Volume data from `SOP Volumes.xlsx` is split into three datasets based on the `T
 | 6. Laverton Processing | Edible Offal | 400028 | 10001854 |
 | 6. Laverton Processing | Inedible Offal | 400000 | 10801854 |
 | 6. Laverton Processing | Pig from Farm (Expense) | 510167 | 10501854 |
+| 6. Laverton Processing | Freight In | 500195 | 10501854 |
+| 6. Laverton Processing | Edible Offal Packaging | 650301 | 10001854 |
+| 6. Laverton Processing | Edible Offal Pallet | 650303 | 10001854 |
+| 6. Laverton Processing | 6 Way FRZ Packaging | 650301 | 10501854 |
+| 6. Laverton Processing | 6 Way FRZ Pallet | 650303 | 10501854 |
+| 6. Laverton Processing | Commodity FRZ Packaging | 650301 | 10501854 |
+| 6. Laverton Processing | Commodity FRZ Pallet | 650303 | 10501854 |
+| 6. Laverton Processing | Sow FRZ Packaging | 650301 | 10501854 |
+| 6. Laverton Processing | Sow FRZ Pallet | 650303 | 10501854 |
 
 ### Meat Trade Logic (Laverton → Corowa)
 Corowa's Boxed Meat section includes a **Meat Trade** category that consolidates Laverton products sold through Corowa. The volume source is Laverton bone data, remapped to Corowa as the selling entity (`Abattoir = COROWA`, `GL Account = 400000`, `Cc Key = 10501816`). Three product types are included:
@@ -105,13 +136,12 @@ Corowa's Boxed Meat section includes a **Meat Trade** category that consolidates
 
 The join key to the customer account table is `Service` (values: `6 Way`, `Commodity`, `Edible Offal`). Note that the $0.51 Lineage discount is **not** applied here - it is already applied in the separate Laverton Edible Offal / 6Way / Commodity Frozen accounts.
 
-### Expense Account Logic (In Progress)
-The expense account section is still being developed. Currently it covers two scenarios:
+### Expense Account Logic
 
 **V&V Sell and Buy-Back (FLAVERTONNew Team)**
 - Filters the `FLAVERTONNew Team` unicode from customer data
-- Calculates value from external VA procurement rows (External vendor, Procurement service) joined to item prices
-- Creates two paired accounts per period: Gross Sales (400350) and Cost of Sales (510157), both under 10001812
+- Calculates value from external VA procurement rows (External vendor, Procurement service) joined to carcass price ("Other Transactions" row)
+- Creates two paired accounts per period: Gross Sales (400350, negated) and Cost of Sales (510157), both under 10001812
 
 **Intercompany Pig Purchase from Farm - Corowa and Laverton (510167)**
 - Filters internal (non-External) farm volume rows for Corowa 6Way/Commodity unicodes and Laverton 6Way/Commodity unicodes respectively
@@ -122,6 +152,38 @@ The expense account section is still being developed. Currently it covers two sc
 - **Laverton** produces one expense row type: `Total Weight × Carcass Price` (Farm tab only)
 - Produces separate expense rows for Corowa (510167-10501816) and Laverton (510167-10501854)
 - Note: There is a known mismatch between customer data and GL & CC account for this section - still under investigation
+
+**Meat Trade Cost of Sales (510167-10501816)**
+- Filters Customer Group == "Meat Trade" from 2.Meat Processing customer data
+- Records the intercompany cost of sales for Laverton products transferred to Corowa as Meat Trade
+
+**Meat Sales Cost of Sales - Internal and External (3.Meat Sales)**
+- Both rows filter Customer Group == "Meat Purchase" from 3.Meat Sales customer data
+- Internal purchases: 510167-10001814
+- External purchases: 500031-10001814
+
+**Packaging and Pallet Expenses**
+
+Packaging (650301) and Pallet (650303) accounts are created per BU and product group, mirroring the same customer filters used in their corresponding revenue accounts:
+
+| BU | Product Group | Packaging Account | Pallet Account |
+|----|--------------|------------------|----------------|
+| 2. Meat Processing | Edible Offal | 650301-10001816 | 650303-10001816 |
+| 2. Meat Processing | 6 Way FRZ | 650301-10501816 | 650303-10501816 |
+| 2. Meat Processing | Commodity FRZ | 650301-10501816 | 650303-10501816 |
+| 2. Meat Processing | Woolworths (special) | 650301-11901816 | 650311-11901816 (margin) |
+| 2. Meat Processing | DRJ (special) | 650301-11901816 | 650311-11901816 (margin) |
+| 3. Meat Sales | All VA customers | 650311-10001814 | 650303-10001814 |
+| 6. Laverton Processing | Edible Offal | 650301-10001854 | 650303-10001854 |
+| 6. Laverton Processing | 6 Way FRZ | 650301-10501854 | 650303-10501854 |
+| 6. Laverton Processing | Commodity FRZ | 650301-10501854 | 650303-10501854 |
+| 6. Laverton Processing | Sow FRZ | 650301-10501854 | 650303-10501854 |
+
+Note: Woolworths and DRJ use a **margin** account (650311) instead of a standard pallet account (650303) due to their special contract pricing arrangements. These two also filter by Tab == "Bone" and Floor == "Bone" (Boning Room), not Boxed Meat.
+
+**Freight In (500195)**
+- Filters Customer name == "Freight In" from each BU's customer data
+- Covers: 1.Farming Operations (500195-10001812), 2.Meat Processing (500195-10001816), 6.Laverton Processing (500195-10501854)
 
 ## Debug Checks
 
