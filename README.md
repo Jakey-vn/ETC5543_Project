@@ -166,19 +166,6 @@ The join key to the customer account table is `Service` (values: `6 Way`, `Commo
 
 Packaging (650301) and Pallet (650303) accounts are created per BU and product group, mirroring the same customer filters used in their corresponding revenue accounts:
 
-| BU | Product Group | Packaging Account | Pallet Account |
-|----|--------------|------------------|----------------|
-| 2. Meat Processing | Edible Offal | 650301-10001816 | 650303-10001816 |
-| 2. Meat Processing | 6 Way FRZ | 650301-10501816 | 650303-10501816 |
-| 2. Meat Processing | Commodity FRZ | 650301-10501816 | 650303-10501816 |
-| 2. Meat Processing | Woolworths (special) | 650301-11901816 | 650311-11901816 (margin) |
-| 2. Meat Processing | DRJ (special) | 650301-11901816 | 650311-11901816 (margin) |
-| 3. Meat Sales | All VA customers | 650311-10001814 | 650303-10001814 |
-| 6. Laverton Processing | Edible Offal | 650301-10001854 | 650303-10001854 |
-| 6. Laverton Processing | 6 Way FRZ | 650301-10501854 | 650303-10501854 |
-| 6. Laverton Processing | Commodity FRZ | 650301-10501854 | 650303-10501854 |
-| 6. Laverton Processing | Sow FRZ | 650301-10501854 | 650303-10501854 |
-
 Note: Woolworths and DRJ use a **margin** account (650311) instead of a standard pallet account (650303) due to their special contract pricing arrangements. These two also filter by Tab == "Bone" and Floor == "Bone" (Boning Room), not Boxed Meat.
 
 **Freight In (500195)**
