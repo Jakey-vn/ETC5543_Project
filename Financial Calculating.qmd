@@ -38,7 +38,8 @@ packaging_price_data <- wb_to_df("C:/Users/ATran2/OneDrive - JBS/Forecast Projec
 gl_cc_data <- read_excel("C:/Users/ATran2/OneDrive - JBS/Forecast Project - Documents/Master Data..xlsx", sheet = "GL & CC")
 customer_data <- read_excel("C:/Users/ATran2/OneDrive - JBS/Forecast Project - Documents/Master Data..xlsx", sheet = "Customer")
 VA_brand_data <- read_excel("C:/Users/ATran2/OneDrive - JBS/Forecast Project - Documents/Master Data..xlsx", sheet = "VA")
-
+trade_allowance_data <- read_excel("C:/Users/ATran2/OneDrive - JBS/Forecast Project - Documents/Trade Allowance.xlsx", sheet = "Sheet1")
+rates_and_allocation_data <- read_excel("C:/Users/ATran2/OneDrive - JBS/Forecast Project - Documents/Rates and Allocation.xlsx", sheet = "Sheet1") 
 ```
 
 ## Data Processing
@@ -47,6 +48,12 @@ VA_brand_data <- read_excel("C:/Users/ATran2/OneDrive - JBS/Forecast Project - D
 # Remove extra spaces in BU naming (e.g. "1. Farming" → "1.Farming")
 gl_cc_data <- gl_cc_data %>%
   mutate(BU = str_replace_all(BU, "(\\d+\\.)\\s+", "\\1"))
+
+# Process rate and allocation data for it to combatible 
+rates_and_allocation_data <- rates_and_allocation_data %>%
+  filter(!is.na(Brand)) %>%
+  mutate(`%` = `%` / sum(`%`), .by = Brand)
+
 
 # Split volume_raw into three data types based on col 2 identifier
 volume_farm_raw <- volume_raw %>%
@@ -62,11 +69,11 @@ volume_va_raw <- volume_raw %>%
   select(1:23)
 
 # Assign names for each separate data
-colnames(volume_farm_raw) <- c("Unicode", "Tab", "Week", "Month", "Year", "Abattoir", "Service", "Int/Ext", "Vendor Type", "Customer Code", "Customer name", "Item type", "Item Code", "Item Description", "Run", "Storage", "Type", "Group", "Primal", "Units", "Avg Weight", "Total Weight", "Price", "Production check")
+colnames(volume_farm_raw) <- c("Unicode", "Tab", "Week", "Month", "Year", "Abattoir", "Service", "Int/Ext", "Vendor Type", "Customer Code", "Customer name", "Item type", "Item Code", "Item Description", "Run", "Storage", "Type", "Group", "Primal", "Units", "Avg Weight", "Total Weight", "Price")
 
-colnames(volume_bone_raw) <- c("Unicode", "Tab", "Week", "Month", "Year", "Abattoir", "Service", "Int/Ext", "Vendor Type", "Customer Code", "Customer name", "Item type", "Item Code", "Item Description", "Run", "Storage", "Type", "Group", "Primal", "Units", "Avg Weight", "Total Weight", "Price", "Production check")
+colnames(volume_bone_raw) <- c("Unicode", "Tab", "Week", "Month", "Year", "Abattoir", "Service", "Int/Ext", "Vendor Type", "Customer Code", "Customer name", "Item type", "Item Code", "Item Description", "Run", "Storage", "Type", "Group", "Primal", "Units", "Avg Weight", "Total Weight", "Price")
 
-colnames(volume_va_raw)   <- c("Unicode", "Tab", "Week", "Month", "Year", "Abattoir", "Service", "Int/Ext", "Vendor Type", "Customer Code", "Customer name", "Item type", "Item Code", "Item Description", "Run", "Storage", "Type", "Group", "Primal", "Units", "Avg Weight", "Total Weight", "Price", "Production check")
+colnames(volume_va_raw)   <- c("Unicode", "Tab", "Week", "Month", "Year", "Abattoir", "Service", "Int/Ext", "Vendor Type", "Customer Code", "Customer name", "Item type", "Item Code", "Item Description", "Run", "Storage", "Type", "Group", "Primal", "Units", "Avg Weight", "Total Weight", "Price")
 
 # Remove duplicated Item to prevent potential error in the future
 item_price_data <- item_price_data %>%
@@ -634,13 +641,13 @@ laverton_6way_frz_400028_10501854_new <- laverton_6way_frz_400028_10501854 %>%
 
 ```{r}
 # Sales — external customers for corowa 6way frozen products - Only Laverton has Sow account
-laverton_6way_frz_400000_10501854 <- customer_data %>% 
+laverton_sow_frz_400000_10501854 <- customer_data %>% 
   filter(`BU` == "6.Laverton Processing") %>% 
   filter(`Floor` == "Boxed Meat") %>% 
   filter(`Customer Group` == "Sow") %>% 
   filter(`Sales Type` == "FRZ")
 
-laverton_6way_frz_400000_10501854_new <- laverton_6way_frz_400000_10501854 %>%
+laverton_sow_frz_400000_10501854_new <- laverton_sow_frz_400000_10501854 %>%
   select(-any_of("Floor")) %>%
   left_join(
     gl_cc_data %>% filter(`GL Account` == 400000, `Cc Key` == 10501854),
@@ -979,7 +986,7 @@ all_revenue_offal_data_calculated <- all_revenue_offal_data_std %>%
 all_revenue_6way_sow_data <- bind_rows(
   corowa_6way_frz_400000_10501816_new,
   laverton_6way_frz_400028_10501854_new,
-  laverton_6way_frz_400000_10501854_new
+  laverton_sow_frz_400000_10501854_new
   )
 
 # Pre-standardise keys once
@@ -2008,61 +2015,252 @@ laverton_sow_pallet_frz_650303_10501854_new <- laverton_sow_pallet_frz_650303_10
   crossing(Period = 1:12)
 ```
 
-## Freight In Expense Account
-
-### 1.Farming Operations Freight In (500195-10001812)
+### 6.Laverton Processing Export Pallet Account (650301-10201854)
 
 ```{r}
-# Expense account for farming packaging
-farm_freight_in_500195_10001812 <- customer_data %>% 
-  filter(`BU` == "1.Farming Operations") %>% 
-  filter(`Customer name` == "Freight In")
-
-farm_freight_in_500195_10001812_new <- farm_freight_in_500195_10001812 %>%
-  select(-any_of("Floor")) %>%
-  left_join(
-    gl_cc_data %>% filter(`GL Account` == 500195, `Cc Key` == 10001812),
-    by = c("BU" = "BU")
-  ) %>% 
-  # Add Month columns for future use
-  crossing(Period = 1:12)
-```
-
-### 2.Meat Processing Freight (500195-10001816)
-
-```{r}
-# Expense account for corowa packaging
-corowa_freight_in_500195_10001816 <- customer_data %>% 
-  filter(`BU` == "2.Meat Processing") %>% 
-  filter(`Customer name` == "Freight In")
-
-corowa_freight_in_500195_10001816_new <- corowa_freight_in_500195_10001816 %>%
-  select(-any_of("Floor")) %>%
-  left_join(
-    gl_cc_data %>% filter(`GL Account` == 500195, `Cc Key` == 10001816),
-    by = c("BU" = "BU")
-  ) %>% 
-  # Add Month columns for future use
-  crossing(Period = 1:12)
-```
-
-### 6.Laverton Processing Freight (500195-10501854)
-
-```{r}
-# Expense account for corowa packaging
-laverton_freight_in_500195_10501854 <- customer_data %>% 
+# Packaging Expense account for Laverton export to Singapore and Malaysia
+laverton_export_packaging_650301_10201854 <- customer_data %>% 
   filter(`BU` == "6.Laverton Processing") %>% 
-  filter(`Customer name` == "Freight In")
+  filter(`Floor` == "Export Carcass") %>% 
+  filter(`Customer Group` == "Export") 
 
-corowa_freight_in_500195_10001816_new <- corowa_freight_in_500195_10001816 %>%
+laverton_export_packaging_650301_10201854_new <- laverton_export_packaging_650301_10201854 %>%
   select(-any_of("Floor")) %>%
+  mutate(`Customer name` = paste(`Customer name`, `Customer Group`)) %>%
   left_join(
-    gl_cc_data %>% filter(`GL Account` == 500195, `Cc Key` == 10501854),
+    gl_cc_data %>% filter(`GL Account` == 650301, `Cc Key` == 10201854),
     by = c("BU" = "BU")
   ) %>% 
   # Add Month columns for future use
   crossing(Period = 1:12)
 ```
+
+## Trade Allowance Expense Account
+
+### 3. Meat Sales (450050-10001814)
+
+```{r}
+# Trade Allowance 
+trade_allowance_meat_sales_450050_10001814 <- customer_data %>% 
+  filter(`BU` == "3.Meat Sales") %>% 
+  filter(Tab == "VA") 
+
+trade_allowance_meat_sales_450050_10001814_new <- trade_allowance_meat_sales_450050_10001814 %>%
+  select(-any_of("Floor")) %>%
+  left_join(
+    gl_cc_data %>% 
+      filter(`GL Account` == 450050, `Cc Key` == 10001814) %>%
+      mutate(BU = "3.Meat Sales"),
+    by = c("BU" = "BU")
+  ) %>% 
+  crossing(Period = 1:12)
+```
+
+### 6. Laverton Processing (450050-10201854)
+
+```{r}
+laverton_trade_allowance_450050_10201854 <- customer_data %>%
+  filter(`BU` == "6.Laverton Processing") %>%
+  filter(Tab == "Kill") %>%
+  filter(Floor == "Kill") %>% 
+  filter(`Customer name` %in% c("BE Campbells Bacon", "B.E. Campbell"))
+  
+laverton_trade_allowance_450050_10201854_new <- laverton_trade_allowance_450050_10201854 %>%
+  select(-any_of("Floor")) %>%
+  left_join(
+    gl_cc_data %>% filter(`GL Account` == 450050, `Cc Key` == 10201854) %>%
+    mutate(BU = "6.Laverton Processing"),
+    by = c("BU" = "BU")
+  ) %>% 
+  # Add Month columns for future use
+  crossing(Period = 1:12)
+```
+
+## Storage Expense Account
+
+### Corowa Offal Storage Cost (730010-10001816)
+
+```{r}
+# Storage Cost Expense Account
+edible_offal_storage_730010_10001816 <- customer_data %>% 
+  filter(`BU` == "2.Meat Processing") %>% 
+  filter(Tab == "Kill") %>% 
+  filter(`Floor` == "Kill") %>% 
+  filter(`Customer Group` == "Edible Offal")
+
+edible_offal_storage_730010_10001816_new <- edible_offal_storage_730010_10001816 %>%
+  select(-any_of("Floor")) %>%
+  left_join(
+    gl_cc_data %>% filter(`GL Account` == 730010, `Cc Key` == 10001816),
+    by = c("BU" = "BU")
+  ) %>% 
+  # Add Month columns for future use
+  crossing(Period = 1:12)
+```
+
+### Corowa Commodity Storage Cost (730010-10501816)
+
+```{r}
+# Storage Cost 
+corowa_commodity_frz_storage_7300100_10501816 <- customer_data %>% 
+  filter(`BU` == "2.Meat Processing") %>% 
+  filter(`Floor` == "Boxed Meat") %>% 
+  filter(`Customer Group` == "Commodity") %>% 
+  filter(`Sales Type` == "FRZ")
+
+corowa_commodity_frz_storage_7300100_10501816_new <- corowa_commodity_frz_storage_7300100_10501816 %>%
+  select(-any_of("Floor")) %>%
+  left_join(
+    gl_cc_data %>% filter(`GL Account` == 730010, `Cc Key` == 10501816),
+    by = c("BU" = "BU")
+  ) %>% 
+  # Add Month columns for future use
+  crossing(Period = 1:12)
+```
+
+### Corowa 6 Way Storage Cost (730010-10501816)
+
+```{r}
+# Storage cost — external customers for corowa 6way frozen products
+corowa_6way_frz_storage_730010_10501816 <- customer_data %>% 
+  filter(`BU` == "2.Meat Processing") %>% 
+  filter(`Floor` == "Boxed Meat") %>% 
+  filter(`Customer Group` == "6 Way") %>% 
+  filter(`Sales Type` == "FRZ")
+
+corowa_6way_frz_storage_730010_10501816_new <- corowa_6way_frz_storage_730010_10501816 %>%
+  select(-any_of("Floor")) %>%
+  left_join(
+    gl_cc_data %>% filter(`GL Account` == 730010, `Cc Key` == 10501816),
+    by = c("BU" = "BU")
+  ) %>% 
+  # Add Month columns for future use
+  crossing(Period = 1:12)
+```
+
+### Corowa Meat Trade Storage Cost (730010-10501816)
+
+```{r}
+# Storage cost for this special type of data transfering from Laverton 6Way, Commodity and Edible Offal in Intercompany Sales to Corowa and count as Meat Trade product
+meat_trade_storage_data <- customer_data %>% 
+  filter(`BU` == "2.Meat Processing") %>% 
+  filter(`Floor` == "Meat Trade") %>% 
+  filter(`Service` %in% c("6 Way", "Commodity", "Edible Offal"))
+
+meat_trade_storage_data_new <- meat_trade_storage_data %>%
+  select(-any_of("Floor")) %>%
+  left_join(
+    gl_cc_data %>% filter(`GL Account` == 730010, `Cc Key` == 10501816),
+    by = c("BU" = "BU")
+  ) %>% 
+  # Add Month columns for future use
+  crossing(Period = 1:12)
+```
+
+### Corowa Stock On Hand Cost (730010-10501816)
+
+```{r}
+corowa_stock_on_hand_730010_10501816 <- customer_data %>% 
+  filter(`BU` == "2.Meat Processing") %>% 
+  filter(`Customer name` == "Corowa Stock On Hand")
+
+corowa_stock_on_hand_730010_10501816_new <- corowa_stock_on_hand_730010_10501816 %>%
+  select(-any_of("Floor")) %>%
+  left_join(
+    gl_cc_data %>% filter(`GL Account` == 730010, `Cc Key` == 10501816),
+    by = c("BU" = "BU")
+  ) 
+```
+
+### Laverton Sow Storage Cost (730010-10501854)
+
+```{r}
+# Storage Cost — external customers for corowa 6way frozen products - Only Laverton has Sow account
+laverton_sow_frz_storage_730010_10501854 <- customer_data %>% 
+  filter(`BU` == "6.Laverton Processing") %>% 
+  filter(`Floor` == "Boxed Meat") %>% 
+  filter(`Customer Group` == "Sow") %>% 
+  filter(`Sales Type` == "FRZ")
+
+laverton_sow_frz_storage_730010_10501854_new <- laverton_sow_frz_storage_730010_10501854 %>%
+  select(-any_of("Floor")) %>%
+  left_join(
+    gl_cc_data %>% filter(`GL Account` == 730010, `Cc Key` == 10501854),
+    by = c("BU" = "BU")
+  ) %>% 
+  # Add Month columns for future use
+  crossing(Period = 1:12)
+```
+
+### Laverton Stock On Hand Cost (730010-10501854)
+
+```{r}
+laverton_stock_on_hand_730010_10501854 <- customer_data %>% 
+  filter(`BU` == "6.Laverton Processing") %>% 
+  filter(`Customer name` == "Laverton Stock On Hand")
+
+laverton_stock_on_hand_730010_10501854_new <- laverton_stock_on_hand_730010_10501854 %>%
+  select(-any_of("Floor")) %>%
+  left_join(
+    gl_cc_data %>% filter(`GL Account` == 730010, `Cc Key` == 10501854),
+    by = c("BU" = "BU")
+  ) 
+```
+
+### Value Add Storage Cost (730010-10001814)
+
+```{r}
+# Storage Cost — external customers, no intercompany filtering needed for this BU
+meat_sales_storage_730010_10001814 <- customer_data %>% 
+  filter(`BU` == "3.Meat Sales") %>% 
+  filter(Tab == "VA") 
+
+meat_sales_storage_730010_10001814_new <- meat_sales_storage_730010_10001814 %>%
+  select(-any_of("Floor")) %>%
+  left_join(
+    gl_cc_data %>% filter(`GL Account` == 730010, `Cc Key` == 10001814),
+    by = c("BU" = "BU")
+  ) %>% 
+  # Add Month columns for future use
+  crossing(Period = 1:12)
+```
+
+### Value Add Stock On Hand Cost (730010-10001814)
+
+```{r}
+value_add_stock_on_hand_730010_10001814 <- customer_data %>% 
+  filter(`BU` == "3.Meat Sales") %>% 
+  filter(`Customer name` == "Value Add Stock On Hand")
+
+value_add_stock_on_hand_730010_10001814_new <- value_add_stock_on_hand_730010_10001814 %>%
+  select(-any_of("Floor")) %>%
+  left_join(
+    gl_cc_data %>% filter(`GL Account` == 730010, `Cc Key` == 10001814),
+    by = c("BU" = "BU")
+  ) 
+```
+
+## Freight Out Expense Account
+
+### Come from VA (500192-10001814)
+
+```{r}
+# Storage Cost — external customers, no intercompany filtering needed for this BU
+freight_out_500192_10001814 <- customer_data %>%
+  filter(`BU` == "3.Meat Sales") %>%
+  filter(Tab == "VA") 
+
+freight_out_500192_10001814_new <- freight_out_500192_10001814 %>%
+  select(-any_of("Floor")) %>%
+  left_join(
+    gl_cc_data %>% filter(`GL Account` == 500192, `Cc Key` == 10001814),
+    by = c("BU" = "BU")
+  ) %>% 
+  # Add Month columns for future use
+  crossing(Period = 1:12)
+```
+
+### 
 
 # Processing Data for Expense Account
 
@@ -3337,6 +3535,7 @@ all_expense_packaging_pallet_commodity_laverton_calculated <- bind_rows(laverton
 ### Sow
 
 ```{r}
+laverton_sow_packaging_fee <- 0.095
 # Standardise the data
 laverton_sow_packaging_frz_650301_10501854_new_std <- laverton_sow_packaging_frz_650301_10501854_new %>%
   mutate(
@@ -3379,7 +3578,7 @@ laverton_volume_sow_data <- volume_bone_raw %>%
     Period         = match(Month, toupper(month.name))
     ) 
 
-# Add the price and calculating the value for commodity packaging
+# Add the price and calculating the value for sow packaging
 laverton_volume_sow_packaging_calculated <- laverton_volume_sow_data %>%
   select(-Price) %>%
   left_join(
@@ -3390,9 +3589,12 @@ laverton_volume_sow_packaging_calculated <- laverton_volume_sow_data %>%
     by = c("Item Code" = "BOM")
   ) %>%
   rename(Price = PACKAGING) %>%
+  # TEMPORARY: sow packaging price is missing from packaging_price_data (VARIANT == 4)
+  # Replace with custom fee until fixed
+  mutate(Price = laverton_sow_packaging_fee) %>%
   mutate(Value = `Total Weight` * Price)
 
-# Add the price and calculating the value for commodity pallet
+# Add the price and calculating the value for sow pallet
 laverton_volume_sow_pallet_calculated <- laverton_volume_sow_data %>%
   select(-Price) %>%
   left_join(
@@ -3440,6 +3642,570 @@ laverton_sow_pallet_frz_650303_10501854_calculated <- laverton_sow_pallet_frz_65
 all_expense_packaging_pallet_sow_laverton_calculated <- bind_rows(laverton_sow_packaging_frz_650301_10501854_calculated, laverton_sow_pallet_frz_650303_10501854_calculated)
 ```
 
+### Export
+
+```{r}
+export_packaging_fee <- 12.30
+# Pre-standardise keys once
+laverton_export_packaging_650301_10201854_new_std <- laverton_export_packaging_650301_10201854_new %>%
+  mutate(
+    `SOP Unicode` = toupper(`SOP Unicode`),
+    BU            = toupper(BU),
+    Abattoir      = toupper(Abattoir),
+    Month         = toupper(month.name[Period])
+  ) 
+
+# Join volume_farm_raw on SOP Unicode
+laverton_export_packaging_650301_10201854_calculated <- laverton_export_packaging_650301_10201854_new_std %>%
+  left_join(
+    volume_farm_raw %>%
+      filter(Service == "Kill") %>% 
+      mutate(
+        Unicode        = toupper(Unicode),
+        Abattoir       = toupper(Abattoir),
+        Month          = toupper(Month),
+        Tab            = toupper(Tab),
+        Units          = as.numeric(Units),
+        `Avg Weight`   = as.numeric(`Avg Weight`),
+        `Total Weight` = as.numeric(`Total Weight`)
+      ) %>%
+      group_by(Unicode, Month) %>%
+      summarise(
+        Units          = sum(Units, na.rm = TRUE),
+        `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
+        `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+        .groups = "drop"
+      ),
+    by = c("SOP Unicode" = "Unicode", "Month")
+  ) %>%
+  mutate(Value = Units * export_packaging_fee) %>%
+  mutate(Value = -Value)
+
+
+all_expense_packaging_export_laverton_calculated <- laverton_export_packaging_650301_10201854_calculated
+```
+
+## Trade Allowance Expense
+
+### 3.Meat Sales
+
+```{r}
+trade_allowance_meat_sales_volume <- all_revenue_meat_sales  %>%
+  left_join(
+    trade_allowance_data %>% select(Period, Brand, `Trade Spend %`, `Trade Spend Value`),
+    by = c("Period", "Customer name" = "Brand")
+  ) %>%
+  mutate(
+    `Trade Spend %`     = replace_na(`Trade Spend %`, 0),
+    `Trade Spend Value` = replace_na(`Trade Spend Value`, 0)
+  ) %>%
+  mutate(
+    `Trade Spend % Calculated`     = `Trade Spend %` * Value,
+    `Trade Spend Value Calculated` = `Trade Spend Value`,
+    Value                          = `Trade Spend % Calculated` + `Trade Spend Value Calculated`
+  ) %>%
+  group_by(Tab, Abattoir, Month, Period, `Customer name`) %>%
+  summarise(
+    Units          = sum(Units, na.rm = TRUE),
+    `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
+    `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+    Value          = sum(Value, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+trade_allowance_meat_sales_calculated <- trade_allowance_meat_sales_450050_10001814_new %>%
+  left_join(
+    trade_allowance_meat_sales_volume %>% select(-Tab, -Abattoir),
+    by = c("Customer name", "Period")
+  ) %>%
+  mutate(Value = -Value)
+```
+
+### 6.Laverton Processing
+
+```{r}
+rebates_BE_camp <- 5.80
+laverton_trade_allowance_volume <- volume_farm_raw %>% 
+  filter(Tab == "Kill") %>% 
+  filter(Abattoir == "LAVERTON") %>% 
+  filter(`Customer name` %in% c("BE Campbells Bacon", "B.E. Campbell"))
+
+laverton_trade_allowance_calculated <- laverton_trade_allowance_volume %>%
+  mutate(
+    Units = as.numeric(Units),
+    Period = match(toupper(Month), toupper(month.name)),
+    Value = Units * rebates_BE_camp
+  ) %>%
+  group_by(Tab, Abattoir, Month, Period, `Customer name`) %>%
+  summarise(
+    Units = sum(Units, na.rm = TRUE),
+    Value = sum(Value, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+trade_allowance_laverton_calculated <- laverton_trade_allowance_450050_10201854_new %>%
+  left_join(
+    laverton_trade_allowance_calculated %>% select(-Tab, -Abattoir),
+    by = c("Customer name", "Period")
+  ) %>%
+  mutate(Value = -Value)
+```
+
+```{r}
+all_expense_trade_allowance_calculated <- bind_rows(trade_allowance_meat_sales_calculated, trade_allowance_laverton_calculated)
+```
+
+## Storage Expense Account
+
+### Parameters
+
+```{r}
+corowa_hold_volume <- 1100000
+laverton_hold_volume <- 200000
+value_add_hold_volume <- 60000
+cost_in_rate <- 0.14
+cost_out_rate <- 0.08
+hold_cost_rate <- 0.01
+```
+
+### Corowa Frozen Stock
+
+#### Offal
+
+```{r}
+# Prepare the data for frozen offal
+volume_offal_frz_corowa <- volume_bone_price_calculated %>%
+  # Add condition to filter frozen offal only
+  filter(`Storage` == "FROZEN") %>% 
+  mutate(Type = toupper(Type)) %>%
+  filter(toupper(Abattoir) == "COROWA") %>%
+  filter(Type %in% c("INEDIBLE", "OFFALS", "BACON CUTS")) %>%
+  filter(toupper(Run) == "TOTAL KILL") %>%
+  mutate(
+    Unicode           = toupper(Unicode),
+    Abattoir          = toupper(Abattoir),
+    Month             = toupper(Month),
+    Tab               = toupper(Tab),
+    Units             = as.numeric(Units),
+    `Avg Weight`      = as.numeric(`Avg Weight`),
+    `Total Weight`    = as.numeric(`Total Weight`),
+    `Customer Group`  = case_when(
+      Type == "INEDIBLE"    ~ "Inedible Offal",
+      Type == "OFFALS"      ~ "Edible Offal",
+      Type == "BACON CUTS"  ~ "Edible Offal",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  group_by(Tab, Abattoir, Month, `Customer Group`, `Customer name`) %>%
+  summarise(
+    Units          = sum(Units, na.rm = TRUE),
+    `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
+    `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+    Value          = sum(Value, na.rm = TRUE),
+    .groups = "drop"
+  ) %>% 
+  filter(`Customer Group` == "Edible Offal")
+
+# Pre-standardise keys once
+edible_offal_storage_730010_10001816_new_std <- edible_offal_storage_730010_10001816_new %>%
+  mutate(
+    BU       = toupper(BU),
+    Abattoir = toupper(Abattoir),
+    Month    = toupper(month.name[Period])
+  )
+
+# Calculate storage value split by Cost Type (doubles rows)
+volume_offal_storage_corowa <- bind_rows(
+  volume_offal_frz_corowa %>% mutate(`Cost Type` = "Cost In",  Value = `Total Weight` * cost_in_rate),
+  volume_offal_frz_corowa %>% mutate(`Cost Type` = "Cost Out", Value = `Total Weight` * cost_out_rate)
+) %>%
+  group_by(Tab, Abattoir, Month, `Customer Group`, `Cost Type`) %>%
+  summarise(
+    `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+    Value          = sum(Value, na.rm = TRUE),
+    .groups = "drop"
+  ) %>% 
+  mutate(`Total Weight` = if_else(`Cost Type` == "Cost Out", 0, `Total Weight`))
+
+
+# Join the calculated storage value with the account
+edible_offal_storage_730010_10001816_calculated <- edible_offal_storage_730010_10001816_new_std %>%
+  left_join(
+    volume_offal_storage_corowa,
+    by = c("BU" = "Tab", "Abattoir", "Month", "Customer Group")
+  )
+```
+
+#### Commodity
+
+```{r}
+# Prepare the frozen data for commodity
+volume_commodity_frz_corowa_400000_calculated <- volume_commodity_corowa_400000_calculated %>% 
+  filter(`Storage` == "FROZEN")
+
+# Pre-standardise keys once
+corowa_commodity_frz_storage_7300100_10501816_new_std <- corowa_commodity_frz_storage_7300100_10501816_new %>%
+  mutate(
+    BU       = toupper(BU),
+    Abattoir = toupper(Abattoir),
+    Month    = toupper(month.name[Period])
+  )
+
+# Calculate storage value split by Cost Type (doubles rows)
+volume_commodity_storage_corowa <- bind_rows(
+  volume_commodity_frz_corowa_400000_calculated %>% mutate(`Customer Group` = "Commodity", `Cost Type` = "Cost In",  Value = `Total Weight` * cost_in_rate),
+  volume_commodity_frz_corowa_400000_calculated %>% mutate(`Customer Group` = "Commodity", `Cost Type` = "Cost Out", Value = `Total Weight` * cost_out_rate)
+) %>%
+  group_by(Tab, Abattoir, Month, `Customer Group`, `Cost Type`) %>%
+  summarise(
+    `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+    Value          = sum(Value, na.rm = TRUE),
+    .groups = "drop"
+  ) %>% 
+  mutate(`Total Weight` = if_else(`Cost Type` == "Cost Out", 0, `Total Weight`))
+
+# Join the calculated storage value with the account
+corowa_commodity_frz_storage_7300100_10501816_calculated <- corowa_commodity_frz_storage_7300100_10501816_new_std %>%
+  left_join(
+    volume_commodity_storage_corowa,
+    by = c("BU" = "Tab", "Abattoir", "Month", "Customer Group")
+  )
+```
+
+#### 6 Way
+
+```{r}
+# Prepare the data for frozen 6Way item only
+volume_6way_frz_corowa <- volume_bone_price_calculated %>%
+  filter(`Storage` == "FROZEN") %>% 
+  mutate(Type = toupper(Type)) %>%
+  filter(toupper(Abattoir) == "COROWA") %>%
+  filter(toupper(Run) == "6 WAY") %>%
+  mutate(
+    Unicode           = toupper(Unicode),
+    Abattoir          = toupper(Abattoir),
+    Month             = toupper(Month),
+    Tab               = toupper(Tab),
+    Units             = as.numeric(Units),
+    `Avg Weight`      = as.numeric(`Avg Weight`),
+    `Total Weight`    = as.numeric(`Total Weight`),
+    `Customer Group`  = "6 Way"
+    ) %>%
+  group_by(Tab, Abattoir, Month, `Customer Group`, `Customer name`) %>%
+  summarise(
+    Units          = sum(Units, na.rm = TRUE),
+    `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
+    `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+    Value          = sum(Value, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Pre-standardise keys once
+corowa_6way_frz_storage_730010_10501816_new_std <- corowa_6way_frz_storage_730010_10501816_new %>%
+  mutate(
+    BU       = toupper(BU),
+    Abattoir = toupper(Abattoir),
+    Month    = toupper(month.name[Period])
+  )
+
+# Calculate storage value split by Cost Type (doubles rows)
+volume_6way_storage_corowa <- bind_rows(
+  volume_6way_frz_corowa %>% mutate(`Cost Type` = "Cost In",  Value = `Total Weight` * cost_in_rate),
+  volume_6way_frz_corowa %>% mutate(`Cost Type` = "Cost Out", Value = `Total Weight` * cost_out_rate)
+) %>%
+  group_by(Tab, Abattoir, Month, `Customer Group`, `Cost Type`) %>%
+  summarise(
+    `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+    Value          = sum(Value, na.rm = TRUE),
+    .groups = "drop"
+  ) %>% 
+  mutate(`Total Weight` = if_else(`Cost Type` == "Cost Out", 0, `Total Weight`))
+
+# Join the calculated storage value with the account
+corowa_6way_frz_storage_730010_10501816_calculated <- corowa_6way_frz_storage_730010_10501816_new_std %>%
+  left_join(
+    volume_6way_storage_corowa,
+    by = c("BU" = "Tab", "Abattoir", "Month", "Customer Group")
+  )
+```
+
+#### Meat Trade
+
+```{r, eval=FALSE}
+# Prepare the data for Meat Trade (only Frozen)
+volume_meat_trade_6way_frz <- volume_bone_price_calculated %>%
+  mutate(Type = toupper(Type)) %>%
+  filter(toupper(Abattoir) == "LAVERTON") %>%
+  filter(toupper(Run) %in% c("6 WAY")) %>%
+  filter(`Storage` == "FROZEN") %>% 
+  mutate(
+    Unicode           = toupper(Unicode),
+    Abattoir          = toupper(Abattoir),
+    Month             = toupper(Month),
+    Tab               = toupper(Tab),
+    Units             = as.numeric(Units),
+    `Avg Weight`      = as.numeric(`Avg Weight`),
+    `Total Weight`    = as.numeric(`Total Weight`),
+    `Customer Group` = "Meat Trade",
+    `Customer name`  = "Meat Trade") %>%
+  group_by(Tab, Abattoir, Month, `Customer Group`, `Customer name`) %>%
+  summarise(
+    Units          = sum(Units, na.rm = TRUE),
+    `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
+    `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+    Value          = sum(Value, na.rm = TRUE),
+    .groups = "drop"
+  ) %>% 
+  mutate(Period = match(Month, toupper(month.name))) %>% 
+  mutate(Service = "6 Way")
+
+volume_meat_trade_commodity_frz <- volume_meat_trade_commodity
+
+volume_meat_trade_edible_offal_frz <- volume_bone_price_calculated %>%
+  mutate(Type = toupper(Type)) %>%
+  filter(toupper(Abattoir) == "LAVERTON") %>%
+  filter(Type %in% c("OFFALS", "BACON CUTS")) %>%
+  filter(toupper(Run) == "TOTAL KILL") %>%
+  filter(`Storage` == "FROZEN") %>% 
+  mutate(
+    Unicode           = toupper(Unicode),
+    Abattoir          = toupper(Abattoir),
+    Month             = toupper(Month),
+    Tab               = toupper(Tab),
+    Units             = as.numeric(Units),
+    `Avg Weight`      = as.numeric(`Avg Weight`),
+    `Total Weight`    = as.numeric(`Total Weight`),
+    `Customer Group` = "Meat Trade",
+    `Customer name`  = "Meat Trade") %>%
+  group_by(Tab, Abattoir, Month, `Customer Group`, `Customer name`) %>%
+  summarise(
+    Units          = sum(Units, na.rm = TRUE),
+    `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
+    `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+    Value          = sum(Value, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(Period = match(Month, toupper(month.name))) %>% 
+  mutate(Service = "Edible Offal")
+
+volume_meat_trade_frz_combined <- bind_rows(volume_meat_trade_6way_frz, volume_meat_trade_commodity_frz, volume_meat_trade_edible_offal_frz) %>% 
+  mutate(Abattoir = "COROWA") %>% # remap Laverton → Corowa
+  mutate(Tab = "2.MEAT PROCESSING")
+```
+
+```{r}
+# Pre-standardise keys once
+meat_trade_storage_data_new_std <- meat_trade_storage_data_new %>%
+  mutate(
+    BU       = toupper(BU),
+    Abattoir = toupper(Abattoir),
+    Month    = toupper(month.name[Period])
+  )
+
+# Calculate storage value split by Cost Type (doubles rows)
+volume_meat_trade_storage <- bind_rows(
+  volume_meat_trade_combined %>% mutate(`Cost Type` = "Cost In",  Value = `Total Weight` * cost_in_rate),
+  volume_meat_trade_combined %>% mutate(`Cost Type` = "Cost Out", Value = `Total Weight` * cost_out_rate)
+) %>%
+  group_by(Tab, Abattoir, Month, `Customer Group`, `Cost Type`) %>%
+  summarise(
+    `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+    Value          = sum(Value, na.rm = TRUE),
+    .groups = "drop"
+  ) %>% 
+  mutate(`Total Weight` = if_else(`Cost Type` == "Cost Out", 0, `Total Weight`))
+
+# Join the calculated storage value with the account
+# distinct() on join keys to avoid row multiplication from multiple Service rows per month
+meat_trade_storage_data_calculated <- meat_trade_storage_data_new_std %>%
+  distinct(BU, Abattoir, Month, Period, `Customer Group`, .keep_all = TRUE) %>%
+  left_join(
+    volume_meat_trade_storage,
+    by = c("BU" = "Tab", "Abattoir", "Month", "Customer Group")
+  )
+```
+
+### Laverton Frozen Stock
+
+#### Sow
+
+```{r}
+# Prepare the frozen sow data for laverton
+volume_sow_frz_laverton <- volume_bone_price_calculated %>%
+  # Another condition to filter frozen item
+  filter(`Storage` == "FROZEN") %>% 
+  mutate(Type = toupper(Type)) %>%
+  filter(toupper(Abattoir) == "LAVERTON") %>%
+  filter(toupper(Run) %in% c("6 WAY", "SOW BONE")) %>%
+  mutate(
+    Unicode           = toupper(Unicode),
+    Abattoir          = toupper(Abattoir),
+    Month             = toupper(Month),
+    Tab               = toupper(Tab),
+    Units             = as.numeric(Units),
+    `Avg Weight`      = as.numeric(`Avg Weight`),
+    `Total Weight`    = as.numeric(`Total Weight`),
+    `Customer Group` = case_when(
+    toupper(Run) == "6 WAY" ~ "6 Way",
+    toupper(Run) == "SOW BONE"   ~ "Sow",
+    TRUE ~ NA_character_
+    )) %>%
+  group_by(Tab, Abattoir, Month, `Customer Group`, `Customer name`) %>%
+  summarise(
+    Units          = sum(Units, na.rm = TRUE),
+    `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
+    `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+    Value          = sum(Value, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(Value = if_else(`Customer Group` == "6 Way", Value - 0.51 * `Total Weight`, Value)) %>%
+  filter(`Customer Group` == "Sow") 
+
+# Pre-standardise keys once
+laverton_sow_frz_storage_730010_10501854_new_std <- laverton_sow_frz_storage_730010_10501854_new %>%
+  mutate(
+    BU       = toupper(BU),
+    Abattoir = toupper(Abattoir),
+    Month    = toupper(month.name[Period])
+  )
+
+# Calculate storage value split by Cost Type (doubles rows)
+volume_sow_storage_laverton <- bind_rows(
+  volume_sow_frz_laverton %>% mutate(`Cost Type` = "Cost In",  Value = `Total Weight` * cost_in_rate),
+  volume_sow_frz_laverton %>% mutate(`Cost Type` = "Cost Out", Value = `Total Weight` * cost_out_rate)
+) %>%
+  group_by(Tab, Abattoir, Month, `Customer Group`, `Cost Type`) %>%
+  summarise(
+    `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+    Value          = sum(Value, na.rm = TRUE),
+    .groups = "drop"
+  ) %>% 
+  mutate(`Total Weight` = if_else(`Cost Type` == "Cost Out", 0, `Total Weight`))
+
+# Join the calculated storage value with the account
+laverton_sow_frz_storage_730010_10501854_calculated <- laverton_sow_frz_storage_730010_10501854_new_std %>%
+  left_join(
+    volume_sow_storage_laverton,
+    by = c("BU" = "Tab", "Abattoir", "Month", "Customer Group")
+  )
+```
+
+### Value Add
+
+```{r}
+# Pre-standardise keys once
+meat_sales_storage_730010_10001814_new_std <- meat_sales_storage_730010_10001814_new %>%
+  mutate(
+    Abattoir = "Value Add",
+    BU       = toupper(BU),
+    Abattoir = toupper(Abattoir),
+    Month    = toupper(month.name[Period])
+  ) 
+
+# Calculate storage value split by Cost Type (doubles rows)
+volume_meat_sales_storage <- bind_rows(
+  all_revenue_meat_sales %>% mutate(`Cost Type` = "Cost In",  Value = `Total Weight` * cost_in_rate),
+  all_revenue_meat_sales %>% mutate(`Cost Type` = "Cost Out", Value = `Total Weight` * cost_out_rate)
+) %>%
+  group_by(Tab, Abattoir, Month, `Customer Group`, `Cost Type`) %>%
+  summarise(
+    `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+    Value          = sum(Value, na.rm = TRUE),
+    .groups = "drop"
+  ) %>% 
+  mutate(`Total Weight` = if_else(`Cost Type` == "Cost Out", 0, `Total Weight`))
+
+# Join the calculated storage value with the account
+meat_sales_storage_730010_10001814_calculated <- meat_sales_storage_730010_10001814_new_std %>%
+  left_join(
+    volume_meat_sales_storage,
+    by = c("BU" = "Tab", "Abattoir", "Month", "Customer Group")
+  ) %>% 
+  mutate(Value = 0)
+# Special adjustment temporary
+```
+
+### Hold Stock Cost
+
+```{r}
+corowa_stock_on_hand_730010_10501816_calculated <- corowa_stock_on_hand_730010_10501816_new %>%
+  mutate(
+    `Total Weight` = corowa_hold_volume,
+    Value          = `Total Weight` * hold_cost_rate
+  )
+
+laverton_stock_on_hand_730010_10501854_calculated <- laverton_stock_on_hand_730010_10501854_new %>%
+  mutate(
+    `Total Weight` = laverton_hold_volume,
+    Value          = `Total Weight` * hold_cost_rate
+  )
+
+value_add_stock_on_hand_730010_10001814_calculated <- value_add_stock_on_hand_730010_10001814_new %>%
+  mutate(
+    `Total Weight` = value_add_hold_volume,
+    Value          = `Total Weight` * hold_cost_rate
+  )
+```
+
+### Join all storage cost
+
+```{r}
+all_expense_storage_calculated <- bind_rows(
+  edible_offal_storage_730010_10001816_calculated,
+  corowa_commodity_frz_storage_7300100_10501816_calculated,
+  corowa_6way_frz_storage_730010_10501816_calculated,
+  meat_trade_storage_data_calculated,
+  laverton_sow_frz_storage_730010_10501854_calculated,
+  meat_sales_storage_730010_10001814_calculated,
+  corowa_stock_on_hand_730010_10501816_calculated,
+  laverton_stock_on_hand_730010_10501854_calculated,
+  value_add_stock_on_hand_730010_10001814_calculated
+) %>% 
+  mutate(Value = -Value)
+```
+
+## Freight Out Account
+
+### Value Add
+
+```{r}
+# Standardise freight out account keys
+freight_out_500192_10001814_new_std <- freight_out_500192_10001814_new %>%
+  mutate(
+    Abattoir = "VALUE ADD",
+    BU       = toupper(BU),
+    Abattoir = toupper(Abattoir),
+    Month    = toupper(month.name[Period])
+  )
+
+# Calculate freight out value per customer group using $/kg Rate
+volume_freight_out_meat_sales <- all_revenue_meat_sales %>%
+  left_join(
+    rates_and_allocation_data %>% select(Brand, `Cost Type` = State, `$/kg Rate`, `%`),
+    by = c("Customer Group" = "Brand")
+  ) %>%
+  mutate(
+    `$/kg Rate`    = as.numeric(replace_na(`$/kg Rate`, 0)),
+    `%`            = as.numeric(replace_na(`%`, 0)),
+    `Total Weight` = `Total Weight` * `%`,
+    Value          = `Total Weight` * `$/kg Rate`
+  ) %>%
+  group_by(Tab, Abattoir, Month, Period, `Customer Group`, `Cost Type`) %>%
+  summarise(
+    `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+    Value          = sum(Value, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Join calculated freight value with the GL account structure
+freight_out_500192_10001814_calculated <- freight_out_500192_10001814_new_std %>%
+  left_join(
+    volume_freight_out_meat_sales,
+    by = c("BU" = "Tab", "Abattoir", "Month", "Period", "Customer Group")
+  ) %>%
+  mutate(Value = -Value)
+```
+
 # Rejoin all calculated data together before writing it down
 
 ```{r}
@@ -3464,7 +4230,11 @@ final_file <- bind_rows(
   all_expense_packaging_pallet_edible_offal_laverton_calculated,
   all_expense_packaging_pallet_6way_laverton_calculated,
   all_expense_packaging_pallet_commodity_laverton_calculated,
-  all_expense_packaging_pallet_sow_laverton_calculated
+  all_expense_packaging_pallet_sow_laverton_calculated,
+  all_expense_packaging_export_laverton_calculated,
+  all_expense_trade_allowance_calculated,
+  all_expense_storage_calculated,
+  freight_out_500192_10001814_calculated
 )
 ```
 
