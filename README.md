@@ -23,9 +23,13 @@ The main output is `GL_DB Template.csv`, structured for GL database input.
 | `Prices.xlsb` | Bone Fee | Boning fee per SOP Unicode and Abattoir by period |
 | `Prices.xlsb` | Kill Fee | Kill fee per SOP Unicode and Abattoir by period |
 | `Prices.xlsb` | BM PRice | Item-level unit prices used for Boxed Meat, Offal, and Commodity value calculations |
+| `Prices.xlsb` | Packaging VA | Packaging and pallet rates per BOM item and variant, used for all packaging/pallet expense calculations |
 | `Master Data..xlsx` | GL & CC | GL account and cost centre mappings by BU |
 | `Master Data..xlsx` | Customer | Customer list with SOP Unicode, BU, Tab, Floor, and Customer Group |
 | `Master Data..xlsx` | VA | VA brand data - maps Item Code to Brand name, used to assign customer names in Meat Sales output |
+| `Trade Allowance.xlsx` | Sheet1 | Trade allowance rates (% of revenue and fixed $ value) per Brand and Period for 3.Meat Sales |
+| `Rates and Allocation.xlsx` | Sheet1 | VA freight allocation - $/kg rate and % split by Brand and State (Domestic/Export) |
+| `Rates and Allocation.xlsx` | Sheet2 | Other freight allocation - $/kg rate and proportion split by Customer type (Offal, 6 way, Commodity) and freight type |
 
 > **Note on excluded files:** All raw data files and output files (including `GL_DB Template.csv`) are intentionally excluded from this repository. This project is developed within the Finance Team and these files contain sensitive and confidential company financial data. Publishing them is strictly prohibited. Only the code and logic are shared here.
 
@@ -41,13 +45,16 @@ The main output is `GL_DB Template.csv`, structured for GL database input.
 - **400000** = External Sales (sales to external customers)
 - **400028** = Intercompany Sales (internal transfers between business units)
 - **400350** = Gross Sales - V&V sell and buy-back (Farming Operations)
+- **450050** = Trade Allowance Expense (3.Meat Sales and 6.Laverton Processing)
+- **500031** = External Meat Purchase Cost of Sales (3.Meat Sales)
+- **500192** = Freight Out / Domestic Freight Expense
+- **500609** = Freight Ocean / Export Freight Expense
 - **510157** = Cost of Sales - V&V sell and buy-back (Farming Operations)
 - **510167** = Expense - Intercompany pig purchases / meat trade cost of sales
-- **500031** = External Meat Purchase Cost of Sales (3.Meat Sales)
-- **500195** = Freight In Expense
 - **650301** = Packaging Expense
 - **650303** = Pallet Expense
 - **650311** = Packaging and Margin Expense (special contracts: Woolworths, DRJ, Meat Sales)
+- **730010** = Storage / Frozen Stock Holding Expense
 
 ### Volume Data Split
 Volume data from `SOP Volumes.xlsx` is split into three datasets based on the `Tab` column:
@@ -75,6 +82,9 @@ Volume data from `SOP Volumes.xlsx` is split into three datasets based on the `T
 - **Corowa Commodity 400000 vs 400028**: The 400028 volume comes from internal VA sales (Procurement rows in Meat Sales tab). The 400000 volume is the remainder: Total Commodity Bone minus the 400028 internal portion.
 - **FCOROWAWoolworths inherits price from FEXTERNALBig River Pork - Coles**: A special price inheritance rule applied during the Farm carcass price join.
 - **Laverton Kill - 6Way/Commodity customers temporarily excluded**: A temporary filter removes rows where Abattoir is Laverton, Tab is Kill, and the customer name contains "6WAY" or "COMMODITY".
+- **Laverton Export Packaging - $12.30/unit fee**: Laverton charges a fixed $12.30 per head for carcass export packaging (Singapore and Malaysia). Volume source is Kill service rows from `volume_farm_raw`, grouped by SOP Unicode and Month.
+- **Laverton Sow Packaging - temporary fixed fee of $0.095/kg**: Sow packaging price is currently missing from the `Packaging VA` sheet (VARIANT == 4), so a hardcoded rate of $0.095/kg is applied as a temporary fix until the data is updated.
+- **Packaging price fallback (variant 3 → 4)**: For edible offal packaging/pallet, prices are first looked up from VARIANT == 3. If an item has no price there (NA or zero weight), it falls back to VARIANT == 4.
 
 ### Account Structure by Business Unit and Floor
 | Business Unit | Floor | GL Account | Cost Centre |
@@ -102,11 +112,28 @@ Volume data from `SOP Volumes.xlsx` is split into three datasets based on the `T
 | 2. Meat Processing | Woolworths Margin (special contract) | 650311 | 11901816 |
 | 2. Meat Processing | DRJ Packaging (special contract) | 650301 | 11901816 |
 | 2. Meat Processing | DRJ Margin (special contract) | 650311 | 11901816 |
+| 2. Meat Processing | Edible Offal Storage Cost | 730010 | 10001816 |
+| 2. Meat Processing | Commodity FRZ Storage Cost | 730010 | 10501816 |
+| 2. Meat Processing | 6 Way FRZ Storage Cost | 730010 | 10501816 |
+| 2. Meat Processing | Meat Trade Storage Cost | 730010 | 10501816 |
+| 2. Meat Processing | Stock On Hand Cost | 730010 | 10501816 |
+| 2. Meat Processing | Edible Offal Freight Domestic | 500192 | 10001816 |
+| 2. Meat Processing | Edible Offal Freight Ocean | 500609 | 10001816 |
+| 2. Meat Processing | 6 Way Freight Domestic | 500192 | 10501816 |
+| 2. Meat Processing | 6 Way Freight Ocean | 500609 | 10501816 |
+| 2. Meat Processing | Commodity Freight Domestic | 500192 | 10501816 |
+| 2. Meat Processing | Commodity Freight Export | 500609 | 10501816 |
+| 2. Meat Processing | Meat Trade Freight Domestic | 500192 | 10501816 |
+| 2. Meat Processing | Meat Trade Freight Ocean | 500609 | 10501816 |
 | 3. Meat Sales | VA | 400000 | 10001814 |
 | 3. Meat Sales | Meat Purchase - Internal | 510167 | 10001814 |
 | 3. Meat Sales | Meat Purchase - External | 500031 | 10001814 |
 | 3. Meat Sales | Packaging | 650311 | 10001814 |
 | 3. Meat Sales | Pallet | 650303 | 10001814 |
+| 3. Meat Sales | Trade Allowance | 450050 | 10001814 |
+| 3. Meat Sales | Freight Out | 500192 | 10001814 |
+| 3. Meat Sales | Storage Cost | 730010 | 10001814 |
+| 3. Meat Sales | Stock On Hand Cost | 730010 | 10001814 |
 | 6. Laverton Processing | Kill Floor | 400000 / 400028 | 10201854 |
 | 6. Laverton Processing | Boning Room | 400000 / 400028 | 11901854 |
 | 6. Laverton Processing | Boxed Meat (6Way FRZ, Commodity FRZ) | 400028 | 10501854 |
@@ -124,6 +151,10 @@ Volume data from `SOP Volumes.xlsx` is split into three datasets based on the `T
 | 6. Laverton Processing | Commodity FRZ Pallet | 650303 | 10501854 |
 | 6. Laverton Processing | Sow FRZ Packaging | 650301 | 10501854 |
 | 6. Laverton Processing | Sow FRZ Pallet | 650303 | 10501854 |
+| 6. Laverton Processing | Export Carcass Packaging | 650301 | 10201854 |
+| 6. Laverton Processing | Trade Allowance | 450050 | 10201854 |
+| 6. Laverton Processing | Sow FRZ Storage Cost | 730010 | 10501854 |
+| 6. Laverton Processing | Stock On Hand Cost | 730010 | 10501854 |
 
 ### Meat Trade Logic (Laverton → Corowa)
 Corowa's Boxed Meat section includes a **Meat Trade** category that consolidates Laverton products sold through Corowa. The volume source is Laverton bone data, remapped to Corowa as the selling entity (`Abattoir = COROWA`, `GL Account = 400000`, `Cc Key = 10501816`). Three product types are included:
@@ -164,13 +195,56 @@ The join key to the customer account table is `Service` (values: `6 Way`, `Commo
 
 **Packaging and Pallet Expenses**
 
-Packaging (650301) and Pallet (650303) accounts are created per BU and product group, mirroring the same customer filters used in their corresponding revenue accounts:
+Packaging (650301) and Pallet (650303) accounts are created per BU and product group, mirroring the same customer filters used in their corresponding revenue accounts. Prices come from the `Packaging VA` sheet in `Prices.xlsb` (keyed by BOM item code and VARIANT number).
 
-Note: Woolworths and DRJ use a **margin** account (650311) instead of a standard pallet account (650303) due to their special contract pricing arrangements. These two also filter by Tab == "Bone" and Floor == "Bone" (Boning Room), not Boxed Meat.
+Note: Woolworths and DRJ use a **margin** account (650311) instead of a standard pallet account (650303) due to their special contract pricing arrangements. These two also filter by Tab == "Bone" and Floor == "Bone" (Boning Room), not Boxed Meat. Their values are calculated using fixed per-kg packaging fees and margin percentages applied to bone-out weight (adjusted by hot-to-cold and cold-to-meat yield factors).
 
 **Freight In (500195)**
 - Filters Customer name == "Freight In" from each BU's customer data
 - Covers: 1.Farming Operations (500195-10001812), 2.Meat Processing (500195-10001816), 6.Laverton Processing (500195-10501854)
+
+**Trade Allowance (450050)**
+- **3.Meat Sales (450050-10001814)**: Joins VA revenue data with `Trade Allowance.xlsx` on Brand and Period. Calculates allowance as `Trade Spend % × Revenue Value` plus a fixed `Trade Spend Value`, summed by customer. Result is negated (expense).
+- **6.Laverton Processing (450050-10201854)**: Applies a fixed rebate of $5.80/head to BE Campbells Bacon and B.E. Campbell customers based on Kill volume from `volume_farm_raw`. Result is negated (expense).
+
+**Storage Expense (730010)**
+
+Storage costs are calculated for frozen stock held at Lineage and other cold stores. Each account is split into two cost rows per period:
+- **Cost In**: `Total Weight × $0.14/kg`
+- **Cost Out**: `Total Weight × $0.08/kg` (Total Weight shown as 0 in output)
+
+Accounts covered:
+- Corowa Edible Offal FRZ (730010-10001816) - frozen offal only (filtered by `Storage == "FROZEN"`)
+- Corowa Commodity FRZ (730010-10501816)
+- Corowa 6 Way FRZ (730010-10501816)
+- Corowa Meat Trade (730010-10501816) - uses the same combined Laverton volume as the Meat Trade revenue account
+- Laverton Sow FRZ (730010-10501854)
+- Value Add / 3.Meat Sales (730010-10001814) - currently set to $0 as a temporary adjustment
+
+In addition, three **Stock On Hand** rows use a fixed monthly hold volume multiplied by a hold rate of $0.01/kg:
+- Corowa Stock On Hand (730010-10501816): 1,100,000 kg
+- Laverton Stock On Hand (730010-10501854): 200,000 kg
+- Value Add Stock On Hand (730010-10001814): 60,000 kg
+
+All storage values are negated (expense).
+
+**Freight Out / Export Freight (500192 and 500609)**
+
+Freight costs are split into Domestic (500192) and Ocean/Export (500609) for each product group, using allocation rates from `Rates and Allocation.xlsx`:
+
+- **3.Meat Sales Freight Out (500192-10001814)**: Uses `Rates and Allocation.xlsx` Sheet1 (VA allocation) - $/kg rate and % weight split by Brand and State. Volume source is VA sales revenue data.
+- **Corowa Edible Offal**: Domestic (500192-10001816) and Ocean (500609-10001816) - uses `Sheet2` Offal allocation (Proportion and $/kg by freight type).
+- **Corowa 6 Way**: Domestic (500192-10501816) and Ocean (500609-10501816) - uses `Sheet2` 6 way allocation.
+- **Corowa Commodity**: Domestic (500192-10501816) and Export (500609-10501816) - uses `Sheet2` Commodity allocation.
+- **Corowa Meat Trade**: Domestic (500192-10501816) and Ocean (500609-10501816) - uses `Sheet2` allocation mapped by Service (Edible Offal, Commodity, 6 Way).
+
+All freight values are negated (expense).
+
+**Export Carcass Packaging (650301-10201854)**
+- Covers Laverton export customers (Floor == "Export Carcass", Customer Group == "Export")
+- Value = `Units × $12.30` (fixed per-head export packaging fee)
+- Volume source: Kill service rows from `volume_farm_raw`, grouped by SOP Unicode and Month
+- Result is negated (expense)
 
 ## Debug Checks
 
