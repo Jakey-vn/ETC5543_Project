@@ -3848,6 +3848,24 @@ laverton_export_packaging_650301_10201854_calculated <- laverton_export_packagin
 all_expense_packaging_export_laverton_calculated <- laverton_export_packaging_650301_10201854_calculated
 ```
 
+### Combine every pallets and packaging
+
+```{r}
+all_expense_packaging_pallet_calculated <- bind_rows(
+  all_expense_packaging_pallet_meat_sales_calculated,
+  all_expense_packaging_pallet_edible_offal_corowa_calculated,
+  all_expense_packaging_pallet_6way_corowa_calculated,
+  all_expense_packaging_pallet_commodity_corowa_calculated,
+  all_expense_packaging_margin_woolworth_corowa_calculated,
+  all_expense_packaging_margin_DRJ_corowa_calculated,
+  all_expense_packaging_pallet_edible_offal_laverton_calculated,
+  all_expense_packaging_pallet_6way_laverton_calculated,
+  all_expense_packaging_pallet_commodity_laverton_calculated,
+  all_expense_packaging_pallet_sow_laverton_calculated,
+  all_expense_packaging_export_laverton_calculated
+)
+```
+
 ## Trade Allowance Expense
 
 ### 3.Meat Sales
@@ -4697,19 +4715,9 @@ final_file <- bind_rows(
   all_expense_corowa_laverton_expense_farm,
   all_expense_meat_trade_laverton_corowa_calculated,
   all_expense_meat_sales_internal_external_calculated,
-  all_expense_packaging_pallet_meat_sales_calculated,
-  all_expense_packaging_pallet_edible_offal_corowa_calculated,
-  all_expense_packaging_pallet_6way_corowa_calculated,
-  all_expense_packaging_pallet_commodity_corowa_calculated,
-  all_expense_packaging_margin_woolworth_corowa_calculated,
-  all_expense_packaging_margin_DRJ_corowa_calculated,
-  all_expense_packaging_pallet_edible_offal_laverton_calculated,
-  all_expense_packaging_pallet_6way_laverton_calculated,
-  all_expense_packaging_pallet_commodity_laverton_calculated,
-  all_expense_packaging_pallet_sow_laverton_calculated,
-  all_expense_packaging_export_laverton_calculated,
   all_expense_trade_allowance_calculated,
   all_expense_storage_calculated,
+  all_expense_packaging_pallet_calculated,
   all_expense_freight_calculated
 )
 ```
