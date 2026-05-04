@@ -1,0 +1,391 @@
+---
+title: "Automating Financial Account Creation"
+subtitle: "An R Pipeline for SOP-to-Database Reporting"
+author: "Andy Tran"
+date: "May 2026"
+format:
+  revealjs:
+    theme: simple
+    slide-number: true
+    transition: fade
+    fig-align: center
+    smaller: true
+    margin: 0.02
+    width: 2500
+    include-in-header:
+      text: |
+        <style>
+          .mermaid .nodeLabel,
+          .mermaid .nodeLabel p,
+          .mermaid foreignObject div {
+            text-align: center !important;
+            width: 100%;
+          }
+          .reveal .slides section {
+            padding-left: 20px;
+            padding-right: 20px;
+          }
+        </style>
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+## Context & Motivation
+
+::::: columns
+::: {.column width="50%"}
+**The challenge**
+
+-   Financial accounts for two processing sites (Corowa & Laverton) were built manually each reporting period
+-   Data lives across multiple spreadsheets with different structures
+-   Manual process is time-consuming and error-prone
+-   Any missed row = wrong account value
+:::
+
+::: {.column width="50%"}
+**The goal**
+
+-   Build an automated R pipeline that reads raw SOP data and price files
+-   Produces structured financial database entries covering every Business Unit
+-   Includes a built-in quality check so errors can be caught before submission
+:::
+:::::
+
+------------------------------------------------------------------------
+
+## Input Data Sources
+
+| File | Contents | Role in Pipeline |
+|------------------------|------------------------|------------------------|
+| `SOP Volumes.xlsx` | Weekly volumes by Farm / Bone / VA tabs | Primary volume source |
+| `Prices.xlsb` | Carcass price, Kill fee, Bone fee, Item prices | Value calculation |
+| `Master Data.xlsx` | GL accounts, Cost centre keys, Customer list | Account structure |
+| `Trade Allowance.xlsx` | Trade discount rates per customer | Expense accounts |
+| `Rates & Allocation.xlsx` | VA brand allocations, freight & storage rates | Expense accounts |
+
+> All files are read directly from a shared OneDrive folder so the pipeline always uses the latest version.
+
+------------------------------------------------------------------------
+
+## Pipeline Architecture
+
+```{mermaid}
+flowchart TD
+    subgraph ext ["Other Teams - Read Only"]
+        A[("SOP Volumes.xlsx<br/>S&OP Team")]
+        B[("Prices.xlsb<br/>Sales Team")]
+        C[("Trade Allowance.xlsx<br/>Biz Partner Manager")]
+        D[("Rates & Allocation.xlsx<br/>Biz Partner Manager")]
+    end
+
+    subgraph fin ["Finance Team - Controllable"]
+        M[("Master Data.xlsx<br/>NAM & Commercial Finance")]
+    end
+
+    subgraph dev ["Development & QA"]
+        DC["Debug Code (Development Checks)"]
+        DC --> G["Gap_Check.R (QA Tool)"]
+    end
+
+    A  --> FV["Financial Values (Volume × Price)"]
+    B  --> FV
+    B  --> ED
+
+    M  --> RA["Revenue Accounts"]
+    M  --> EA["Expense Accounts"]
+
+    FV --> RD["Revenue Data"]
+    RA --> RD
+
+    FV --> ED["Expense Data"]
+    EA --> ED
+    C  --> ED
+    D  --> ED
+
+    RD --> DB[("Financial Database")]
+    ED --> DB
+
+    DB <--> G
+
+    classDef extNode fill:#fad7a0,stroke:#ca6f1e,color:#1a5276,font-size:15px
+    classDef finNode fill:#a9dfbf,stroke:#1e8449,color:#1a5276,font-size:15px
+    classDef devNode fill:#d7bde2,stroke:#7d3c98,color:#1a5276,font-size:15px
+    classDef pipeNode fill:#d6eaf8,stroke:#2980b9,color:#1a5276,font-size:15px
+
+    class A,B,C,D extNode
+    class M finNode
+    class DC,G devNode
+    class FV,RA,EA,RD,ED,DB pipeNode
+
+    style ext fill:#fef9e7,stroke:#ca6f1e,color:#ca6f1e,font-size:15px
+    style fin fill:#d5f5e3,stroke:#1e8449,color:#1e8449,font-size:15px
+    style dev fill:#f4ecf7,stroke:#7d3c98,color:#7d3c98,font-size:15px
+```
+
+------------------------------------------------------------------------
+
+## Revenue Accounts - Core Logic
+
+Three steps are applied to **every** Business Unit:
+
+::::: columns
+::: {.column width="48%"}
+**Step 1 - Build account skeleton**
+
+``` r
+# Pull all relevant customers from Master Data
+# and attach the correct GL + Cost Centre key
+account_rows <- customer_data %>%
+  filter(BU == "1.Farming Operations") %>%
+  left_join(gl_cc_data, by = "BU") %>%
+  crossing(Period = 1:12)  # one row per month
+```
+
+**Step 2 - Join SOP volume**
+
+``` r
+# Match on SOP Unicode + Abattoir + Month + Tab
+account_rows %>%
+  left_join(volume_farm_raw,
+            by = c("SOP Unicode" = "Unicode",
+                   "Abattoir", "Month", "Tab"))
+```
+:::
+
+::: {.column width="48%"}
+**Step 3 - Calculate value**
+
+``` r
+# Different formula per tab type
+mutate(Value = case_when(
+  Tab == "FARM" ~ Total_Weight * Carcass_Price,
+  Tab == "KILL" ~ Units * Kill_Fee,
+  Tab == "BONE" ~ Units * Bone_Fee
+))
+```
+
+**Mock result after all three steps:**
+
+```{r}
+library(dplyr)
+library(knitr)
+
+tibble(
+  Tab        = c("FARM", "KILL", "BONE"),
+  Units      = c(120L,   120L,   85L),
+  `Weight (kg)` = c(18500, 18500, 12000),
+  `Price`    = c("$3.25/kg", "$45.50/hd", "$28.00/hd"),
+  `Value ($)` = c(60125, 5460, 2380)
+) |> kable("simple")
+```
+:::
+:::::
+
+------------------------------------------------------------------------
+
+## Revenue Account Coverage
+
+> **GL 400000** = Sales to external customers  \|  **GL 400028** = Intercompany sales between JBS sites
+
+::::: columns
+::: {.column width="50%"}
+**Corowa**
+
+-   1\. Farming Operations
+-   2\. Meat Processing
+    -   Kill Floor, Boning Room, Boxed Meat
+    -   Each sub-section has both 400000 & 400028
+-   Offal - Edible & Inedible
+-   Commodity Bone
+-   Meat Trade *(receives Laverton volume under Corowa account)*
+:::
+
+::: {.column width="50%"}
+**Laverton**
+
+-   6\. Laverton Processing
+    -   Kill Floor, Boning Room, Boxed Meat
+-   Offal *(Edible shipped to Corowa via Lineage cold store)*
+-   Commodity Chilled & Frozen
+-   Sow Bone
+
+**Cross-site**
+
+-   3\. Meat Sales (VA / Value-Add)
+:::
+:::::
+
+------------------------------------------------------------------------
+
+## Expense Accounts - Core Logic
+
+Same skeleton approach as revenue - account rows built from Master Data, then rates joined from external files.
+
+::::: columns
+::: {.column width="50%"}
+**Rate sources per category**
+
+```{r}
+tibble(
+  Category      = c("Packaging & Pallet", "Trade Allowance", "Storage", "Freight"),
+  `Rate Source` = c("Prices.xlsb - Packaging VA sheet",
+                    "Trade Allowance.xlsx",
+                    "Rates & Allocation.xlsx",
+                    "Rates & Allocation.xlsx")
+) |> kable("simple")
+```
+
+``` r
+# Expense value = total weight × rate
+mutate(Value = `Total Weight` * Rate)
+```
+:::
+
+::: {.column width="46%"}
+**Mock result after rate join**
+
+```{r}
+tibble(
+  Category     = c("Packaging", "Trade Allow.", "Storage", "Freight"),
+  `Weight (kg)`= c(18500, 18500, 18500, 18500),
+  `Rate ($/kg)` = c(0.12, 0.05, 0.08, 0.15),
+  `Value ($)`  = c(2220, 925, 1480, 2775)
+) |> kable("simple")
+```
+:::
+:::::
+
+------------------------------------------------------------------------
+
+## Expense Account Coverage
+
+::::: columns
+::: {.column width="50%"}
+**Packaging & Pallet** *(GL 650301 / 650303 / 650311)*
+
+-   Corowa: Offal, 6 Way, Commodity
+-   Laverton: Offal, 6 Way, Commodity, Sow, Export
+-   Meat Sales (VA products)
+-   Special contracts (Woolworths, DRJ) use separate margin account GL 650311
+
+**Trade Allowance** *(GL 450050)*
+
+-   Meat Sales (VA)
+-   Laverton Processing
+:::
+
+::: {.column width="50%"}
+**Storage** *(GL 730010)*
+
+-   Corowa: Offal, Commodity, 6 Way, Meat Trade, Stock on Hand
+-   Laverton: Sow, Stock on Hand
+-   Meat Sales
+
+**Freight** *(GL 500192 / 500609)*
+
+-   500192 = Domestic freight
+-   500609 = Ocean / Export freight
+-   Covers: Offal, 6 Way, Commodity, Meat Trade, Meat Sales
+:::
+:::::
+
+------------------------------------------------------------------------
+
+## Key Challenges
+
+:::::: columns
+::: {.column width="33%"}
+**Unstable source data**
+
+-   SOP Volumes contains spelling mistakes and inconsistent naming that silently break joins
+-   Master Data missing customer or GL entries means volume rows match no account and are lost
+-   Required ongoing fixes during development (e.g. `str_trim`, `toupper`, typo corrections)
+:::
+
+::: {.column width="33%"}
+**Incomplete price data**
+
+-   `Prices.xlsb` frequently missing item codes - revenue rows for those items produce NA values
+-   Packaging rates also missing for newer items - expense rows fail silently
+-   Gap Check was built specifically to surface these missing-price rows after each run
+:::
+
+::: {.column width="33%"}
+**Complex customer contracts**
+
+-   JBS negotiates individual discounts and special pricing per customer
+-   Customers like Woolworths and DRJ require separate GL accounts and additional conditional calculation steps
+-   Every new contract adds conditional logic, making the pipeline progressively harder to maintain
+:::
+::::::
+
+------------------------------------------------------------------------
+
+## Quality Assurance - Gap Check
+
+Built from real failure points during development - each check represents a problem that once caused silent data loss. Unlike manual Excel review, R pinpoints the exact item, month and site instantly.
+
+**Sheet 1** reconciles SOP raw weight vs database across 12 categories - a `GAP` status flags exactly which segment lost data. **Sheet 2** lists every row that failed to enter the database:
+
+```{r}
+tibble(
+  Check = c(
+    "Item has no revenue price assigned",
+    "Item cannot be matched to a product category",
+    "Item missing storage type classification",
+    "Volume has no Carcass Price",
+    "Volume has no Bone Processing Fee",
+    "Volume has no Kill Fee",
+    "Item sold at zero or missing price",
+    "Internal vs external volume split does not reconcile"
+  ),
+  `What it catches` = c(
+    "New product not yet added to the price reference file",
+    "Incorrectly named value in the source data",
+    "Missing Chilled / Frozen label in source data",
+    "Customer volume with no matching carcass price",
+    "Customer volume with no matching bone fee",
+    "Customer volume with no matching kill fee",
+    "Sale record with blank or zero price",
+    "Splitting logic error - totals don't add up"
+  )
+) |> kable("simple")
+```
+
+------------------------------------------------------------------------
+
+## Summary - Excel vs R
+
+```{r}
+tibble(
+  ` ` = c(
+    "Time to build each month",
+    "Adding a new Business Unit",
+    "Handling a rule change or new contract",
+    "Data error tracing",
+    "Risk of human error",
+    "Complex freight cost allocation",
+    "Quality assurance"
+  ),
+  `Excel (Before)` = c(
+    "Several hours of manual work per period",
+    "Copy, paste and reformat an entire sheet",
+    "Manually update every affected cell",
+    "Manually scan rows - easy to miss",
+    "High - copy-paste mistakes go unnoticed",
+    "Averaged cost across all export types manually - imprecise and considered incorrect",
+    "Manual spot-check only"
+  ),
+  `R Pipeline (Now)` = c(
+    "Re-render once - under 10 minutes",
+    "Add a filter condition and a join - minutes",
+    "Change one line of code, re-run",
+    "Gap Check pinpoints exact item, month, site",
+    "Low - same logic applied consistently every run",
+    "Many-to-many join assigns the correct rate to each specific export type automatically",
+    "Automated Gap Check runs after every build"
+  )
+) |> kable("simple")
+```
