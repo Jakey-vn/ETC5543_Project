@@ -721,7 +721,7 @@ meat_trade_data_new <- meat_trade_data %>%
   crossing(Period = 1:12)
 ```
 
-# Sale Data Processing
+# Revenue Data Processing
 
 ## Farm Data
 
@@ -1122,9 +1122,11 @@ volume_commodity_corowa <- volume_bone_raw %>%
 
 # 400000 = total (volume_commodity_corowa) minus 400028 (internal), matched by Item Code + Week
 volume_commodity_corowa_400000 <- volume_commodity_corowa %>%
+  mutate(`Item Code` = str_trim(`Item Code`)) %>%
   left_join(
     volume_commodity_corowa_400028 %>%
-      select(`Item Code`, Week, Weight_400028 = `Total Weight`),
+      group_by(`Item Code`, Week) %>%
+      summarise(Weight_400028 = sum(`Total Weight`, na.rm = TRUE), .groups = "drop"),
     by = c("Item Code", "Week")
   ) %>%
   mutate(`Total Weight` = `Total Weight` - coalesce(Weight_400028, 0)) %>%
