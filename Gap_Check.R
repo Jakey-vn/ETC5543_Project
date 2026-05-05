@@ -9,6 +9,7 @@
 
 library(dplyr)
 library(openxlsx)
+library(stringr)
 
 gap_wb <- createWorkbook()
 
@@ -88,11 +89,80 @@ farm_no_bone_fee <- farm_no_price_all %>% filter(Tab == "BONE")
 farm_no_kill_fee <- farm_no_price_all %>% filter(Tab == "KILL")
 
 va_missing_price <- va_base %>%
-  filter(is.na(Price) | Price == 0,
+  anti_join(item_price_data %>% mutate(`Item Key` = str_trim(`Item Key`)),
+            by = c("Item Code" = "Item Key")) %>%
+  filter(!is.na(`Item Code`), `Item Code` != "",
          !is.na(`Total Weight`), `Total Weight` != 0) %>%
   select(Month, Abattoir, Tab, `Item Code`, `Item Description`,
-         `Customer name`, `Total Weight`, Price) %>%
+         `Customer name`, `Total Weight`) %>%
   arrange(Abattoir, Month, `Item Code`)
+
+# VA: Item Codes in VA Sales with no brand mapping in VA_brand_data
+va_no_brand <- volume_VA_price_calculated %>%
+  anti_join(VA_brand_data %>% distinct(`Item Code`), by = "Item Code") %>%
+  filter(!is.na(`Total Weight`), `Total Weight` > 0) %>%
+  select(Month, Abattoir, Tab, `Item Code`, `Item Description`,
+         `Customer name`, `Total Weight`) %>%
+  arrange(Abattoir, Month, `Item Code`)
+
+# Farm: same Unicode mapped to multiple Item Codes
+farm_multi_item_code <- volume_farm_raw %>%
+  mutate(
+    Unicode        = toupper(Unicode),
+    Abattoir       = toupper(Abattoir),
+    Month          = toupper(Month),
+    Tab            = toupper(Tab),
+    Units          = as.numeric(Units),
+    `Total Weight` = as.numeric(`Total Weight`)
+  ) %>%
+  group_by(Unicode, Abattoir, Month, Tab) %>%
+  filter(n_distinct(`Item Code`) > 1) %>%
+  ungroup() %>%
+  filter(!is.na(`Total Weight`), `Total Weight` != 0) %>%
+  rename(`SOP Unicode` = Unicode) %>%
+  select(Month, Abattoir, Tab, `SOP Unicode`, `Item Code`, `Item Description`,
+         Units, `Total Weight`) %>%
+  arrange(Abattoir, Month, `SOP Unicode`)
+
+# Commodity 400028: VA procurement Item Codes with no matching bone entry in Corowa
+commodity_va_not_in_bone <- anti_join(
+  volume_commodity_corowa_400028 %>% mutate(`Item Code` = str_trim(`Item Code`)),
+  volume_commodity_corowa        %>% mutate(`Item Code` = str_trim(`Item Code`)) %>%
+    distinct(`Item Code`),
+  by = "Item Code"
+) %>%
+  filter(!is.na(`Total Weight`), `Total Weight` != 0) %>%
+  mutate(across(any_of(c("Units", "Avg Weight", "Total Weight")), as.numeric)) %>%
+  arrange(`Item Code`)
+
+# Expense: helper to check missing packaging / pallet prices
+check_packaging <- function(data, price_col) {
+  data %>%
+    left_join(
+      packaging_price_data %>%
+        filter(VARIANT == 4) %>%
+        select(BOM, all_of(price_col)) %>%
+        mutate(BOM = as.character(BOM)),
+      by = c("Item Code" = "BOM")
+    ) %>%
+    filter(`Total Weight` > 0,
+           is.na(.data[[price_col]]) | .data[[price_col]] == 0) %>%
+    group_by(`Item Code`, `Item Description`) %>%
+    summarise(`Total Weight` = sum(`Total Weight`, na.rm = TRUE), .groups = "drop") %>%
+    arrange(`Item Code`)
+}
+
+expense_va_packaging               <- volume_expense_VA_sales_packaging_calculated %>%
+  filter(`Total Weight` > 0, is.na(Price) | Price == 0) %>%
+  group_by(`Item Code`, `Item Description`) %>%
+  summarise(`Total Weight` = sum(`Total Weight`, na.rm = TRUE), .groups = "drop") %>%
+  arrange(`Item Code`)
+
+expense_lav_edible_offal_packaging <- check_packaging(laverton_edible_offal_volume_data, "PACKAGING")
+expense_lav_edible_offal_pallet    <- check_packaging(laverton_edible_offal_volume_data, "PALLETS")
+expense_lav_6way_packaging         <- check_packaging(laverton_volume_6way_data,         "PACKAGING")
+expense_lav_sow_packaging          <- check_packaging(laverton_volume_sow_data,           "PACKAGING")
+expense_lav_commodity_packaging    <- check_packaging(laverton_volume_commodity_data,     "PACKAGING")
 
 # ─── Sheet 1: SOP vs DB ──────────────────────────────────────────────────────
 
@@ -146,20 +216,10 @@ comparison_tbl <- tibble(
     db_wt(volume_meat_trade_edible_offal),
     db_wt(volume_VA_price_calculated)
   ),
-  Note = c(
-    "", "", "", "", "", "", "", "",
-    "Intercompany: same physical rows as 'Laverton – 6 Way'",
-    "Intercompany: same physical rows as 'Laverton – Commodity FROZEN'",
-    "Intercompany: subset of 'Laverton – Offal' (edible only)",
-    ""
-  )
-) %>%
-  mutate(
-    `Difference (SOP - DB)` = `SOP Raw Weight (kg)` - `DB Weight (kg)`,
-    Status = if_else(`Difference (SOP - DB)` == 0, "OK", "GAP")
-  )
+)
 
 issues_summary_tbl <- tibble(
+  Category = c(rep("Revenue", 10), rep("Expense", 6)),
   Issue = c(
     "Bone – Item Code not in BM PRice sheet",
     "Bone – Run/Type not matched to any category",
@@ -167,23 +227,45 @@ issues_summary_tbl <- tibble(
     "Farm – FARM tab: no Carcass Price match",
     "Farm – BONE tab: no Bone Fee match",
     "Farm – KILL tab: no Kill Fee match",
-    "VA – Missing or zero Price"
+    "VA – Item Code not in BM Price sheet",
+    "VA – Item Code not in Brand Mapping",
+    "Farm – Same Unicode has multiple Item Codes",
+    "Commodity – VA Procurement Item not in Bone",
+    "Expense – VA Sales: Missing Packaging Price",
+    "Expense – Laverton Edible Offal: Missing Packaging Price",
+    "Expense – Laverton Edible Offal: Missing Pallet Price",
+    "Expense – Laverton 6 Way: Missing Packaging Price",
+    "Expense – Laverton Sow: Missing Packaging Price",
+    "Expense – Laverton Commodity: Missing Packaging Price"
   ),
   `Rows Affected` = c(
     nrow(bone_no_price), nrow(bone_no_category), nrow(bone_missing_storage),
     nrow(farm_no_carcass), nrow(farm_no_bone_fee), nrow(farm_no_kill_fee),
-    nrow(va_missing_price)
+    nrow(va_missing_price), nrow(va_no_brand),
+    nrow(farm_multi_item_code), nrow(commodity_va_not_in_bone),
+    nrow(expense_va_packaging), nrow(expense_lav_edible_offal_packaging),
+    nrow(expense_lav_edible_offal_pallet), nrow(expense_lav_6way_packaging),
+    nrow(expense_lav_sow_packaging), nrow(expense_lav_commodity_packaging)
   ),
   `Weight Affected (kg)` = c(
-    sum(bone_no_price$`Total Weight`,        na.rm = TRUE),
-    sum(bone_no_category$`Total Weight`,     na.rm = TRUE),
-    sum(bone_missing_storage$`Total Weight`, na.rm = TRUE),
-    sum(farm_no_carcass$`Total Weight`,      na.rm = TRUE),
-    sum(farm_no_bone_fee$`Total Weight`,     na.rm = TRUE),
-    sum(farm_no_kill_fee$`Total Weight`,     na.rm = TRUE),
-    sum(va_missing_price$`Total Weight`,     na.rm = TRUE)
+    sum(bone_no_price$`Total Weight`,                  na.rm = TRUE),
+    sum(bone_no_category$`Total Weight`,               na.rm = TRUE),
+    sum(bone_missing_storage$`Total Weight`,           na.rm = TRUE),
+    sum(farm_no_carcass$`Total Weight`,                na.rm = TRUE),
+    sum(farm_no_bone_fee$`Total Weight`,               na.rm = TRUE),
+    sum(farm_no_kill_fee$`Total Weight`,               na.rm = TRUE),
+    sum(va_missing_price$`Total Weight`,               na.rm = TRUE),
+    sum(va_no_brand$`Total Weight`,                    na.rm = TRUE),
+    sum(farm_multi_item_code$`Total Weight`,           na.rm = TRUE),
+    sum(commodity_va_not_in_bone$`Total Weight`,       na.rm = TRUE),
+    sum(expense_va_packaging$`Total Weight`,               na.rm = TRUE),
+    sum(expense_lav_edible_offal_packaging$`Total Weight`, na.rm = TRUE),
+    sum(expense_lav_edible_offal_pallet$`Total Weight`,    na.rm = TRUE),
+    sum(expense_lav_6way_packaging$`Total Weight`,         na.rm = TRUE),
+    sum(expense_lav_sow_packaging$`Total Weight`,          na.rm = TRUE),
+    sum(expense_lav_commodity_packaging$`Total Weight`,    na.rm = TRUE)
   ),
-  `Detail in Sheet` = rep("All Issues", 7),
+  `Detail in Sheet` = rep("All Issues", 16),
   Fix = c(
     "Add Item Code to BM PRice sheet (Prices.xlsb)",
     "Update Run or Type in SOP Volumes, or add a new category rule",
@@ -191,7 +273,16 @@ issues_summary_tbl <- tibble(
     "Add Unicode + Abattoir + Period to Carcass Price sheet",
     "Add Unicode + Abattoir + Period to Bone Fee sheet",
     "Add Unicode + Abattoir + Period to Kill Fee sheet",
-    "Fill in Price column in SOP Volumes (3.Meat Sales tab)"
+    "Add Item Code to BM Price sheet (Prices.xlsb)",
+    "Add Item Code to VA Brand mapping (Master Data – VA sheet)",
+    "Fix Unicode or Item Code mapping in SOP Volumes (Farm tab)",
+    "Add Item Code to bone commodity tab in SOP Volumes",
+    "Add Item Code to packaging price data",
+    "Add Item Code to packaging price data",
+    "Add Item Code to pallet price data",
+    "Add Item Code to packaging price data",
+    "Add Item Code to packaging price data",
+    "Add Item Code to packaging price data"
   )
 )
 
@@ -211,62 +302,43 @@ writeData(gap_wb, "SOP vs DB", issues_summary_tbl, startRow = sec2_start + 1)
 # ─── Sheet 2: All Issues (Bone + Farm + VA combined) ─────────────────────────
 
 all_issues <- bind_rows(
-  bone_no_price        %>% mutate(`Issue Type` = "No Price in BM PRice Sheet"),
-  bone_no_category     %>% mutate(`Issue Type` = "Run/Type Not Matched to Any Category"),
-  bone_missing_storage %>% mutate(`Issue Type` = "Commodity: Missing / Invalid Storage"),
-  farm_no_price_all    %>% mutate(`Issue Type` = case_when(
+  # Revenue issues
+  bone_no_price        %>% mutate(`Revenue Related Issue` = "No Price in BM PRice Sheet"),
+  bone_no_category     %>% mutate(`Revenue Related Issue` = "Run/Type Not Matched to Any Category"),
+  bone_missing_storage %>% mutate(`Revenue Related Issue` = "Commodity: Missing / Invalid Storage"),
+  farm_no_price_all    %>% mutate(`Revenue Related Issue` = case_when(
     Tab == "FARM" ~ "No Carcass Price (FARM tab)",
     Tab == "BONE" ~ "No Bone Fee (BONE tab)",
     Tab == "KILL" ~ "No Kill Fee (KILL tab)",
     TRUE          ~ NA_character_
   )),
-  va_missing_price     %>% mutate(`Issue Type` = "VA: Missing or Zero Price")
+  va_missing_price          %>% mutate(`Revenue Related Issue` = "VA: Item Code Not in BM Price Sheet"),
+  va_no_brand               %>% mutate(`Revenue Related Issue` = "VA: Item Code Not in Brand Mapping"),
+  farm_multi_item_code      %>% mutate(`Revenue Related Issue` = "Farm: Same Unicode Has Multiple Item Codes"),
+  commodity_va_not_in_bone  %>% mutate(`Revenue Related Issue` = "Commodity: VA Procurement Item Not in Commodity Data"),
+  # Expense issues
+  expense_va_packaging               %>% mutate(`Expense Related Issue` = "Missing Packaging Price – VA Sales"),
+  expense_lav_edible_offal_packaging %>% mutate(`Expense Related Issue` = "Missing Packaging Price – Laverton Edible Offal"),
+  expense_lav_edible_offal_pallet    %>% mutate(`Expense Related Issue` = "Missing Pallet Price – Laverton Edible Offal"),
+  expense_lav_6way_packaging         %>% mutate(`Expense Related Issue` = "Missing Packaging Price – Laverton 6 Way"),
+  expense_lav_sow_packaging          %>% mutate(`Expense Related Issue` = "Missing Packaging Price – Laverton Sow"),
+  expense_lav_commodity_packaging    %>% mutate(`Expense Related Issue` = "Missing Packaging Price – Laverton Commodity")
 ) %>%
-  group_by(`Issue Type`, Abattoir, Tab,
+  mutate(Units = as.numeric(Units)) %>%
+  group_by(`Revenue Related Issue`, `Expense Related Issue`, Abattoir, Tab,
            `Item Code`, `Item Description`, Run, Storage, Type, Group,
-           `SOP Unicode`, `Customer name`, Price) %>%
+           `SOP Unicode`, `Customer name`) %>%
   summarise(
     Units          = sum(as.numeric(Units), na.rm = TRUE),
     `Total Weight` = sum(`Total Weight`,    na.rm = TRUE),
     .groups = "drop"
   ) %>%
-  select(`Issue Type`, Abattoir, Tab, `Item Code`, `Item Description`,
-         Run, Storage, Type, Group, `SOP Unicode`, `Customer name`,
-         Units, `Total Weight`, Price) %>%
-  arrange(`Issue Type`, Abattoir, `Item Code`)
+  select(`Revenue Related Issue`, `Expense Related Issue`, Abattoir, Tab,
+         `Item Code`, `Item Description`, Run, Storage, Type, Group,
+         `SOP Unicode`, `Customer name`, Units, `Total Weight`) %>%
+  arrange(`Revenue Related Issue`, `Expense Related Issue`, Abattoir, `Item Code`)
 
 addWorksheet(gap_wb, "All Issues")
 writeData(gap_wb, "All Issues", all_issues)
-
-# ─── Sheet 3: Corowa Commodity Split Check (400000 + 400028 vs Combined) ─────
-
-commodity_split_check <- volume_commodity_corowa %>%
-  mutate(`Item Code` = str_trim(`Item Code`)) %>%
-  group_by(`Item Code`) %>%
-  summarise(Weight_Combined = sum(`Total Weight`, na.rm = TRUE), .groups = "drop") %>%
-  full_join(
-    volume_commodity_corowa_400028 %>%
-      group_by(`Item Code`) %>%
-      summarise(Weight_400028 = sum(`Total Weight`, na.rm = TRUE), .groups = "drop"),
-    by = "Item Code"
-  ) %>%
-  full_join(
-    volume_commodity_corowa_400000 %>%
-      mutate(`Item Code` = str_trim(`Item Code`)) %>%
-      group_by(`Item Code`) %>%
-      summarise(Weight_400000 = sum(`Total Weight`, na.rm = TRUE), .groups = "drop"),
-    by = "Item Code"
-  ) %>%
-  mutate(
-    Weight_Combined = coalesce(Weight_Combined, 0),
-    Weight_400028   = coalesce(Weight_400028,   0),
-    Weight_400000   = coalesce(Weight_400000,   0),
-    Difference      = Weight_Combined - (Weight_400000 + Weight_400028),
-    Status          = if_else(abs(Difference) < 0.01, "OK", "MISMATCH")
-  ) %>%
-  arrange(desc(abs(Difference)))
-
-addWorksheet(gap_wb, "Commodity Split")
-writeData(gap_wb, "Commodity Split", commodity_split_check)
 
 saveWorkbook(gap_wb, "Gap_Check.xlsx", overwrite = TRUE)
