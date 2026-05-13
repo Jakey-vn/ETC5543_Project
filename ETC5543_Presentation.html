@@ -6,11 +6,11 @@
 <script src="ETC5543_Presentation_files/libs/quarto-html/tippy.umd.min.js"></script>
 <link href="ETC5543_Presentation_files/libs/quarto-html/tippy.css" rel="stylesheet">
 <link href="ETC5543_Presentation_files/libs/quarto-html/light-border.css" rel="stylesheet">
-<link href="ETC5543_Presentation_files/libs/quarto-html/quarto-syntax-highlighting-7b89279ff1a6dce999919e0e67d4d9ec.css" rel="stylesheet" id="quarto-text-highlighting-styles"><meta charset="utf-8">
-  <meta name="generator" content="quarto-1.8.25">
+<link href="ETC5543_Presentation_files/libs/quarto-html/quarto-syntax-highlighting-37eea08aefeeee20ff55810ff984fec1.css" rel="stylesheet" id="quarto-text-highlighting-styles"><meta charset="utf-8">
+  <meta name="generator" content="quarto-1.7.32">
 
   <meta name="author" content="Andy Tran">
-  <meta name="dcterms.date" content="2026-05-01">
+  <meta name="dcterms.date" content="2026-05-13">
   <title>Automating Financial Account Creation</title>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -96,7 +96,7 @@
     code span.vs { color: #20794d; } /* VerbatimString */
     code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
   </style>
-  <link rel="stylesheet" href="ETC5543_Presentation_files/libs/revealjs/dist/theme/quarto-0fde88a82f0356838740f155f1088782.css">
+  <link rel="stylesheet" href="ETC5543_Presentation_files/libs/revealjs/dist/theme/quarto-2c1b5f745a11cfad616ebade4a4a7d24.css">
   <link href="ETC5543_Presentation_files/libs/revealjs/plugin/quarto-line-highlight/line-highlight.css" rel="stylesheet">
   <link href="ETC5543_Presentation_files/libs/revealjs/plugin/reveal-menu/menu.css" rel="stylesheet">
   <link href="ETC5543_Presentation_files/libs/revealjs/plugin/reveal-menu/quarto-menu.css" rel="stylesheet">
@@ -202,6 +202,14 @@
       padding-left: 20px;
       padding-right: 20px;
     }
+    .reveal .slide-logo {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      bottom: auto;
+      max-height: 60px;
+      max-width: 150px;
+    }
   </style>
 </head>
 <body class="quarto-light">
@@ -220,7 +228,7 @@ Andy Tran
 </div>
 </div>
 
-  <p class="date">2026-05-01</p>
+  <p class="date">2026-05-13</p>
 </section>
 <section id="context-motivation" class="slide level2">
 <h2>Context &amp; Motivation</h2>
@@ -291,21 +299,23 @@ Andy Tran
 </section>
 <section id="pipeline-architecture" class="slide level2">
 <h2>Pipeline Architecture</h2>
+<div class="r-stretch">
 <div class="cell" data-reveal="true" data-layout-align="center">
 <div class="cell-output-display">
 <div>
 <p></p><figure class=""><p></p>
 <div>
-<pre class="mermaid mermaid-js">flowchart TD
-    subgraph ext ["Other Teams - Read Only"]
-        A[("SOP Volumes.xlsx&lt;br/&gt;S&amp;OP Team")]
-        B[("Prices.xlsb&lt;br/&gt;Sales Team")]
-        C[("Trade Allowance.xlsx&lt;br/&gt;Biz Partner Manager")]
-        D[("Rates &amp; Allocation.xlsx&lt;br/&gt;Biz Partner Manager")]
+<pre class="mermaid mermaid-js">%%{init: {'flowchart': {'nodeSpacing': 40, 'rankSpacing': 60}}}%%
+flowchart TD
+    subgraph ext ["Other Teams"]
+        A["SOP Volumes.xlsx&lt;br/&gt;S&amp;OP Team"]
+        B["Prices.xlsb&lt;br/&gt;Sales Team"]
+        C["Trade Allow.xlsx&lt;br/&gt;BP Manager"]
+        D["Rates &amp; Alloc.xlsx&lt;br/&gt;BP Manager"]
     end
 
-    subgraph fin ["Finance Team - Controllable"]
-        M[("Master Data.xlsx&lt;br/&gt;NAM &amp; Commercial Finance")]
+    subgraph fin ["Finance Team"]
+        M["Master Data.xlsx&lt;br/&gt;NAM &amp; Comm. Finance"]
     end
 
     subgraph dev ["Development &amp; QA"]
@@ -333,22 +343,23 @@ Andy Tran
 
     DB &lt;--&gt; G
 
-    classDef extNode fill:#fad7a0,stroke:#ca6f1e,color:#1a5276,font-size:15px
-    classDef finNode fill:#a9dfbf,stroke:#1e8449,color:#1a5276,font-size:15px
-    classDef devNode fill:#d7bde2,stroke:#7d3c98,color:#1a5276,font-size:15px
-    classDef pipeNode fill:#d6eaf8,stroke:#2980b9,color:#1a5276,font-size:15px
+    classDef extNode fill:#fad7a0,stroke:#ca6f1e,color:#1a5276,font-size:12px
+    classDef finNode fill:#a9dfbf,stroke:#1e8449,color:#1a5276,font-size:12px
+    classDef devNode fill:#d7bde2,stroke:#7d3c98,color:#1a5276,font-size:12px
+    classDef pipeNode fill:#d6eaf8,stroke:#2980b9,color:#1a5276,font-size:12px
 
     class A,B,C,D extNode
     class M finNode
     class DC,G devNode
     class FV,RA,EA,RD,ED,DB pipeNode
 
-    style ext fill:#fef9e7,stroke:#ca6f1e,color:#ca6f1e,font-size:15px
-    style fin fill:#d5f5e3,stroke:#1e8449,color:#1e8449,font-size:15px
-    style dev fill:#f4ecf7,stroke:#7d3c98,color:#7d3c98,font-size:15px
+    style ext fill:#fef9e7,stroke:#ca6f1e,color:#ca6f1e,font-size:13px
+    style fin fill:#d5f5e3,stroke:#1e8449,color:#1e8449,font-size:13px
+    style dev fill:#f4ecf7,stroke:#7d3c98,color:#7d3c98,font-size:13px
 </pre>
 </div>
 <p></p></figure><p></p>
+</div>
 </div>
 </div>
 </div>
@@ -359,26 +370,26 @@ Andy Tran
 <div class="columns">
 <div class="column" style="width:48%;">
 <p><strong>Step 1 - Build account skeleton</strong></p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href=""></a><span class="co"># Pull all relevant customers from Master Data</span></span>
+<div class="sourceCode" id="cb1"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href=""></a><span class="co"># Pull all relevant customers from Master Data</span></span>
 <span id="cb1-2"><a href=""></a><span class="co"># and attach the correct GL + Cost Centre key</span></span>
 <span id="cb1-3"><a href=""></a>account_rows <span class="ot">&lt;-</span> customer_data <span class="sc">%&gt;%</span></span>
 <span id="cb1-4"><a href=""></a>  <span class="fu">filter</span>(BU <span class="sc">==</span> <span class="st">"1.Farming Operations"</span>) <span class="sc">%&gt;%</span></span>
 <span id="cb1-5"><a href=""></a>  <span class="fu">left_join</span>(gl_cc_data, <span class="at">by =</span> <span class="st">"BU"</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb1-6"><a href=""></a>  <span class="fu">crossing</span>(<span class="at">Period =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">12</span>)  <span class="co"># one row per month</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb1-6"><a href=""></a>  <span class="fu">crossing</span>(<span class="at">Period =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">12</span>)  <span class="co"># one row per month</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p><strong>Step 2 - Join SOP volume</strong></p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href=""></a><span class="co"># Match on SOP Unicode + Abattoir + Month + Tab</span></span>
+<div class="sourceCode" id="cb2"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href=""></a><span class="co"># Match on SOP Unicode + Abattoir + Month + Tab</span></span>
 <span id="cb2-2"><a href=""></a>account_rows <span class="sc">%&gt;%</span></span>
 <span id="cb2-3"><a href=""></a>  <span class="fu">left_join</span>(volume_farm_raw,</span>
 <span id="cb2-4"><a href=""></a>            <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"SOP Unicode"</span> <span class="ot">=</span> <span class="st">"Unicode"</span>,</span>
-<span id="cb2-5"><a href=""></a>                   <span class="st">"Abattoir"</span>, <span class="st">"Month"</span>, <span class="st">"Tab"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb2-5"><a href=""></a>                   <span class="st">"Abattoir"</span>, <span class="st">"Month"</span>, <span class="st">"Tab"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div><div class="column" style="width:48%;">
 <p><strong>Step 3 - Calculate value</strong></p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href=""></a><span class="co"># Different formula per tab type</span></span>
+<div class="sourceCode" id="cb3"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href=""></a><span class="co"># Different formula per tab type</span></span>
 <span id="cb3-2"><a href=""></a><span class="fu">mutate</span>(<span class="at">Value =</span> <span class="fu">case_when</span>(</span>
 <span id="cb3-3"><a href=""></a>  Tab <span class="sc">==</span> <span class="st">"FARM"</span> <span class="sc">~</span> Total_Weight <span class="sc">*</span> Carcass_Price,</span>
 <span id="cb3-4"><a href=""></a>  Tab <span class="sc">==</span> <span class="st">"KILL"</span> <span class="sc">~</span> Units <span class="sc">*</span> Kill_Fee,</span>
 <span id="cb3-5"><a href=""></a>  Tab <span class="sc">==</span> <span class="st">"BONE"</span> <span class="sc">~</span> Units <span class="sc">*</span> Bone_Fee</span>
-<span id="cb3-6"><a href=""></a>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb3-6"><a href=""></a>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p><strong>Mock result after all three steps:</strong></p>
 <div class="cell">
 <div class="cell-output-display">
@@ -492,8 +503,8 @@ Andy Tran
 </table>
 </div>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href=""></a><span class="co"># Expense value = total weight × rate</span></span>
-<span id="cb4-2"><a href=""></a><span class="fu">mutate</span>(<span class="at">Value =</span> <span class="st">`</span><span class="at">Total Weight</span><span class="st">`</span> <span class="sc">*</span> Rate)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href=""></a><span class="co"># Expense value = total weight × rate</span></span>
+<span id="cb4-2"><a href=""></a><span class="fu">mutate</span>(<span class="at">Value =</span> <span class="st">`</span><span class="at">Total Weight</span><span class="st">`</span> <span class="sc">*</span> Rate)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div><div class="column" style="width:46%;">
 <p><strong>Mock result after rate join</strong></p>
 <div class="cell">
@@ -661,8 +672,8 @@ Andy Tran
 <tbody>
 <tr class="odd">
 <td>Time to build each month</td>
-<td style="text-align: left;">Several hours of manual work per period</td>
-<td style="text-align: left;">Re-render once - under 10 minutes</td>
+<td style="text-align: left;">A lot of time for manual work per period</td>
+<td style="text-align: left;">One-click once - under 10 minutes</td>
 </tr>
 <tr class="even">
 <td>Adding a new Business Unit</td>
@@ -702,6 +713,7 @@ Andy Tran
 </section>
     </div>
   <div class="quarto-auto-generated-content" style="display: none;">
+<p><img src="jbs_logo.png" class="slide-logo"></p>
 <div class="footer footer-default">
 
 </div>
@@ -881,15 +893,15 @@ Andy Tran
         // The "normal" size of the presentation, aspect ratio will be preserved
         // when the presentation is scaled to fit different resolutions. Can be
         // specified using percentage units.
-        width: 2500,
+        width: 1500,
 
         height: 700,
 
         // Factor of the display size that should remain empty around the content
-        margin: 2.0e-2,
+        margin: 5.0e-2,
 
         math: {
-          mathjax: 'https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js',
+          mathjax: 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/MathJax.js',
           config: 'TeX-AMS_HTML-full',
           tex2jax: {
             inlineMath: [['\\(','\\)']],
@@ -1039,14 +1051,13 @@ Andy Tran
           e.clearSelection();
         }
         const getTextToCopy = function(trigger) {
-          const outerScaffold = trigger.parentElement.cloneNode(true);
-          const codeEl = outerScaffold.querySelector('code');
-          for (const childEl of codeEl.children) {
-            if (isCodeAnnotation(childEl)) {
-              childEl.remove();
+            const codeEl = trigger.previousElementSibling.cloneNode(true);
+            for (const childEl of codeEl.children) {
+              if (isCodeAnnotation(childEl)) {
+                childEl.remove();
+              }
             }
-          }
-          return codeEl.innerText;
+            return codeEl.innerText;
         }
         const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
           text: getTextToCopy

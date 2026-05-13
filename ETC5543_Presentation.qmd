@@ -2,7 +2,7 @@
 title: "Automating Financial Account Creation"
 subtitle: "An R Pipeline for SOP-to-Database Reporting"
 author: "Andy Tran"
-date: "May 2026"
+date: "13 May 2026"
 format:
   revealjs:
     theme: simple
@@ -10,8 +10,9 @@ format:
     transition: fade
     fig-align: center
     smaller: true
-    margin: 0.02
-    width: 2500
+    margin: 0.05
+    width: 1500
+    logo: jbs_logo.png
     include-in-header:
       text: |
         <style>
@@ -24,6 +25,14 @@ format:
           .reveal .slides section {
             padding-left: 20px;
             padding-right: 20px;
+          }
+          .reveal .slide-logo {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            bottom: auto;
+            max-height: 60px;
+            max-width: 150px;
           }
         </style>
 execute:
@@ -71,17 +80,19 @@ execute:
 
 ## Pipeline Architecture
 
+::: {.r-stretch}
 ```{mermaid}
+%%{init: {'flowchart': {'nodeSpacing': 40, 'rankSpacing': 60}}}%%
 flowchart TD
-    subgraph ext ["Other Teams - Read Only"]
-        A[("SOP Volumes.xlsx<br/>S&OP Team")]
-        B[("Prices.xlsb<br/>Sales Team")]
-        C[("Trade Allowance.xlsx<br/>Biz Partner Manager")]
-        D[("Rates & Allocation.xlsx<br/>Biz Partner Manager")]
+    subgraph ext ["Other Teams"]
+        A["SOP Volumes.xlsx<br/>S&OP Team"]
+        B["Prices.xlsb<br/>Sales Team"]
+        C["Trade Allow.xlsx<br/>BP Manager"]
+        D["Rates & Alloc.xlsx<br/>BP Manager"]
     end
 
-    subgraph fin ["Finance Team - Controllable"]
-        M[("Master Data.xlsx<br/>NAM & Commercial Finance")]
+    subgraph fin ["Finance Team"]
+        M["Master Data.xlsx<br/>NAM & Comm. Finance"]
     end
 
     subgraph dev ["Development & QA"]
@@ -109,20 +120,21 @@ flowchart TD
 
     DB <--> G
 
-    classDef extNode fill:#fad7a0,stroke:#ca6f1e,color:#1a5276,font-size:15px
-    classDef finNode fill:#a9dfbf,stroke:#1e8449,color:#1a5276,font-size:15px
-    classDef devNode fill:#d7bde2,stroke:#7d3c98,color:#1a5276,font-size:15px
-    classDef pipeNode fill:#d6eaf8,stroke:#2980b9,color:#1a5276,font-size:15px
+    classDef extNode fill:#fad7a0,stroke:#ca6f1e,color:#1a5276,font-size:12px
+    classDef finNode fill:#a9dfbf,stroke:#1e8449,color:#1a5276,font-size:12px
+    classDef devNode fill:#d7bde2,stroke:#7d3c98,color:#1a5276,font-size:12px
+    classDef pipeNode fill:#d6eaf8,stroke:#2980b9,color:#1a5276,font-size:12px
 
     class A,B,C,D extNode
     class M finNode
     class DC,G devNode
     class FV,RA,EA,RD,ED,DB pipeNode
 
-    style ext fill:#fef9e7,stroke:#ca6f1e,color:#ca6f1e,font-size:15px
-    style fin fill:#d5f5e3,stroke:#1e8449,color:#1e8449,font-size:15px
-    style dev fill:#f4ecf7,stroke:#7d3c98,color:#7d3c98,font-size:15px
+    style ext fill:#fef9e7,stroke:#ca6f1e,color:#ca6f1e,font-size:13px
+    style fin fill:#d5f5e3,stroke:#1e8449,color:#1e8449,font-size:13px
+    style dev fill:#f4ecf7,stroke:#7d3c98,color:#7d3c98,font-size:13px
 ```
+:::
 
 ------------------------------------------------------------------------
 
@@ -370,7 +382,7 @@ tibble(
     "Quality assurance"
   ),
   `Excel (Before)` = c(
-    "Several hours of manual work per period",
+    "A lot of time for manual work per period",
     "Copy, paste and reformat an entire sheet",
     "Manually update every affected cell",
     "Manually scan rows - easy to miss",
@@ -379,7 +391,7 @@ tibble(
     "Manual spot-check only"
   ),
   `R Pipeline (Now)` = c(
-    "Re-render once - under 10 minutes",
+    "One-click once - under 10 minutes",
     "Add a filter condition and a join - minutes",
     "Change one line of code, re-run",
     "Gap Check pinpoints exact item, month, site",
