@@ -52,20 +52,6 @@ bone_no_price <- bone_base %>%
   select(all_of(bone_cols)) %>%
   arrange(Abattoir, Month, `Item Code`)
 
-# Bone: no category match
-bone_no_category <- bone_base %>%
-  mutate(Category = case_when(
-    Run == "TOTAL KILL" & Type %in% OFFAL_TYPES ~ "Offal",
-    Run == "6 WAY"                              ~ "6 Way",
-    Run == "SOW BONE"                           ~ "Sow",
-    Run == "COMMODITY BONE"                     ~ "Commodity",
-    TRUE                                        ~ NA_character_
-  )) %>%
-  filter(is.na(Category),
-         !is.na(`Total Weight`), `Total Weight` != 0) %>%
-  select(all_of(bone_cols)) %>%
-  arrange(Abattoir, Month, Run, Type)
-
 # Bone: commodity missing storage
 bone_missing_storage <- bone_base %>%
   filter(Run == "COMMODITY BONE",
@@ -89,10 +75,10 @@ farm_no_bone_fee <- farm_no_price_all %>% filter(Tab == "BONE")
 farm_no_kill_fee <- farm_no_price_all %>% filter(Tab == "KILL")
 
 va_missing_price <- va_base %>%
-  anti_join(item_price_data %>% mutate(`Item Key` = str_trim(`Item Key`)),
-            by = c("Item Code" = "Item Key")) %>%
-  filter(!is.na(`Item Code`), `Item Code` != "",
-         !is.na(`Total Weight`), `Total Weight` != 0) %>%
+  filter(Service == "VA Sales",
+         !is.na(`Item Code`), `Item Code` != "",
+         !is.na(`Total Weight`), `Total Weight` != 0,
+         is.na(Price) | Price == 0) %>%
   select(Month, Abattoir, Tab, `Item Code`, `Item Description`,
          `Customer name`, `Total Weight`) %>%
   arrange(Abattoir, Month, `Item Code`)
@@ -136,15 +122,18 @@ commodity_va_not_in_bone <- anti_join(
   arrange(`Item Code`)
 
 # Expense: helper to check missing packaging / pallet prices
+# An item is considered priced if either variant 3 or 4 provides a valid price.
 check_packaging <- function(data, price_col) {
+  price_lookup <- packaging_price_data %>%
+    filter(VARIANT %in% c(3, 4)) %>%
+    mutate(BOM = as.character(BOM)) %>%
+    group_by(BOM) %>%
+    summarise(!!price_col := suppressWarnings(max(.data[[price_col]], na.rm = TRUE)),
+              .groups = "drop") %>%
+    mutate(!!price_col := if_else(is.infinite(.data[[price_col]]), NA_real_, .data[[price_col]]))
+
   data %>%
-    left_join(
-      packaging_price_data %>%
-        filter(VARIANT == 4) %>%
-        select(BOM, all_of(price_col)) %>%
-        mutate(BOM = as.character(BOM)),
-      by = c("Item Code" = "BOM")
-    ) %>%
+    left_join(price_lookup, by = c("Item Code" = "BOM")) %>%
     filter(`Total Weight` > 0,
            is.na(.data[[price_col]]) | .data[[price_col]] == 0) %>%
     group_by(`Item Code`, `Item Description`) %>%
@@ -219,15 +208,14 @@ comparison_tbl <- tibble(
 )
 
 issues_summary_tbl <- tibble(
-  Category = c(rep("Revenue", 10), rep("Expense", 6)),
+  Category = c(rep("Revenue", 9), rep("Expense", 6)),
   Issue = c(
     "Bone – Item Code not in BM PRice sheet",
-    "Bone – Run/Type not matched to any category",
     "Bone – Commodity: missing/invalid Storage",
     "Farm – FARM tab: no Carcass Price match",
     "Farm – BONE tab: no Bone Fee match",
     "Farm – KILL tab: no Kill Fee match",
-    "VA – Item Code not in BM Price sheet",
+    "VA – Missing or zero price in SOP data",
     "VA – Item Code not in Brand Mapping",
     "Farm – Same Unicode has multiple Item Codes",
     "Commodity – VA Procurement Item not in Bone",
@@ -239,7 +227,7 @@ issues_summary_tbl <- tibble(
     "Expense – Laverton Commodity: Missing Packaging Price"
   ),
   `Rows Affected` = c(
-    nrow(bone_no_price), nrow(bone_no_category), nrow(bone_missing_storage),
+    nrow(bone_no_price), nrow(bone_missing_storage),
     nrow(farm_no_carcass), nrow(farm_no_bone_fee), nrow(farm_no_kill_fee),
     nrow(va_missing_price), nrow(va_no_brand),
     nrow(farm_multi_item_code), nrow(commodity_va_not_in_bone),
@@ -249,7 +237,6 @@ issues_summary_tbl <- tibble(
   ),
   `Weight Affected (kg)` = c(
     sum(bone_no_price$`Total Weight`,                  na.rm = TRUE),
-    sum(bone_no_category$`Total Weight`,               na.rm = TRUE),
     sum(bone_missing_storage$`Total Weight`,           na.rm = TRUE),
     sum(farm_no_carcass$`Total Weight`,                na.rm = TRUE),
     sum(farm_no_bone_fee$`Total Weight`,               na.rm = TRUE),
@@ -265,15 +252,14 @@ issues_summary_tbl <- tibble(
     sum(expense_lav_sow_packaging$`Total Weight`,          na.rm = TRUE),
     sum(expense_lav_commodity_packaging$`Total Weight`,    na.rm = TRUE)
   ),
-  `Detail in Sheet` = rep("All Issues", 16),
+  `Detail in Sheet` = rep("All Issues", 15),
   Fix = c(
     "Add Item Code to BM PRice sheet (Prices.xlsb)",
-    "Update Run or Type in SOP Volumes, or add a new category rule",
     "Fill in Storage (CHILLED / FROZEN) in SOP Volumes",
     "Add Unicode + Abattoir + Period to Carcass Price sheet",
     "Add Unicode + Abattoir + Period to Bone Fee sheet",
     "Add Unicode + Abattoir + Period to Kill Fee sheet",
-    "Add Item Code to BM Price sheet (Prices.xlsb)",
+    "Fill in Price column in SOP Volumes (VA tab) for this Item Code",
     "Add Item Code to VA Brand mapping (Master Data – VA sheet)",
     "Fix Unicode or Item Code mapping in SOP Volumes (Farm tab)",
     "Add Item Code to bone commodity tab in SOP Volumes",
@@ -304,7 +290,6 @@ writeData(gap_wb, "SOP vs DB", issues_summary_tbl, startRow = sec2_start + 1)
 all_issues <- bind_rows(
   # Revenue issues
   bone_no_price        %>% mutate(`Revenue Related Issue` = "No Price in BM PRice Sheet"),
-  bone_no_category     %>% mutate(`Revenue Related Issue` = "Run/Type Not Matched to Any Category"),
   bone_missing_storage %>% mutate(`Revenue Related Issue` = "Commodity: Missing / Invalid Storage"),
   farm_no_price_all    %>% mutate(`Revenue Related Issue` = case_when(
     Tab == "FARM" ~ "No Carcass Price (FARM tab)",
@@ -312,7 +297,7 @@ all_issues <- bind_rows(
     Tab == "KILL" ~ "No Kill Fee (KILL tab)",
     TRUE          ~ NA_character_
   )),
-  va_missing_price          %>% mutate(`Revenue Related Issue` = "VA: Item Code Not in BM Price Sheet"),
+  va_missing_price          %>% mutate(`Revenue Related Issue` = "VA: Missing or Zero Price in SOP Data"),
   va_no_brand               %>% mutate(`Revenue Related Issue` = "VA: Item Code Not in Brand Mapping"),
   farm_multi_item_code      %>% mutate(`Revenue Related Issue` = "Farm: Same Unicode Has Multiple Item Codes"),
   commodity_va_not_in_bone  %>% mutate(`Revenue Related Issue` = "Commodity: VA Procurement Item Not in Commodity Data"),
@@ -342,3 +327,6 @@ addWorksheet(gap_wb, "All Issues")
 writeData(gap_wb, "All Issues", all_issues)
 
 saveWorkbook(gap_wb, "Gap_Check.xlsx", overwrite = TRUE)
+
+
+
