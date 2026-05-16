@@ -34,6 +34,64 @@ format:
             max-height: 60px;
             max-width: 150px;
           }
+          /* Slide title gold underline */
+          .reveal h2 {
+            color: #1a3a5c;
+            border-bottom: 3px solid #f39c12;
+            padding-bottom: 0.15em;
+            margin-bottom: 0.3em;
+          }
+          /* Dark slide overrides - applied automatically by RevealJS */
+          .reveal .has-dark-background h2 {
+            color: #ffffff !important;
+            border-bottom-color: #f39c12 !important;
+          }
+          .reveal .has-dark-background p,
+          .reveal .has-dark-background li {
+            color: #e8f4fd !important;
+          }
+          .reveal .has-dark-background strong {
+            color: #f8c471 !important;
+          }
+          .reveal .has-dark-background code {
+            background: rgba(255,255,255,0.15) !important;
+            color: #f0f8ff !important;
+          }
+          /* Blockquote */
+          .reveal blockquote {
+            background: #eaf4fc;
+            border-left: 4px solid #2980b9;
+            border-radius: 0 8px 8px 0;
+            padding: 0.5em 1em;
+            color: #1a3a5c;
+            font-style: normal;
+            width: 100%;
+            box-shadow: none;
+          }
+          .reveal .has-dark-background blockquote {
+            background: rgba(255,255,255,0.1) !important;
+            border-left-color: #f39c12 !important;
+            color: #e8f4fd !important;
+          }
+          /* Tables */
+          .reveal table {
+            font-size: 0.82em;
+            border-collapse: collapse;
+            width: 100%;
+          }
+          .reveal table thead th {
+            background: #1a3a5c !important;
+            color: white !important;
+            padding: 0.4em 0.8em;
+            text-align: left;
+          }
+          .reveal table tbody tr:nth-child(even) td {
+            background: #f0f6fc;
+          }
+          .reveal table tbody td {
+            padding: 0.3em 0.8em;
+            border-bottom: 1px solid #d6eaf8;
+          }
         </style>
 execute:
   echo: false
@@ -41,24 +99,32 @@ execute:
   message: false
 ---
 
-## Context & Motivation
+## Context & Motivation {background-color="#f0f6fc"}
 
 ::::: columns
 ::: {.column width="50%"}
-**The challenge**
+::: {style="border-left: 4px solid #2980b9; background: white; border-radius: 0 10px 10px 0; padding: 0.6em 0.9em; height: 100%;"}
+::: {style="font-size: 0.72em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #2980b9; margin-bottom: 0.2em;"}
+The Challenge
+:::
 
 -   Financial accounts for two processing sites (Corowa & Laverton) were built manually each reporting period
 -   Data lives across multiple spreadsheets with different structures
 -   Manual process is time-consuming and error-prone
 -   Any missed row = wrong account value
 :::
+:::
 
 ::: {.column width="50%"}
-**The goal**
+::: {style="border-left: 4px solid #f39c12; background: white; border-radius: 0 10px 10px 0; padding: 0.6em 0.9em; height: 100%;"}
+::: {style="font-size: 0.72em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #e67e22; margin-bottom: 0.2em;"}
+The Goal
+:::
 
 -   Build an automated R pipeline that reads raw SOP data and price files
 -   Produces structured financial database entries covering every Business Unit
 -   Includes a built-in quality check so errors can be caught before submission
+:::
 :::
 :::::
 
@@ -78,7 +144,7 @@ execute:
 
 ------------------------------------------------------------------------
 
-## Pipeline Architecture
+## Pipeline Architecture {background-color="#f8fafd"}
 
 ::: {.r-stretch}
 ```{mermaid}
@@ -144,7 +210,10 @@ Three steps are applied to **every** Business Unit:
 
 ::::: columns
 ::: {.column width="48%"}
-**Step 1 - Build account skeleton**
+::: {style="background: #f0f6fc; border-top: 3px solid #1a3a5c; border-radius: 0 0 8px 8px; padding: 0.5em 0.8em; margin-bottom: 0.3em;"}
+::: {style="font-size: 0.7em; font-weight: 700; color: #1a3a5c; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.2em;"}
+Step 1 - Build account skeleton
+:::
 
 ``` r
 # Pull all relevant customers from Master Data
@@ -154,8 +223,12 @@ account_rows <- customer_data %>%
   left_join(gl_cc_data, by = "BU") %>%
   crossing(Period = 1:12)  # one row per month
 ```
+:::
 
-**Step 2 - Join SOP volume**
+::: {style="background: #f0f6fc; border-top: 3px solid #2980b9; border-radius: 0 0 8px 8px; padding: 0.5em 0.8em;"}
+::: {style="font-size: 0.7em; font-weight: 700; color: #2980b9; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.2em;"}
+Step 2 - Join SOP volume
+:::
 
 ``` r
 # Match on SOP Unicode + Abattoir + Month + Tab
@@ -165,9 +238,13 @@ account_rows %>%
                    "Abattoir", "Month", "Tab"))
 ```
 :::
+:::
 
 ::: {.column width="48%"}
-**Step 3 - Calculate value**
+::: {style="background: #f0f6fc; border-top: 3px solid #f39c12; border-radius: 0 0 8px 8px; padding: 0.5em 0.8em; margin-bottom: 0.3em;"}
+::: {style="font-size: 0.7em; font-weight: 700; color: #e67e22; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.2em;"}
+Step 3 - Calculate value
+:::
 
 ``` r
 # Different formula per tab type
@@ -177,8 +254,12 @@ mutate(Value = case_when(
   Tab == "BONE" ~ Units * Bone_Fee
 ))
 ```
+:::
 
-**Mock result after all three steps:**
+::: {style="background: #f8f9fa; border: 1px solid #d6eaf8; border-radius: 8px; padding: 0.5em 0.8em;"}
+::: {style="font-size: 0.7em; font-weight: 700; color: #1a3a5c; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.2em;"}
+Mock result after all three steps
+:::
 
 ```{r}
 library(dplyr)
@@ -193,17 +274,21 @@ tibble(
 ) |> kable("simple")
 ```
 :::
+:::
 :::::
 
 ------------------------------------------------------------------------
 
-## Revenue Account Coverage
+## Revenue Account Coverage {background-color="#1a3a5c"}
 
-> **GL 400000** = Sales to external customers  \|  **GL 400028** = Intercompany sales between JBS sites
+> **GL 400000** = Sales to external customers  |  **GL 400028** = Intercompany sales between JBS sites
 
 ::::: columns
 ::: {.column width="50%"}
-**Corowa**
+::: {style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); border-radius: 10px; padding: 0.5em 0.9em;"}
+::: {style="font-size: 0.72em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #aed6f1; margin-bottom: 0.2em;"}
+Corowa
+:::
 
 -   1\. Farming Operations
 -   2\. Meat Processing
@@ -213,19 +298,28 @@ tibble(
 -   Commodity Bone
 -   Meat Trade *(receives Laverton volume under Corowa account)*
 :::
+:::
 
 ::: {.column width="50%"}
-**Laverton**
+::: {style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); border-radius: 10px; padding: 0.5em 0.9em; margin-bottom: 0.3em;"}
+::: {style="font-size: 0.72em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #aed6f1; margin-bottom: 0.2em;"}
+Laverton
+:::
 
 -   6\. Laverton Processing
     -   Kill Floor, Boning Room, Boxed Meat
 -   Offal *(Edible shipped to Corowa via Lineage cold store)*
 -   Commodity Chilled & Frozen
 -   Sow Bone
+:::
 
-**Cross-site**
+::: {style="background: rgba(243,156,18,0.15); border: 1px solid rgba(243,156,18,0.4); border-radius: 10px; padding: 0.5em 0.9em;"}
+::: {style="font-size: 0.72em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #f8c471; margin-bottom: 0.2em;"}
+Cross-site
+:::
 
 -   3\. Meat Sales (VA / Value-Add)
+:::
 :::
 :::::
 
@@ -237,7 +331,10 @@ Same skeleton approach as revenue - account rows built from Master Data, then ra
 
 ::::: columns
 ::: {.column width="50%"}
-**Rate sources per category**
+::: {style="background: #f0f6fc; border-top: 3px solid #1a3a5c; border-radius: 0 0 8px 8px; padding: 0.5em 0.8em; margin-bottom: 0.3em;"}
+::: {style="font-size: 0.7em; font-weight: 700; color: #1a3a5c; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.2em;"}
+Rate sources per category
+:::
 
 ```{r}
 tibble(
@@ -248,15 +345,25 @@ tibble(
                     "Rates & Allocation.xlsx")
 ) |> kable("simple")
 ```
+:::
+
+::: {style="background: #f0f6fc; border-top: 3px solid #2980b9; border-radius: 0 0 8px 8px; padding: 0.5em 0.8em;"}
+::: {style="font-size: 0.7em; font-weight: 700; color: #2980b9; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.2em;"}
+Value formula
+:::
 
 ``` r
 # Expense value = total weight × rate
 mutate(Value = `Total Weight` * Rate)
 ```
 :::
+:::
 
 ::: {.column width="46%"}
-**Mock result after rate join**
+::: {style="background: #f8f9fa; border: 1px solid #d6eaf8; border-radius: 8px; padding: 0.5em 0.8em;"}
+::: {style="font-size: 0.7em; font-weight: 700; color: #1a3a5c; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.2em;"}
+Mock result after rate join
+:::
 
 ```{r}
 tibble(
@@ -267,69 +374,110 @@ tibble(
 ) |> kable("simple")
 ```
 :::
+:::
 :::::
 
 ------------------------------------------------------------------------
 
-## Expense Account Coverage
+## Expense Account Coverage {background-color="#1a3a5c"}
 
 ::::: columns
 ::: {.column width="50%"}
-**Packaging & Pallet** *(GL 650301 / 650303 / 650311)*
+::: {style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); border-radius: 10px; padding: 0.5em 0.9em; margin-bottom: 0.3em;"}
+::: {style="font-size: 0.72em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #aed6f1; margin-bottom: 0.3em;"}
+Packaging & Pallet
+:::
+::: {style="font-size: 0.7em; color: #f8c471; margin-bottom: 0.2em;"}
+**GL 650301 / 650303 / 650311**
+:::
 
 -   Corowa: Offal, 6 Way, Commodity
 -   Laverton: Offal, 6 Way, Commodity, Sow, Export
 -   Meat Sales (VA products)
 -   Special contracts (Woolworths, DRJ) use separate margin account GL 650311
+:::
 
-**Trade Allowance** *(GL 450050)*
+::: {style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); border-radius: 10px; padding: 0.5em 0.9em;"}
+::: {style="font-size: 0.72em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #aed6f1; margin-bottom: 0.3em;"}
+Trade Allowance
+:::
+::: {style="font-size: 0.7em; color: #f8c471; margin-bottom: 0.2em;"}
+**GL 450050**
+:::
 
 -   Meat Sales (VA)
 -   Laverton Processing
 :::
+:::
 
 ::: {.column width="50%"}
-**Storage** *(GL 730010)*
+::: {style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); border-radius: 10px; padding: 0.5em 0.9em; margin-bottom: 0.3em;"}
+::: {style="font-size: 0.72em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #aed6f1; margin-bottom: 0.3em;"}
+Storage
+:::
+::: {style="font-size: 0.7em; color: #f8c471; margin-bottom: 0.2em;"}
+**GL 730010**
+:::
 
 -   Corowa: Offal, Commodity, 6 Way, Meat Trade, Stock on Hand
 -   Laverton: Sow, Stock on Hand
 -   Meat Sales
+:::
 
-**Freight** *(GL 500192 / 500609)*
+::: {style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); border-radius: 10px; padding: 0.5em 0.9em;"}
+::: {style="font-size: 0.72em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #aed6f1; margin-bottom: 0.3em;"}
+Freight
+:::
+::: {style="font-size: 0.7em; color: #f8c471; margin-bottom: 0.2em;"}
+**GL 500192 / 500609**
+:::
 
 -   500192 = Domestic freight
 -   500609 = Ocean / Export freight
 -   Covers: Offal, 6 Way, Commodity, Meat Trade, Meat Sales
 :::
+:::
 :::::
 
 ------------------------------------------------------------------------
 
-## Key Challenges
+## Key Challenges {background-color="#1a2840"}
 
 :::::: columns
 ::: {.column width="33%"}
-**Unstable source data**
+::: {style="background: rgba(41,128,185,0.2); border-top: 3px solid #2980b9; border-radius: 0 0 10px 10px; padding: 0.5em 0.9em;"}
+::: {style="font-size: 0.72em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #aed6f1; margin-bottom: 0.2em;"}
+Unstable source data
+:::
 
 -   SOP Volumes contains spelling mistakes and inconsistent naming that silently break joins
 -   Master Data missing customer or GL entries means volume rows match no account and are lost
 -   Required ongoing fixes during development (e.g. `str_trim`, `toupper`, typo corrections)
 :::
+:::
 
 ::: {.column width="33%"}
-**Incomplete price data**
+::: {style="background: rgba(243,156,18,0.15); border-top: 3px solid #f39c12; border-radius: 0 0 10px 10px; padding: 0.5em 0.9em;"}
+::: {style="font-size: 0.72em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #f8c471; margin-bottom: 0.2em;"}
+Incomplete price data
+:::
 
 -   `Prices.xlsb` frequently missing item codes - revenue rows for those items produce NA values
 -   Packaging rates also missing for newer items - expense rows fail silently
 -   Gap Check was built specifically to surface these missing-price rows after each run
 :::
+:::
 
 ::: {.column width="33%"}
-**Complex customer contracts**
+::: {style="background: rgba(165,105,189,0.2); border-top: 3px solid #a569bd; border-radius: 0 0 10px 10px; padding: 0.5em 0.9em;"}
+::: {style="font-size: 0.72em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #d7bde2; margin-bottom: 0.2em;"}
+Complex customer contracts
+:::
 
 -   JBS negotiates individual discounts and special pricing per customer
 -   Customers like Woolworths and DRJ require separate GL accounts and additional conditional calculation steps
 -   Every new contract adds conditional logic, making the pipeline progressively harder to maintain
+:::
 :::
 ::::::
 
@@ -337,7 +485,9 @@ tibble(
 
 ## Quality Assurance - Gap Check
 
-Built from real failure points during development - each check represents a problem that once caused silent data loss. Unlike manual Excel review, R pinpoints the exact item, month and site instantly.
+::: {style="background: #eaf4fc; border-left: 4px solid #2980b9; border-radius: 0 8px 8px 0; padding: 0.4em 0.9em; color: #1a3a5c; margin-bottom: 0.3em;"}
+Built from real failure points during development - each check represents a problem that once caused **silent data loss**. Unlike manual Excel review, R pinpoints the exact item, month and site instantly.
+:::
 
 **Sheet 1** reconciles SOP raw weight vs database across 12 categories - a `GAP` status flags exactly which segment lost data. **Sheet 2** lists every row that failed to enter the database:
 
@@ -368,7 +518,7 @@ tibble(
 
 ------------------------------------------------------------------------
 
-## Summary - Excel vs R
+## Summary - Excel vs R {background-color="#f0f6fc"}
 
 ```{r}
 tibble(
@@ -401,3 +551,44 @@ tibble(
   )
 ) |> kable("simple")
 ```
+
+------------------------------------------------------------------------
+
+## {background-color="#1a3a5c"}
+
+<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 80vh; text-align: center; gap: 0.6em;">
+
+<div style="font-size: 3.8em; font-weight: 700; color: #ffffff; letter-spacing: 0.04em; line-height: 1.1;">
+Thank You
+</div>
+
+<div style="width: 80px; height: 4px; background: #f39c12; border-radius: 2px; margin: 0.2em 0 0.6em;"></div>
+
+<div style="font-size: 1.3em; color: #aed6f1; font-style: italic; max-width: 700px; line-height: 1.5;">
+Questions &amp; Discussion
+</div>
+
+<div style="margin-top: 1.2em; display: flex; gap: 2.5em; justify-content: center; flex-wrap: wrap;">
+
+<div style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); border-radius: 10px; padding: 0.7em 1.4em; color: #ffffff;">
+<div style="font-size: 0.7em; color: #aed6f1; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.3em;">Presenter</div>
+<div style="font-size: 1em; font-weight: 600;">Andy Tran</div>
+</div>
+
+<div style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); border-radius: 10px; padding: 0.7em 1.4em; color: #ffffff;">
+<div style="font-size: 0.7em; color: #aed6f1; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.3em;">Date</div>
+<div style="font-size: 1em; font-weight: 600;">13 May 2026</div>
+</div>
+
+<div style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); border-radius: 10px; padding: 0.7em 1.4em; color: #ffffff;">
+<div style="font-size: 0.7em; color: #aed6f1; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.3em;">Unit</div>
+<div style="font-size: 1em; font-weight: 600;">ETC5543</div>
+</div>
+
+</div>
+
+<div style="margin-top: 1.4em; font-size: 0.8em; color: #7fb3d3;">
+<em>Automating Financial Account Creation - An R Pipeline for SOP-to-Database Reporting</em>
+</div>
+
+</div>
