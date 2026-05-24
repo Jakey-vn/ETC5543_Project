@@ -199,7 +199,7 @@ execute:
 
 ------------------------------------------------------------------------
 
-## Pipeline Architecture {background-color="#f8fafd"}
+## Pipeline Structure {background-color="#f8fafd"}
 
 ::: {.r-stretch}
 ```{mermaid}
