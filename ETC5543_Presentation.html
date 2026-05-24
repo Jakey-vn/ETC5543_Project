@@ -268,6 +268,45 @@
       padding: 0.3em 0.8em;
       border-bottom: 1px solid #d6eaf8;
     }
+    /* Dark-background coverage matrix table */
+    .dark-table {
+      border-collapse: separate !important;
+      border-spacing: 0 6px !important;
+      font-size: 0.68em !important;
+    }
+    .dark-table thead th {
+      background: #0d2137 !important;
+      color: #aed6f1 !important;
+      font-weight: 700 !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.07em !important;
+      border-bottom: none !important;
+      text-align: center !important;
+      padding: 0.55em 0.9em !important;
+    }
+    .dark-table thead th:first-child { border-radius: 6px 0 0 6px !important; text-align: left !important; }
+    .dark-table thead th:last-child  { border-radius: 0 6px 6px 0 !important; }
+    .dark-table tbody td {
+      border-bottom: none !important;
+      padding: 0.5em 0.9em !important;
+      vertical-align: middle !important;
+      text-align: center !important;
+    }
+    .dark-table tbody td:first-child { text-align: left !important; border-radius: 6px 0 0 6px !important; }
+    .dark-table tbody td:last-child  { border-radius: 0 6px 6px 0 !important; }
+    .dark-table tbody tr:nth-child(odd)  td { background: rgba(255,255,255,0.08) !important; }
+    .dark-table tbody tr:nth-child(even) td { background: rgba(255,255,255,0.05) !important; }
+    .gl-badge, .gl-badge-blue {
+      display: inline-block;
+      background: rgba(174,214,241,0.15);
+      color: #aed6f1;
+      border: 1px solid rgba(174,214,241,0.35);
+      border-radius: 5px;
+      padding: 0.15em 0.55em;
+    }
+    .cell-sub { display: block; color: #ffffff; font-size: 0.82em; margin-top: 2px; }
+    .row-sub  { color: #ffffff; font-size: 0.85em; font-weight: 400; }
+    .cell-empty { color: #3a5570; font-size: 1.1em; }
   </style>
 </head>
 <body class="quarto-light">
@@ -290,31 +329,44 @@ Andy Tran
 </section>
 <section id="context-motivation" class="slide level2" data-background-color="#f0f6fc">
 <h2>Context &amp; Motivation</h2>
-<div class="columns">
-<div class="column" style="width:50%;">
-<div style="border-left: 4px solid #2980b9; background: white; border-radius: 0 10px 10px 0; padding: 0.6em 0.9em; height: 100%;">
-<div style="font-size: 0.72em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #2980b9; margin-bottom: 0.2em;">
-<p>The Challenge</p>
+<div style="display:grid; grid-template-columns:1fr 50px 1fr; row-gap:0.75em; align-items:center; font-size:0.82em; margin-top:0.3em;">
+<div style="text-align:center; font-weight:700; color:#c0392b; text-transform:uppercase; letter-spacing:0.07em; padding-bottom:0.2em;">
+<p>❌ Excel Pipeline</p>
 </div>
-<ul>
-<li>Financial accounts for two processing sites (Corowa &amp; Laverton) were built manually each reporting period</li>
-<li>Data lives across multiple spreadsheets with different structures</li>
-<li>Manual process is time-consuming and error-prone</li>
-<li>Any missed row = wrong account value</li>
-</ul>
+<div>
+
 </div>
-</div><div class="column" style="width:50%;">
-<div style="border-left: 4px solid #f39c12; background: white; border-radius: 0 10px 10px 0; padding: 0.6em 0.9em; height: 100%;">
-<div style="font-size: 0.72em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #e67e22; margin-bottom: 0.2em;">
-<p>The Goal</p>
+<div style="text-align:center; font-weight:700; color:#27ae60; text-transform:uppercase; letter-spacing:0.07em; padding-bottom:0.2em;">
+<p>✅ R Pipeline</p>
 </div>
-<ul>
-<li>Build an automated R pipeline that reads raw SOP data and price files</li>
-<li>Produces structured financial database entries covering every Business Unit</li>
-<li>Includes a built-in quality check so errors can be caught before submission</li>
-</ul>
+<div style="background:#fdecea; border-left:4px solid #c0392b; border-radius:0 8px 8px 0; padding:0.55em 0.9em;">
+<p>📋 <strong>Requires manual adjustment every period</strong></p>
 </div>
-</div></div>
+<div style="text-align:center; font-size:1.6em; color:#95a5a6;">
+<p>→</p>
+</div>
+<div style="background:#eafaf1; border-left:4px solid #27ae60; border-radius:0 8px 8px 0; padding:0.55em 0.9em;">
+<p>⚡ <strong>One condition tweak refreshes everything</strong></p>
+</div>
+<div style="background:#fdecea; border-left:4px solid #c0392b; border-radius:0 8px 8px 0; padding:0.55em 0.9em;">
+<p>🐛 <strong>Hard-coded, error-prone &amp; inflexible</strong></p>
+</div>
+<div style="text-align:center; font-size:1.6em; color:#95a5a6;">
+<p>→</p>
+</div>
+<div style="background:#eafaf1; border-left:4px solid #27ae60; border-radius:0 8px 8px 0; padding:0.55em 0.9em;">
+<p>🔧 <strong>Modular, flexible &amp; easy to fix</strong></p>
+</div>
+<div style="background:#fdecea; border-left:4px solid #c0392b; border-radius:0 8px 8px 0; padding:0.55em 0.9em;">
+<p>📊 <strong>20+ sheets - chaotic, impossible to follow</strong></p>
+</div>
+<div style="text-align:center; font-size:1.6em; color:#95a5a6;">
+<p>→</p>
+</div>
+<div style="background:#eafaf1; border-left:4px solid #27ae60; border-radius:0 8px 8px 0; padding:0.55em 0.9em;">
+<p>📖 <strong>Clean, readable, traceable logic</strong></p>
+</div>
+</div>
 </section>
 <section id="input-data-sources" class="slide level2">
 <h2>Input Data Sources</h2>
@@ -515,51 +567,53 @@ flowchart TD
 </section>
 <section id="revenue-account-coverage" class="slide level2" data-background-color="#1a3a5c">
 <h2>Revenue Account Coverage</h2>
-<blockquote>
-<p><strong>GL 400000</strong> = Sales to external customers | <strong>GL 400028</strong> = Intercompany sales between JBS sites</p>
-</blockquote>
-<div class="columns">
-<div class="column" style="width:50%;">
-<div style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); border-radius: 10px; padding: 0.5em 0.9em;">
-<div style="font-size: 0.72em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #aed6f1; margin-bottom: 0.2em;">
-<p>Corowa</p>
+<div style="display:flex; width:100%; margin-bottom:0.7em; font-size:0.82em;">
+<p><span style="background:rgba(41,128,185,0.3); border:1px solid #2980b9; border-radius:6px; padding:0.25em 0.8em; color:#aed6f1;"><strong>General Ledger (GL) 400000</strong> - External customers</span> <span style="margin-left:auto; background:rgba(243,156,18,0.2); border:1px solid #f39c12; border-radius:6px; padding:0.25em 0.8em; color:#f8c471;"><strong>General Ledger (GL) 400028</strong> - Intercompany (JBS sites)</span></p>
 </div>
-<ul>
-<li>1. Farming Operations</li>
-<li>2. Meat Processing
-<ul>
-<li>Kill Floor, Boning Room, Boxed Meat</li>
-<li>Each sub-section has both 400000 &amp; 400028</li>
-</ul></li>
-<li>Offal - Edible &amp; Inedible</li>
-<li>Commodity Bone</li>
-<li>Meat Trade <em>(receives Laverton volume under Corowa account)</em></li>
-</ul>
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:0.6em; font-size:0.78em;">
+<div style="background:rgba(255,255,255,0.07); border:1px solid rgba(41,128,185,0.45); border-radius:10px; padding:0.6em 0.9em;">
+<div style="font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:#aed6f1; margin-bottom:0.55em; font-size:0.85em;">
+📍 Corowa
 </div>
-</div><div class="column" style="width:50%;">
-<div style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); border-radius: 10px; padding: 0.5em 0.9em; margin-bottom: 0.3em;">
-<div style="font-size: 0.72em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #aed6f1; margin-bottom: 0.2em;">
-<p>Laverton</p>
+<div style="display:flex; flex-direction:column; gap:0.7em;">
+<div style="display:flex; flex-wrap:nowrap; gap:0.4em;">
+<p><span style="background:rgba(41,128,185,0.25); border:1px solid rgba(41,128,185,0.5); border-radius:20px; padding:0.2em 0.65em; color:#d6eaf8; white-space:nowrap;">🌾 Farming Operations</span> <span style="background:rgba(41,128,185,0.25); border:1px solid rgba(41,128,185,0.5); border-radius:20px; padding:0.2em 0.65em; color:#d6eaf8; white-space:nowrap;">🔪 Kill Floor</span> <span style="background:rgba(41,128,185,0.25); border:1px solid rgba(41,128,185,0.5); border-radius:20px; padding:0.2em 0.65em; color:#d6eaf8; white-space:nowrap;">🦴 Boning Room</span></p>
 </div>
-<ul>
-<li>6. Laverton Processing
-<ul>
-<li>Kill Floor, Boning Room, Boxed Meat</li>
-</ul></li>
-<li>Offal <em>(Edible shipped to Corowa via Lineage cold store)</em></li>
-<li>Commodity Chilled &amp; Frozen</li>
-<li>Sow Bone</li>
-</ul>
+<div style="display:flex; flex-wrap:nowrap; gap:0.4em;">
+<p><span style="background:rgba(41,128,185,0.25); border:1px solid rgba(41,128,185,0.5); border-radius:20px; padding:0.2em 0.65em; color:#d6eaf8; white-space:nowrap;">📦 Boxed Meat</span> <span style="background:rgba(41,128,185,0.25); border:1px solid rgba(41,128,185,0.5); border-radius:20px; padding:0.2em 0.65em; color:#d6eaf8; white-space:nowrap;">🫀 Offal (Edible &amp; Inedible)</span></p>
 </div>
-<div style="background: rgba(243,156,18,0.15); border: 1px solid rgba(243,156,18,0.4); border-radius: 10px; padding: 0.5em 0.9em;">
-<div style="font-size: 0.72em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #f8c471; margin-bottom: 0.2em;">
-<p>Cross-site</p>
+<div style="display:flex; flex-wrap:nowrap; gap:0.4em;">
+<p><span style="background:rgba(41,128,185,0.25); border:1px solid rgba(41,128,185,0.5); border-radius:20px; padding:0.2em 0.65em; color:#d6eaf8; white-space:nowrap;">🐷 Commodity Bone</span> <span style="background:rgba(41,128,185,0.25); border:1px solid rgba(41,128,185,0.5); border-radius:20px; padding:0.2em 0.65em; color:#d6eaf8; white-space:nowrap;">🤝 Meat Trade</span></p>
 </div>
-<ul>
-<li>3. Meat Sales (VA / Value-Add)</li>
-</ul>
 </div>
-</div></div>
+</div>
+<div style="display:flex; flex-direction:column; gap:0.5em;">
+<div style="background:rgba(255,255,255,0.07); border:1px solid rgba(39,174,96,0.4); border-radius:10px; padding:0.6em 0.9em;">
+<div style="font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:#a9dfbf; margin-bottom:0.55em; font-size:0.85em;">
+📍 Laverton
+</div>
+<div style="display:flex; flex-direction:column; gap:0.7em;">
+<div style="display:flex; flex-wrap:nowrap; gap:0.4em;">
+<p><span style="background:rgba(39,174,96,0.2); border:1px solid rgba(39,174,96,0.45); border-radius:20px; padding:0.2em 0.65em; color:#a9dfbf; white-space:nowrap;">🏭 Laverton Processing</span> <span style="background:rgba(39,174,96,0.2); border:1px solid rgba(39,174,96,0.45); border-radius:20px; padding:0.2em 0.65em; color:#a9dfbf; white-space:nowrap;">🔪 Kill Floor</span> <span style="background:rgba(39,174,96,0.2); border:1px solid rgba(39,174,96,0.45); border-radius:20px; padding:0.2em 0.65em; color:#a9dfbf; white-space:nowrap;">🦴 Boning Room</span></p>
+</div>
+<div style="display:flex; flex-wrap:nowrap; gap:0.4em;">
+<p><span style="background:rgba(39,174,96,0.2); border:1px solid rgba(39,174,96,0.45); border-radius:20px; padding:0.2em 0.65em; color:#a9dfbf; white-space:nowrap;">📦 Boxed Meat</span> <span style="background:rgba(39,174,96,0.2); border:1px solid rgba(39,174,96,0.45); border-radius:20px; padding:0.2em 0.65em; color:#a9dfbf; white-space:nowrap;">🫀 Offal (Edible → Corowa)</span></p>
+</div>
+<div style="display:flex; flex-wrap:nowrap; gap:0.4em;">
+<p><span style="background:rgba(39,174,96,0.2); border:1px solid rgba(39,174,96,0.45); border-radius:20px; padding:0.2em 0.65em; color:#a9dfbf; white-space:nowrap;">🐷 Commodity Chilled &amp; Frozen</span> <span style="background:rgba(39,174,96,0.2); border:1px solid rgba(39,174,96,0.45); border-radius:20px; padding:0.2em 0.65em; color:#a9dfbf; white-space:nowrap;">🐖 Sow Bone</span></p>
+</div>
+</div>
+</div>
+<div style="background:rgba(243,156,18,0.12); border:1px solid rgba(243,156,18,0.4); border-radius:10px; padding:0.55em 0.9em;">
+<div style="font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:#f8c471; margin-bottom:0.45em; font-size:0.85em;">
+🔗 Cross-Site
+</div>
+<div style="display:flex; flex-wrap:wrap; gap:0.4em;">
+<p><span style="background:rgba(243,156,18,0.2); border:1px solid rgba(243,156,18,0.45); border-radius:20px; padding:0.2em 0.65em; color:#fdebd0; white-space:nowrap;">💎 VA / Meat Sales </span></p>
+</div>
+</div>
+</div>
+</div>
 </section>
 <section id="expense-accounts---core-logic" class="slide level2">
 <h2>Expense Accounts - Core Logic</h2>
@@ -658,205 +712,257 @@ flowchart TD
 </section>
 <section id="expense-account-coverage" class="slide level2" data-background-color="#1a3a5c">
 <h2>Expense Account Coverage</h2>
-<div class="columns">
-<div class="column" style="width:50%;">
-<div style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); border-radius: 10px; padding: 0.5em 0.9em; margin-bottom: 0.3em;">
-<div style="font-size: 0.72em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #aed6f1; margin-bottom: 0.3em;">
-<p>Packaging &amp; Pallet</p>
-</div>
-<div style="font-size: 0.7em; color: #f8c471; margin-bottom: 0.2em;">
-<p><strong>GL 650301 / 650303 / 650311</strong></p>
-</div>
-<ul>
-<li>Corowa: Offal, 6 Way, Commodity</li>
-<li>Laverton: Offal, 6 Way, Commodity, Sow, Export</li>
-<li>Meat Sales (VA products)</li>
-<li>Special contracts (Woolworths, DRJ) use separate margin account GL 650311</li>
-</ul>
-</div>
-<div style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); border-radius: 10px; padding: 0.5em 0.9em;">
-<div style="font-size: 0.72em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #aed6f1; margin-bottom: 0.3em;">
-<p>Trade Allowance</p>
-</div>
-<div style="font-size: 0.7em; color: #f8c471; margin-bottom: 0.2em;">
-<p><strong>GL 450050</strong></p>
-</div>
-<ul>
-<li>Meat Sales (VA)</li>
-<li>Laverton Processing</li>
-</ul>
-</div>
-</div><div class="column" style="width:50%;">
-<div style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); border-radius: 10px; padding: 0.5em 0.9em; margin-bottom: 0.3em;">
-<div style="font-size: 0.72em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #aed6f1; margin-bottom: 0.3em;">
-<p>Storage</p>
-</div>
-<div style="font-size: 0.7em; color: #f8c471; margin-bottom: 0.2em;">
-<p><strong>GL 730010</strong></p>
-</div>
-<ul>
-<li>Corowa: Offal, Commodity, 6 Way, Meat Trade, Stock on Hand</li>
-<li>Laverton: Sow, Stock on Hand</li>
-<li>Meat Sales</li>
-</ul>
-</div>
-<div style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); border-radius: 10px; padding: 0.5em 0.9em;">
-<div style="font-size: 0.72em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #aed6f1; margin-bottom: 0.3em;">
-<p>Freight</p>
-</div>
-<div style="font-size: 0.7em; color: #f8c471; margin-bottom: 0.2em;">
-<p><strong>GL 500192 / 500609</strong></p>
-</div>
-<ul>
-<li>500192 = Domestic freight</li>
-<li>500609 = Ocean / Export freight</li>
-<li>Covers: Offal, 6 Way, Commodity, Meat Trade, Meat Sales</li>
-</ul>
-</div>
-</div></div>
+<table class="dark-table caption-top" style="width:100%; margin-top:0.5em;">
+<colgroup>
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+</colgroup>
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th">Location / Category</th>
+<th data-quarto-table-cell-role="th">Packaging &amp; Pallet</th>
+<th data-quarto-table-cell-role="th">Trade Allowance</th>
+<th data-quarto-table-cell-role="th">Storage</th>
+<th data-quarto-table-cell-role="th">Freight</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="color: #e8f4fd; font-weight: 600">Corowa</td>
+<td><span class="gl-badge">GL 650301</span></td>
+<td><span class="cell-empty">-</span></td>
+<td><span class="gl-badge">GL 730010</span></td>
+<td><span class="gl-badge">500192</span> <span class="gl-badge" style="margin-left:4px;">500609</span> <span class="cell-sub">Domestic + Export</span></td>
+</tr>
+<tr class="even">
+<td style="color: #e8f4fd; font-weight: 600">Laverton</td>
+<td><span class="gl-badge">GL 650301</span></td>
+<td><span class="gl-badge-blue">GL 450050</span></td>
+<td><span class="gl-badge">GL 730010</span></td>
+<td><span class="gl-badge">500192</span> <span class="cell-sub">Domestic</span></td>
+</tr>
+<tr class="odd">
+<td style="color: #e8f4fd; font-weight: 600">Meat Sales / VA <span class="row-sub"><br>
+VA Products</span></td>
+<td><span class="gl-badge">GL 650301</span></td>
+<td><span class="gl-badge-blue">GL 450050</span></td>
+<td><span class="gl-badge">GL 730010</span></td>
+<td><span class="gl-badge">500192</span> <span class="cell-sub">Domestic</span></td>
+</tr>
+<tr class="even">
+<td style="color: #e8f4fd; font-weight: 600">Special Contracts <span class="row-sub"><br>
+Woolworths · DRJ</span></td>
+<td><span class="gl-badge">GL 650311</span> <span class="cell-sub">Margin account</span></td>
+<td><span class="cell-empty">-</span></td>
+<td><span class="cell-empty">-</span></td>
+<td><span class="cell-empty">-</span></td>
+</tr>
+</tbody>
+</table>
 </section>
 <section id="key-challenges" class="slide level2" data-background-color="#1a2840">
 <h2>Key Challenges</h2>
-<div class="columns">
-<div class="column" style="width:33%;">
-<div style="background: rgba(41,128,185,0.2); border-top: 3px solid #2980b9; border-radius: 0 0 10px 10px; padding: 0.5em 0.9em;">
-<div style="font-size: 0.72em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #aed6f1; margin-bottom: 0.2em;">
-<p>Unstable source data</p>
+<div class="r-stretch">
+<div class="cell" data-reveal="true" data-layout-align="center">
+<div class="cell-output-display">
+<div>
+<p></p><figure class=""><p></p>
+<div>
+<pre class="mermaid mermaid-js">%%{init: {'flowchart': {'nodeSpacing': 22, 'rankSpacing': 110}, 'theme': 'base', 'themeVariables': {'background': '#1a2840', 'mainBkg': '#1a2840', 'lineColor': '#5d7a8a', 'edgeLabelBackground': '#1a2840'}}}%%
+flowchart LR
+
+    subgraph ch["⚠️  CHALLENGE"]
+        C1["&lt;span style='font-size:1.15em;font-weight:bold;'&gt;Unstable Source Data&lt;/span&gt;&lt;br/&gt;&lt;br/&gt;Spelling mistakes &amp;amp;&lt;br/&gt;inconsistent naming&lt;br/&gt;in SOP Volumes"]
+        C2["&lt;span style='font-size:1.15em;font-weight:bold;'&gt;Incomplete Price Data&lt;/span&gt;&lt;br/&gt;&lt;br/&gt;Prices.xlsb missing&lt;br/&gt;item codes &amp;amp;&lt;br/&gt;packaging rates"]
+        C3["&lt;span style='font-size:1.15em;font-weight:bold;'&gt;Complex Contracts&lt;/span&gt;&lt;br/&gt;&lt;br/&gt;Individual discounts&lt;br/&gt;&amp;amp; pricing negotiated&lt;br/&gt;per customer"]
+    end
+
+    subgraph co["⚡  CONSEQUENCE"]
+        I1["&lt;span style='font-size:1.15em;font-weight:bold;'&gt;Joins break silently&lt;/span&gt;&lt;br/&gt;&lt;br/&gt;Volume rows lost&lt;br/&gt;with no error raised"]
+        I2["&lt;span style='font-size:1.15em;font-weight:bold;'&gt;NA revenue values&lt;/span&gt;&lt;br/&gt;&lt;br/&gt;Expense rows&lt;br/&gt;fail silently"]
+        I3["&lt;span style='font-size:1.15em;font-weight:bold;'&gt;Separate GL accounts&lt;/span&gt;&lt;br/&gt;&lt;br/&gt;Conditional logic&lt;br/&gt;multiplies per contract"]
+    end
+
+    subgraph so["✅  SOLUTION"]
+        S1["&lt;span style='font-size:1.15em;font-weight:bold;'&gt;str_trim · toupper&lt;/span&gt;&lt;br/&gt;&lt;br/&gt;Typo corrections&lt;br/&gt;applied at load time"]
+        S2["&lt;span style='font-size:1.15em;font-weight:bold;'&gt;Gap Check built&lt;/span&gt;&lt;br/&gt;&lt;br/&gt;Surfaces every missing&lt;br/&gt;price row after each run"]
+        S3["&lt;span style='font-size:1.15em;font-weight:bold;'&gt;Conditional branches&lt;/span&gt;&lt;br/&gt;&lt;br/&gt;Pipeline logic split&lt;br/&gt;per contract type"]
+    end
+
+    C1 --&gt; I1 --&gt; S1
+    C2 --&gt; I2 --&gt; S2
+    C3 --&gt; I3 --&gt; S3
+
+    classDef chBlue   fill:#1a3a5c,stroke:#2980b9,stroke-width:3px,color:#e8f4fd
+    classDef impBlue  fill:#0d2137,stroke:#2980b9,stroke-width:1px,color:#aed6f1
+    classDef solBlue  fill:#1e4976,stroke:#5dade2,stroke-width:2px,color:#aed6f1
+
+    classDef chAmber  fill:#4a2c00,stroke:#f39c12,stroke-width:3px,color:#fef9e7
+    classDef impAmber fill:#2d1a00,stroke:#f39c12,stroke-width:1px,color:#f8c471
+    classDef solAmber fill:#5d3800,stroke:#f5b041,stroke-width:2px,color:#f8c471
+
+    classDef chPurp   fill:#3d1a5c,stroke:#a569bd,stroke-width:3px,color:#f5eef8
+    classDef impPurp  fill:#2d1040,stroke:#a569bd,stroke-width:1px,color:#d7bde2
+    classDef solPurp  fill:#4a2070,stroke:#c39bd3,stroke-width:2px,color:#d7bde2
+
+    class C1 chBlue
+    class I1 impBlue
+    class S1 solBlue
+    class C2 chAmber
+    class I2 impAmber
+    class S2 solAmber
+    class C3 chPurp
+    class I3 impPurp
+    class S3 solPurp
+
+    style ch fill:#0d1a2e,stroke:#2980b9,stroke-width:1px,color:#aed6f1
+    style co fill:#0d1a2e,stroke:#f39c12,stroke-width:1px,color:#f8c471
+    style so fill:#0d1a2e,stroke:#a569bd,stroke-width:1px,color:#d7bde2
+</pre>
 </div>
-<ul>
-<li>SOP Volumes contains spelling mistakes and inconsistent naming that silently break joins</li>
-<li>Master Data missing customer or GL entries means volume rows match no account and are lost</li>
-<li>Required ongoing fixes during development (e.g.&nbsp;<code>str_trim</code>, <code>toupper</code>, typo corrections)</li>
-</ul>
+<p></p></figure><p></p>
 </div>
-</div><div class="column" style="width:33%;">
-<div style="background: rgba(243,156,18,0.15); border-top: 3px solid #f39c12; border-radius: 0 0 10px 10px; padding: 0.5em 0.9em;">
-<div style="font-size: 0.72em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #f8c471; margin-bottom: 0.2em;">
-<p>Incomplete price data</p>
 </div>
-<ul>
-<li><code>Prices.xlsb</code> frequently missing item codes - revenue rows for those items produce NA values</li>
-<li>Packaging rates also missing for newer items - expense rows fail silently</li>
-<li>Gap Check was built specifically to surface these missing-price rows after each run</li>
-</ul>
 </div>
-</div><div class="column" style="width:33%;">
-<div style="background: rgba(165,105,189,0.2); border-top: 3px solid #a569bd; border-radius: 0 0 10px 10px; padding: 0.5em 0.9em;">
-<div style="font-size: 0.72em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #d7bde2; margin-bottom: 0.2em;">
-<p>Complex customer contracts</p>
 </div>
-<ul>
-<li>JBS negotiates individual discounts and special pricing per customer</li>
-<li>Customers like Woolworths and DRJ require separate GL accounts and additional conditional calculation steps</li>
-<li>Every new contract adds conditional logic, making the pipeline progressively harder to maintain</li>
-</ul>
-</div>
-</div></div>
 </section>
 <section id="quality-assurance---gap-check" class="slide level2">
 <h2>Quality Assurance - Gap Check</h2>
 <div style="background: #eaf4fc; border-left: 4px solid #2980b9; border-radius: 0 8px 8px 0; padding: 0.4em 0.9em; color: #1a3a5c; margin-bottom: 0.3em;">
 <p>Built from real failure points during development - each check represents a problem that once caused <strong>silent data loss</strong>. Unlike manual Excel review, R pinpoints the exact item, month and site instantly.</p>
 </div>
-<p><strong>Sheet 1</strong> reconciles SOP raw weight vs database across 12 categories - a <code>GAP</code> status flags exactly which segment lost data. <strong>Sheet 2</strong> lists every row that failed to enter the database:</p>
-<div class="cell">
-<div class="cell-output-display">
-<table class="caption-top">
-<thead>
-<tr class="header">
-<th style="text-align: left;">Check</th>
-<th style="text-align: left;">What it catches</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td style="text-align: left;">Item has no revenue price assigned</td>
-<td style="text-align: left;">New product not yet added to the price reference file</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">Item cannot be matched to a product category</td>
-<td style="text-align: left;">Incorrectly named value in the source data</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">Item missing storage type classification</td>
-<td style="text-align: left;">Missing Chilled / Frozen label in source data</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">Volume has no Carcass Price</td>
-<td style="text-align: left;">Customer volume with no matching carcass price</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">Volume has no Bone Processing Fee</td>
-<td style="text-align: left;">Customer volume with no matching bone fee</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">Volume has no Kill Fee</td>
-<td style="text-align: left;">Customer volume with no matching kill fee</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">Item sold at zero or missing price</td>
-<td style="text-align: left;">Sale record with blank or zero price</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">Internal vs external volume split does not reconcile</td>
-<td style="text-align: left;">Splitting logic error - totals don’t add up</td>
-</tr>
-</tbody>
-</table>
-</div>
+<p style="font-size:0.76em; color:#1a3a5c; margin:0.2em 0 0.55em 0;">
+  <b>Sheet 1</b> reconciles SOP raw weight vs database across 12 categories - a <code>GAP</code> flag pinpoints exactly which segment lost data.
+  <b>Sheet 2</b> catches 8 failure types, grouped below:
+</p>
+
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:0.65em; font-size:0.72em;">
+
+  <!-- Naming Issues -->
+  <div style="background:#eaf4fc; border-top:3px solid #2980b9; border-radius:0 0 8px 8px; padding:0.6em 0.9em;">
+    <div style="font-weight:700; color:#1a5276; text-transform:uppercase; letter-spacing:0.07em; margin-bottom:0.45em;">🏷️ Naming Issues</div>
+    <div style="margin-bottom:0.35em;">
+      <div style="font-weight:600; color:#2980b9;">Item cannot be matched to a product category</div>
+      <div style="color:#5d6d7e;">→ Incorrectly named value in source data</div>
+    </div>
+    <div>
+      <div style="font-weight:600; color:#2980b9;">Item missing storage type classification</div>
+      <div style="color:#5d6d7e;">→ Missing essential label in source data</div>
+    </div>
+  </div>
+
+  <!-- Missing Prices -->
+  <div style="background:#fef5e7; border-top:3px solid #e67e22; border-radius:0 0 8px 8px; padding:0.6em 0.9em;">
+    <div style="font-weight:700; color:#7d4e00; text-transform:uppercase; letter-spacing:0.07em; margin-bottom:0.45em;">💰 Missing Prices</div>
+    <div style="margin-bottom:0.35em;">
+      <div style="font-weight:600; color:#e67e22;">Item has no revenue price assigned</div>
+      <div style="color:#5d6d7e;">→ New product not yet in price reference file</div>
+    </div>
+    <div>
+      <div style="font-weight:600; color:#e67e22;">Item sold at zero or missing price</div>
+      <div style="color:#5d6d7e;">→ Sale record with blank or zero price</div>
+    </div>
+  </div>
+
+  <!-- Missing Fees -->
+  <div style="background:#eafaf1; border-top:3px solid #27ae60; border-radius:0 0 8px 8px; padding:0.6em 0.9em;">
+    <div style="font-weight:700; color:#1e5631; text-transform:uppercase; letter-spacing:0.07em; margin-bottom:0.45em;">📋 Missing Fees</div>
+    <div style="margin-bottom:0.35em;">
+      <div style="font-weight:600; color:#27ae60;">Volume has no Carcass Price</div>
+      <div style="color:#5d6d7e;">→ Customer volume with no matching carcass price</div>
+    </div>
+    <div style="margin-bottom:0.35em;">
+      <div style="font-weight:600; color:#27ae60;">Volume has no Bone Processing Fee</div>
+      <div style="color:#5d6d7e;">→ Customer volume with no matching bone fee</div>
+    </div>
+    <div>
+      <div style="font-weight:600; color:#27ae60;">Volume has no Kill Fee</div>
+      <div style="color:#5d6d7e;">→ Customer volume with no matching kill fee</div>
+    </div>
+  </div>
+
+  <!-- Inconsistency -->
+  <div style="background:#f5eef8; border-top:3px solid #8e44ad; border-radius:0 0 8px 8px; padding:0.6em 0.9em;">
+    <div style="font-weight:700; color:#4a235a; text-transform:uppercase; letter-spacing:0.07em; margin-bottom:0.45em;">⚖️ Inconsistency </div>
+    <div>
+      <div style="font-weight:600; color:#8e44ad;">Mismatch item in volume data</div>
+      <div style="color:#5d6d7e;">→ Produce n item A but no item A found in storage</div>
+    </div>
+  </div>
+
 </div>
 </section>
 <section id="summary---excel-vs-r" class="slide level2" data-background-color="#f0f6fc">
 <h2>Summary - Excel vs R</h2>
-<div class="cell">
-<div class="cell-output-display">
-<table class="caption-top">
-<thead>
-<tr class="header">
-<th></th>
-<th style="text-align: left;">Excel (Before)</th>
-<th style="text-align: left;">R Pipeline (Now)</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>Time to build each month</td>
-<td style="text-align: left;">A lot of time for manual work per period</td>
-<td style="text-align: left;">One-click once - under 10 minutes</td>
-</tr>
-<tr class="even">
-<td>Adding a new Business Unit</td>
-<td style="text-align: left;">Copy, paste and reformat an entire sheet</td>
-<td style="text-align: left;">Add a filter condition and a join - minutes</td>
-</tr>
-<tr class="odd">
-<td>Handling a rule change or new contract</td>
-<td style="text-align: left;">Manually update every affected cell</td>
-<td style="text-align: left;">Change one line of code, re-run</td>
-</tr>
-<tr class="even">
-<td>Data error tracing</td>
-<td style="text-align: left;">Manually scan rows - easy to miss</td>
-<td style="text-align: left;">Gap Check pinpoints exact item, month, site</td>
-</tr>
-<tr class="odd">
-<td>Risk of human error</td>
-<td style="text-align: left;">High - copy-paste mistakes go unnoticed</td>
-<td style="text-align: left;">Low - same logic applied consistently every run</td>
-</tr>
-<tr class="even">
-<td>Complex freight cost allocation</td>
-<td style="text-align: left;">Averaged cost across all export types manually - imprecise and considered incorrect</td>
-<td style="text-align: left;">Many-to-many join assigns the correct rate to each specific export type automatically</td>
-</tr>
-<tr class="odd">
-<td>Quality assurance</td>
-<td style="text-align: left;">Manual spot-check only</td>
-<td style="text-align: left;">Automated Gap Check runs after every build</td>
-</tr>
-</tbody>
-</table>
-</div>
+<div style="display:flex; flex-direction:column; gap:0.42em; font-size:0.73em; margin-top:0.3em;">
+
+  <!-- Header row -->
+  <div style="display:grid; grid-template-columns:21% 37% 4% 37%; align-items:center; gap:0.4em;">
+    <div></div>
+    <div style="text-align:center; font-weight:700; color:#922b21; text-transform:uppercase; letter-spacing:0.07em;">❌ Excel (Before)</div>
+    <div></div>
+    <div style="text-align:center; font-weight:700; color:#1e5631; text-transform:uppercase; letter-spacing:0.07em;">✅ R Pipeline (Now)</div>
+  </div>
+
+  <!-- Row 1 -->
+  <div style="display:grid; grid-template-columns:21% 37% 4% 37%; align-items:center; gap:0.4em;">
+    <div style="font-weight:600; color:#1a3a5c;">⏱️ Time to build</div>
+    <div style="background:#fdecea; border:1px solid #e74c3c; border-radius:8px; padding:0.3em 0.7em; color:#7b241c;">Manual work required every period</div>
+    <div style="text-align:center; color:#95a5a6; font-size:1.3em;">→</div>
+    <div style="background:#eafaf1; border:1px solid #27ae60; border-radius:8px; padding:0.3em 0.7em; color:#1e5631;">One-click · under 10 minutes</div>
+  </div>
+
+  <!-- Row 2 -->
+  <div style="display:grid; grid-template-columns:21% 37% 4% 37%; align-items:center; gap:0.4em;">
+    <div style="font-weight:600; color:#1a3a5c;">🏢 Adding a Business Unit</div>
+    <div style="background:#fdecea; border:1px solid #e74c3c; border-radius:8px; padding:0.3em 0.7em; color:#7b241c;">Copy, paste &amp; reformat an entire sheet</div>
+    <div style="text-align:center; color:#95a5a6; font-size:1.3em;">→</div>
+    <div style="background:#eafaf1; border:1px solid #27ae60; border-radius:8px; padding:0.3em 0.7em; color:#1e5631;">Add a filter condition + a join · minutes</div>
+  </div>
+
+  <!-- Row 3 -->
+  <div style="display:grid; grid-template-columns:21% 37% 4% 37%; align-items:center; gap:0.4em;">
+    <div style="font-weight:600; color:#1a3a5c;">🔄 Rule or contract change</div>
+    <div style="background:#fdecea; border:1px solid #e74c3c; border-radius:8px; padding:0.3em 0.7em; color:#7b241c;">Manually update every affected cell</div>
+    <div style="text-align:center; color:#95a5a6; font-size:1.3em;">→</div>
+    <div style="background:#eafaf1; border:1px solid #27ae60; border-radius:8px; padding:0.3em 0.7em; color:#1e5631;">Change one line of code · re-run</div>
+  </div>
+
+  <!-- Row 4 -->
+  <div style="display:grid; grid-template-columns:21% 37% 4% 37%; align-items:center; gap:0.4em;">
+    <div style="font-weight:600; color:#1a3a5c;">🔍 Data error tracing</div>
+    <div style="background:#fdecea; border:1px solid #e74c3c; border-radius:8px; padding:0.3em 0.7em; color:#7b241c;">Manually scan rows · easy to miss</div>
+    <div style="text-align:center; color:#95a5a6; font-size:1.3em;">→</div>
+    <div style="background:#eafaf1; border:1px solid #27ae60; border-radius:8px; padding:0.3em 0.7em; color:#1e5631;">Gap Check pinpoints exact item, month &amp; site</div>
+  </div>
+
+  <!-- Row 5 -->
+  <div style="display:grid; grid-template-columns:21% 37% 4% 37%; align-items:center; gap:0.4em;">
+    <div style="font-weight:600; color:#1a3a5c;">⚠️ Risk of human error</div>
+    <div style="background:#fdecea; border:1px solid #e74c3c; border-radius:8px; padding:0.3em 0.7em; color:#7b241c;">High · copy-paste mistakes go unnoticed</div>
+    <div style="text-align:center; color:#95a5a6; font-size:1.3em;">→</div>
+    <div style="background:#eafaf1; border:1px solid #27ae60; border-radius:8px; padding:0.3em 0.7em; color:#1e5631;">Low · same logic applied consistently every run</div>
+  </div>
+
+  <!-- Row 6 -->
+  <div style="display:grid; grid-template-columns:21% 37% 4% 37%; align-items:center; gap:0.4em;">
+    <div style="font-weight:600; color:#1a3a5c;">🚢 Freight allocation</div>
+    <div style="background:#fdecea; border:1px solid #e74c3c; border-radius:8px; padding:0.3em 0.7em; color:#7b241c;">Averaged across all export types · imprecise &amp; incorrect</div>
+    <div style="text-align:center; color:#95a5a6; font-size:1.3em;">→</div>
+    <div style="background:#eafaf1; border:1px solid #27ae60; border-radius:8px; padding:0.3em 0.7em; color:#1e5631;">Many-to-many join assigns correct rate per export type</div>
+  </div>
+
+  <!-- Row 7 -->
+  <div style="display:grid; grid-template-columns:21% 37% 4% 37%; align-items:center; gap:0.4em;">
+    <div style="font-weight:600; color:#1a3a5c;">🛡️ Quality assurance</div>
+    <div style="background:#fdecea; border:1px solid #e74c3c; border-radius:8px; padding:0.3em 0.7em; color:#7b241c;">Manual spot-check only</div>
+    <div style="text-align:center; color:#95a5a6; font-size:1.3em;">→</div>
+    <div style="background:#eafaf1; border:1px solid #27ae60; border-radius:8px; padding:0.3em 0.7em; color:#1e5631;">Automated Gap Check runs after every build</div>
+  </div>
+
 </div>
 </section>
 <section id="section" class="slide level2" data-background-color="#1a3a5c">
@@ -895,7 +1001,7 @@ ETC5543
 </div>
 </div>
 <div style="margin-top: 0.6em; font-size: 0.75em; color: #7fb3d3;">
-<p><em>Automating Financial Account Creation — An R Pipeline for SOP-to-Database Reporting</em></p>
+<p><em>Automating Financial Account Creation - An R Pipeline for SOP-to-Database Reporting</em></p>
 </div>
 </div>
 

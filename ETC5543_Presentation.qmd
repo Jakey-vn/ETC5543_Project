@@ -92,6 +92,45 @@ format:
             padding: 0.3em 0.8em;
             border-bottom: 1px solid #d6eaf8;
           }
+          /* Dark-background coverage matrix table */
+          .dark-table {
+            border-collapse: separate !important;
+            border-spacing: 0 6px !important;
+            font-size: 0.68em !important;
+          }
+          .dark-table thead th {
+            background: #0d2137 !important;
+            color: #aed6f1 !important;
+            font-weight: 700 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.07em !important;
+            border-bottom: none !important;
+            text-align: center !important;
+            padding: 0.55em 0.9em !important;
+          }
+          .dark-table thead th:first-child { border-radius: 6px 0 0 6px !important; text-align: left !important; }
+          .dark-table thead th:last-child  { border-radius: 0 6px 6px 0 !important; }
+          .dark-table tbody td {
+            border-bottom: none !important;
+            padding: 0.5em 0.9em !important;
+            vertical-align: middle !important;
+            text-align: center !important;
+          }
+          .dark-table tbody td:first-child { text-align: left !important; border-radius: 6px 0 0 6px !important; }
+          .dark-table tbody td:last-child  { border-radius: 0 6px 6px 0 !important; }
+          .dark-table tbody tr:nth-child(odd)  td { background: rgba(255,255,255,0.08) !important; }
+          .dark-table tbody tr:nth-child(even) td { background: rgba(255,255,255,0.05) !important; }
+          .gl-badge, .gl-badge-blue {
+            display: inline-block;
+            background: rgba(174,214,241,0.15);
+            color: #aed6f1;
+            border: 1px solid rgba(174,214,241,0.35);
+            border-radius: 5px;
+            padding: 0.15em 0.55em;
+          }
+          .cell-sub { display: block; color: #ffffff; font-size: 0.82em; margin-top: 2px; }
+          .row-sub  { color: #ffffff; font-size: 0.85em; font-weight: 400; }
+          .cell-empty { color: #3a5570; font-size: 1.1em; }
         </style>
 execute:
   echo: false
@@ -101,32 +140,48 @@ execute:
 
 ## Context & Motivation {background-color="#f0f6fc"}
 
-::::: columns
-::: {.column width="50%"}
-::: {style="border-left: 4px solid #2980b9; background: white; border-radius: 0 10px 10px 0; padding: 0.6em 0.9em; height: 100%;"}
-::: {style="font-size: 0.72em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #2980b9; margin-bottom: 0.2em;"}
-The Challenge
+::: {style="display:grid; grid-template-columns:1fr 50px 1fr; row-gap:0.75em; align-items:center; font-size:0.82em; margin-top:0.3em;"}
+
+::: {style="text-align:center; font-weight:700; color:#c0392b; text-transform:uppercase; letter-spacing:0.07em; padding-bottom:0.2em;"}
+❌ Excel Pipeline
+:::
+::: {}
+:::
+::: {style="text-align:center; font-weight:700; color:#27ae60; text-transform:uppercase; letter-spacing:0.07em; padding-bottom:0.2em;"}
+✅ R Pipeline
 :::
 
--   Financial accounts for two processing sites (Corowa & Laverton) were built manually each reporting period
--   Data lives across multiple spreadsheets with different structures
--   Manual process is time-consuming and error-prone
--   Any missed row = wrong account value
+::: {style="background:#fdecea; border-left:4px solid #c0392b; border-radius:0 8px 8px 0; padding:0.55em 0.9em;"}
+📋 **Requires manual adjustment every period**
 :::
+::: {style="text-align:center; font-size:1.6em; color:#95a5a6;"}
+→
 :::
-
-::: {.column width="50%"}
-::: {style="border-left: 4px solid #f39c12; background: white; border-radius: 0 10px 10px 0; padding: 0.6em 0.9em; height: 100%;"}
-::: {style="font-size: 0.72em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #e67e22; margin-bottom: 0.2em;"}
-The Goal
+::: {style="background:#eafaf1; border-left:4px solid #27ae60; border-radius:0 8px 8px 0; padding:0.55em 0.9em;"}
+⚡ **One condition tweak refreshes everything**
 :::
 
--   Build an automated R pipeline that reads raw SOP data and price files
--   Produces structured financial database entries covering every Business Unit
--   Includes a built-in quality check so errors can be caught before submission
+::: {style="background:#fdecea; border-left:4px solid #c0392b; border-radius:0 8px 8px 0; padding:0.55em 0.9em;"}
+🐛 **Hard-coded, error-prone & inflexible**
 :::
+::: {style="text-align:center; font-size:1.6em; color:#95a5a6;"}
+→
 :::
-:::::
+::: {style="background:#eafaf1; border-left:4px solid #27ae60; border-radius:0 8px 8px 0; padding:0.55em 0.9em;"}
+🔧 **Modular, flexible & easy to fix**
+:::
+
+::: {style="background:#fdecea; border-left:4px solid #c0392b; border-radius:0 8px 8px 0; padding:0.55em 0.9em;"}
+📊 **20+ sheets - chaotic, impossible to follow**
+:::
+::: {style="text-align:center; font-size:1.6em; color:#95a5a6;"}
+→
+:::
+::: {style="background:#eafaf1; border-left:4px solid #27ae60; border-radius:0 8px 8px 0; padding:0.55em 0.9em;"}
+📖 **Clean, readable, traceable logic**
+:::
+
+:::
 
 ------------------------------------------------------------------------
 
@@ -281,47 +336,61 @@ tibble(
 
 ## Revenue Account Coverage {background-color="#1a3a5c"}
 
-> **GL 400000** = Sales to external customers  |  **GL 400028** = Intercompany sales between JBS sites
+<div style="display:flex; width:100%; margin-bottom:0.7em; font-size:0.82em;">
+<span style="background:rgba(41,128,185,0.3); border:1px solid #2980b9; border-radius:6px; padding:0.25em 0.8em; color:#aed6f1;"><strong>General Ledger (GL) 400000</strong> - External customers</span>
+<span style="margin-left:auto; background:rgba(243,156,18,0.2); border:1px solid #f39c12; border-radius:6px; padding:0.25em 0.8em; color:#f8c471;"><strong>General Ledger (GL) 400028</strong> - Intercompany (JBS sites)</span>
+</div>
 
-::::: columns
-::: {.column width="50%"}
-::: {style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); border-radius: 10px; padding: 0.5em 0.9em;"}
-::: {style="font-size: 0.72em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #aed6f1; margin-bottom: 0.2em;"}
-Corowa
-:::
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:0.6em; font-size:0.78em;">
 
--   1\. Farming Operations
--   2\. Meat Processing
-    -   Kill Floor, Boning Room, Boxed Meat
-    -   Each sub-section has both 400000 & 400028
--   Offal - Edible & Inedible
--   Commodity Bone
--   Meat Trade *(receives Laverton volume under Corowa account)*
-:::
-:::
+<div style="background:rgba(255,255,255,0.07); border:1px solid rgba(41,128,185,0.45); border-radius:10px; padding:0.6em 0.9em;">
+<div style="font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:#aed6f1; margin-bottom:0.55em; font-size:0.85em;">📍 Corowa</div>
+<div style="display:flex; flex-direction:column; gap:0.7em;">
+<div style="display:flex; flex-wrap:nowrap; gap:0.4em;">
+<span style="background:rgba(41,128,185,0.25); border:1px solid rgba(41,128,185,0.5); border-radius:20px; padding:0.2em 0.65em; color:#d6eaf8; white-space:nowrap;">🌾 Farming Operations</span>
+<span style="background:rgba(41,128,185,0.25); border:1px solid rgba(41,128,185,0.5); border-radius:20px; padding:0.2em 0.65em; color:#d6eaf8; white-space:nowrap;">🔪 Kill Floor</span>
+<span style="background:rgba(41,128,185,0.25); border:1px solid rgba(41,128,185,0.5); border-radius:20px; padding:0.2em 0.65em; color:#d6eaf8; white-space:nowrap;">🦴 Boning Room</span>
+</div>
+<div style="display:flex; flex-wrap:nowrap; gap:0.4em;">
+<span style="background:rgba(41,128,185,0.25); border:1px solid rgba(41,128,185,0.5); border-radius:20px; padding:0.2em 0.65em; color:#d6eaf8; white-space:nowrap;">📦 Boxed Meat</span>
+<span style="background:rgba(41,128,185,0.25); border:1px solid rgba(41,128,185,0.5); border-radius:20px; padding:0.2em 0.65em; color:#d6eaf8; white-space:nowrap;">🫀 Offal (Edible & Inedible)</span>
+</div>
+<div style="display:flex; flex-wrap:nowrap; gap:0.4em;">
+<span style="background:rgba(41,128,185,0.25); border:1px solid rgba(41,128,185,0.5); border-radius:20px; padding:0.2em 0.65em; color:#d6eaf8; white-space:nowrap;">🐷 Commodity Bone</span>
+<span style="background:rgba(41,128,185,0.25); border:1px solid rgba(41,128,185,0.5); border-radius:20px; padding:0.2em 0.65em; color:#d6eaf8; white-space:nowrap;">🤝 Meat Trade</span>
+</div>
+</div>
+</div>
 
-::: {.column width="50%"}
-::: {style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); border-radius: 10px; padding: 0.5em 0.9em; margin-bottom: 0.3em;"}
-::: {style="font-size: 0.72em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #aed6f1; margin-bottom: 0.2em;"}
-Laverton
-:::
+<div style="display:flex; flex-direction:column; gap:0.5em;">
+<div style="background:rgba(255,255,255,0.07); border:1px solid rgba(39,174,96,0.4); border-radius:10px; padding:0.6em 0.9em;">
+<div style="font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:#a9dfbf; margin-bottom:0.55em; font-size:0.85em;">📍 Laverton</div>
+<div style="display:flex; flex-direction:column; gap:0.7em;">
+<div style="display:flex; flex-wrap:nowrap; gap:0.4em;">
+<span style="background:rgba(39,174,96,0.2); border:1px solid rgba(39,174,96,0.45); border-radius:20px; padding:0.2em 0.65em; color:#a9dfbf; white-space:nowrap;">🏭 Laverton Processing</span>
+<span style="background:rgba(39,174,96,0.2); border:1px solid rgba(39,174,96,0.45); border-radius:20px; padding:0.2em 0.65em; color:#a9dfbf; white-space:nowrap;">🔪 Kill Floor</span>
+<span style="background:rgba(39,174,96,0.2); border:1px solid rgba(39,174,96,0.45); border-radius:20px; padding:0.2em 0.65em; color:#a9dfbf; white-space:nowrap;">🦴 Boning Room</span>
+</div>
+<div style="display:flex; flex-wrap:nowrap; gap:0.4em;">
+<span style="background:rgba(39,174,96,0.2); border:1px solid rgba(39,174,96,0.45); border-radius:20px; padding:0.2em 0.65em; color:#a9dfbf; white-space:nowrap;">📦 Boxed Meat</span>
+<span style="background:rgba(39,174,96,0.2); border:1px solid rgba(39,174,96,0.45); border-radius:20px; padding:0.2em 0.65em; color:#a9dfbf; white-space:nowrap;">🫀 Offal (Edible → Corowa)</span>
+</div>
+<div style="display:flex; flex-wrap:nowrap; gap:0.4em;">
+<span style="background:rgba(39,174,96,0.2); border:1px solid rgba(39,174,96,0.45); border-radius:20px; padding:0.2em 0.65em; color:#a9dfbf; white-space:nowrap;">🐷 Commodity Chilled & Frozen</span>
+<span style="background:rgba(39,174,96,0.2); border:1px solid rgba(39,174,96,0.45); border-radius:20px; padding:0.2em 0.65em; color:#a9dfbf; white-space:nowrap;">🐖 Sow Bone</span>
+</div>
+</div>
+</div>
 
--   6\. Laverton Processing
-    -   Kill Floor, Boning Room, Boxed Meat
--   Offal *(Edible shipped to Corowa via Lineage cold store)*
--   Commodity Chilled & Frozen
--   Sow Bone
-:::
+<div style="background:rgba(243,156,18,0.12); border:1px solid rgba(243,156,18,0.4); border-radius:10px; padding:0.55em 0.9em;">
+<div style="font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:#f8c471; margin-bottom:0.45em; font-size:0.85em;">🔗 Cross-Site</div>
+<div style="display:flex; flex-wrap:wrap; gap:0.4em;">
+<span style="background:rgba(243,156,18,0.2); border:1px solid rgba(243,156,18,0.45); border-radius:20px; padding:0.2em 0.65em; color:#fdebd0; white-space:nowrap;">💎 VA / Meat Sales </span>
+</div>
+</div>
+</div>
 
-::: {style="background: rgba(243,156,18,0.15); border: 1px solid rgba(243,156,18,0.4); border-radius: 10px; padding: 0.5em 0.9em;"}
-::: {style="font-size: 0.72em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #f8c471; margin-bottom: 0.2em;"}
-Cross-site
-:::
-
--   3\. Meat Sales (VA / Value-Add)
-:::
-:::
-:::::
+</div>
 
 ------------------------------------------------------------------------
 
@@ -381,105 +450,127 @@ tibble(
 
 ## Expense Account Coverage {background-color="#1a3a5c"}
 
-::::: columns
-::: {.column width="50%"}
-::: {style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); border-radius: 10px; padding: 0.5em 0.9em; margin-bottom: 0.3em;"}
-::: {style="font-size: 0.72em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #aed6f1; margin-bottom: 0.3em;"}
-Packaging & Pallet
-:::
-::: {style="font-size: 0.7em; color: #f8c471; margin-bottom: 0.2em;"}
-**GL 650301 / 650303 / 650311**
-:::
-
--   Corowa: Offal, 6 Way, Commodity
--   Laverton: Offal, 6 Way, Commodity, Sow, Export
--   Meat Sales (VA products)
--   Special contracts (Woolworths, DRJ) use separate margin account GL 650311
-:::
-
-::: {style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); border-radius: 10px; padding: 0.5em 0.9em;"}
-::: {style="font-size: 0.72em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #aed6f1; margin-bottom: 0.3em;"}
-Trade Allowance
-:::
-::: {style="font-size: 0.7em; color: #f8c471; margin-bottom: 0.2em;"}
-**GL 450050**
-:::
-
--   Meat Sales (VA)
--   Laverton Processing
-:::
-:::
-
-::: {.column width="50%"}
-::: {style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); border-radius: 10px; padding: 0.5em 0.9em; margin-bottom: 0.3em;"}
-::: {style="font-size: 0.72em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #aed6f1; margin-bottom: 0.3em;"}
-Storage
-:::
-::: {style="font-size: 0.7em; color: #f8c471; margin-bottom: 0.2em;"}
-**GL 730010**
-:::
-
--   Corowa: Offal, Commodity, 6 Way, Meat Trade, Stock on Hand
--   Laverton: Sow, Stock on Hand
--   Meat Sales
-:::
-
-::: {style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); border-radius: 10px; padding: 0.5em 0.9em;"}
-::: {style="font-size: 0.72em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #aed6f1; margin-bottom: 0.3em;"}
-Freight
-:::
-::: {style="font-size: 0.7em; color: #f8c471; margin-bottom: 0.2em;"}
-**GL 500192 / 500609**
-:::
-
--   500192 = Domestic freight
--   500609 = Ocean / Export freight
--   Covers: Offal, 6 Way, Commodity, Meat Trade, Meat Sales
-:::
-:::
-:::::
+```{=html}
+<table class="dark-table" style="width:100%; margin-top:0.5em;">
+  <thead>
+    <tr>
+      <th>Location / Category</th>
+      <th>Packaging &amp; Pallet</th>
+      <th>Trade Allowance</th>
+      <th>Storage</th>
+      <th>Freight</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="color:#e8f4fd; font-weight:600;">Corowa</td>
+      <td><span class="gl-badge">GL 650301</span></td>
+      <td><span class="cell-empty">-</span></td>
+      <td><span class="gl-badge">GL 730010</span></td>
+      <td>
+        <span class="gl-badge">500192</span>
+        <span class="gl-badge" style="margin-left:4px;">500609</span>
+        <span class="cell-sub">Domestic + Export</span>
+      </td>
+    </tr>
+    <tr>
+      <td style="color:#e8f4fd; font-weight:600;">Laverton</td>
+      <td><span class="gl-badge">GL 650301</span></td>
+      <td><span class="gl-badge-blue">GL 450050</span></td>
+      <td><span class="gl-badge">GL 730010</span></td>
+      <td>
+        <span class="gl-badge">500192</span>
+        <span class="cell-sub">Domestic</span>
+      </td>
+    </tr>
+    <tr>
+      <td style="color:#e8f4fd; font-weight:600;">
+        Meat Sales / VA
+        <span class="row-sub"><br/>VA Products</span>
+      </td>
+      <td><span class="gl-badge">GL 650301</span></td>
+      <td><span class="gl-badge-blue">GL 450050</span></td>
+      <td><span class="gl-badge">GL 730010</span></td>
+      <td>
+        <span class="gl-badge">500192</span>
+        <span class="cell-sub">Domestic</span>
+      </td>
+    </tr>
+    <tr>
+      <td style="color:#e8f4fd; font-weight:600;">
+        Special Contracts
+        <span class="row-sub"><br/>Woolworths · DRJ</span>
+      </td>
+      <td>
+        <span class="gl-badge">GL 650311</span>
+        <span class="cell-sub">Margin account</span>
+      </td>
+      <td><span class="cell-empty">-</span></td>
+      <td><span class="cell-empty">-</span></td>
+      <td><span class="cell-empty">-</span></td>
+    </tr>
+  </tbody>
+</table>
+```
 
 ------------------------------------------------------------------------
 
 ## Key Challenges {background-color="#1a2840"}
 
-:::::: columns
-::: {.column width="33%"}
-::: {style="background: rgba(41,128,185,0.2); border-top: 3px solid #2980b9; border-radius: 0 0 10px 10px; padding: 0.5em 0.9em;"}
-::: {style="font-size: 0.72em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #aed6f1; margin-bottom: 0.2em;"}
-Unstable source data
-:::
+::: {.r-stretch}
+```{mermaid}
+%%{init: {'flowchart': {'nodeSpacing': 22, 'rankSpacing': 110}, 'theme': 'base', 'themeVariables': {'background': '#1a2840', 'mainBkg': '#1a2840', 'lineColor': '#5d7a8a', 'edgeLabelBackground': '#1a2840'}}}%%
+flowchart LR
 
--   SOP Volumes contains spelling mistakes and inconsistent naming that silently break joins
--   Master Data missing customer or GL entries means volume rows match no account and are lost
--   Required ongoing fixes during development (e.g. `str_trim`, `toupper`, typo corrections)
-:::
-:::
+    subgraph ch["⚠️  CHALLENGE"]
+        C1["<span style='font-size:1.15em;font-weight:bold;'>Unstable Source Data</span><br/><br/>Spelling mistakes &amp;<br/>inconsistent naming<br/>in SOP Volumes"]
+        C2["<span style='font-size:1.15em;font-weight:bold;'>Incomplete Price Data</span><br/><br/>Prices.xlsb missing<br/>item codes &amp;<br/>packaging rates"]
+        C3["<span style='font-size:1.15em;font-weight:bold;'>Complex Contracts</span><br/><br/>Individual discounts<br/>&amp; pricing negotiated<br/>per customer"]
+    end
 
-::: {.column width="33%"}
-::: {style="background: rgba(243,156,18,0.15); border-top: 3px solid #f39c12; border-radius: 0 0 10px 10px; padding: 0.5em 0.9em;"}
-::: {style="font-size: 0.72em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #f8c471; margin-bottom: 0.2em;"}
-Incomplete price data
-:::
+    subgraph co["⚡  CONSEQUENCE"]
+        I1["<span style='font-size:1.15em;font-weight:bold;'>Joins break silently</span><br/><br/>Volume rows lost<br/>with no error raised"]
+        I2["<span style='font-size:1.15em;font-weight:bold;'>NA revenue values</span><br/><br/>Expense rows<br/>fail silently"]
+        I3["<span style='font-size:1.15em;font-weight:bold;'>Separate GL accounts</span><br/><br/>Conditional logic<br/>multiplies per contract"]
+    end
 
--   `Prices.xlsb` frequently missing item codes - revenue rows for those items produce NA values
--   Packaging rates also missing for newer items - expense rows fail silently
--   Gap Check was built specifically to surface these missing-price rows after each run
-:::
-:::
+    subgraph so["✅  SOLUTION"]
+        S1["<span style='font-size:1.15em;font-weight:bold;'>str_trim · toupper</span><br/><br/>Typo corrections<br/>applied at load time"]
+        S2["<span style='font-size:1.15em;font-weight:bold;'>Gap Check built</span><br/><br/>Surfaces every missing<br/>price row after each run"]
+        S3["<span style='font-size:1.15em;font-weight:bold;'>Conditional branches</span><br/><br/>Pipeline logic split<br/>per contract type"]
+    end
 
-::: {.column width="33%"}
-::: {style="background: rgba(165,105,189,0.2); border-top: 3px solid #a569bd; border-radius: 0 0 10px 10px; padding: 0.5em 0.9em;"}
-::: {style="font-size: 0.72em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #d7bde2; margin-bottom: 0.2em;"}
-Complex customer contracts
-:::
+    C1 --> I1 --> S1
+    C2 --> I2 --> S2
+    C3 --> I3 --> S3
 
--   JBS negotiates individual discounts and special pricing per customer
--   Customers like Woolworths and DRJ require separate GL accounts and additional conditional calculation steps
--   Every new contract adds conditional logic, making the pipeline progressively harder to maintain
+    classDef chBlue   fill:#1a3a5c,stroke:#2980b9,stroke-width:3px,color:#e8f4fd
+    classDef impBlue  fill:#0d2137,stroke:#2980b9,stroke-width:1px,color:#aed6f1
+    classDef solBlue  fill:#1e4976,stroke:#5dade2,stroke-width:2px,color:#aed6f1
+
+    classDef chAmber  fill:#4a2c00,stroke:#f39c12,stroke-width:3px,color:#fef9e7
+    classDef impAmber fill:#2d1a00,stroke:#f39c12,stroke-width:1px,color:#f8c471
+    classDef solAmber fill:#5d3800,stroke:#f5b041,stroke-width:2px,color:#f8c471
+
+    classDef chPurp   fill:#3d1a5c,stroke:#a569bd,stroke-width:3px,color:#f5eef8
+    classDef impPurp  fill:#2d1040,stroke:#a569bd,stroke-width:1px,color:#d7bde2
+    classDef solPurp  fill:#4a2070,stroke:#c39bd3,stroke-width:2px,color:#d7bde2
+
+    class C1 chBlue
+    class I1 impBlue
+    class S1 solBlue
+    class C2 chAmber
+    class I2 impAmber
+    class S2 solAmber
+    class C3 chPurp
+    class I3 impPurp
+    class S3 solPurp
+
+    style ch fill:#0d1a2e,stroke:#2980b9,stroke-width:1px,color:#aed6f1
+    style co fill:#0d1a2e,stroke:#f39c12,stroke-width:1px,color:#f8c471
+    style so fill:#0d1a2e,stroke:#a569bd,stroke-width:1px,color:#d7bde2
+```
 :::
-:::
-::::::
 
 ------------------------------------------------------------------------
 
@@ -489,67 +580,141 @@ Complex customer contracts
 Built from real failure points during development - each check represents a problem that once caused **silent data loss**. Unlike manual Excel review, R pinpoints the exact item, month and site instantly.
 :::
 
-**Sheet 1** reconciles SOP raw weight vs database across 12 categories - a `GAP` status flags exactly which segment lost data. **Sheet 2** lists every row that failed to enter the database:
+```{=html}
+<p style="font-size:0.76em; color:#1a3a5c; margin:0.2em 0 0.55em 0;">
+  <b>Sheet 1</b> reconciles SOP raw weight vs database across 12 categories - a <code>GAP</code> flag pinpoints exactly which segment lost data.
+  <b>Sheet 2</b> catches 8 failure types, grouped below:
+</p>
 
-```{r}
-tibble(
-  Check = c(
-    "Item has no revenue price assigned",
-    "Item cannot be matched to a product category",
-    "Item missing storage type classification",
-    "Volume has no Carcass Price",
-    "Volume has no Bone Processing Fee",
-    "Volume has no Kill Fee",
-    "Item sold at zero or missing price",
-    "Internal vs external volume split does not reconcile"
-  ),
-  `What it catches` = c(
-    "New product not yet added to the price reference file",
-    "Incorrectly named value in the source data",
-    "Missing Chilled / Frozen label in source data",
-    "Customer volume with no matching carcass price",
-    "Customer volume with no matching bone fee",
-    "Customer volume with no matching kill fee",
-    "Sale record with blank or zero price",
-    "Splitting logic error - totals don't add up"
-  )
-) |> kable("simple")
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:0.65em; font-size:0.72em;">
+
+  <!-- Naming Issues -->
+  <div style="background:#eaf4fc; border-top:3px solid #2980b9; border-radius:0 0 8px 8px; padding:0.6em 0.9em;">
+    <div style="font-weight:700; color:#1a5276; text-transform:uppercase; letter-spacing:0.07em; margin-bottom:0.45em;">🏷️ Naming Issues</div>
+    <div style="margin-bottom:0.35em;">
+      <div style="font-weight:600; color:#2980b9;">Item cannot be matched to a product category</div>
+      <div style="color:#5d6d7e;">→ Incorrectly named value in source data</div>
+    </div>
+    <div>
+      <div style="font-weight:600; color:#2980b9;">Item missing storage type classification</div>
+      <div style="color:#5d6d7e;">→ Missing essential label in source data</div>
+    </div>
+  </div>
+
+  <!-- Missing Prices -->
+  <div style="background:#fef5e7; border-top:3px solid #e67e22; border-radius:0 0 8px 8px; padding:0.6em 0.9em;">
+    <div style="font-weight:700; color:#7d4e00; text-transform:uppercase; letter-spacing:0.07em; margin-bottom:0.45em;">💰 Missing Prices</div>
+    <div style="margin-bottom:0.35em;">
+      <div style="font-weight:600; color:#e67e22;">Item has no revenue price assigned</div>
+      <div style="color:#5d6d7e;">→ New product not yet in price reference file</div>
+    </div>
+    <div>
+      <div style="font-weight:600; color:#e67e22;">Item sold at zero or missing price</div>
+      <div style="color:#5d6d7e;">→ Sale record with blank or zero price</div>
+    </div>
+  </div>
+
+  <!-- Missing Fees -->
+  <div style="background:#eafaf1; border-top:3px solid #27ae60; border-radius:0 0 8px 8px; padding:0.6em 0.9em;">
+    <div style="font-weight:700; color:#1e5631; text-transform:uppercase; letter-spacing:0.07em; margin-bottom:0.45em;">📋 Missing Fees</div>
+    <div style="margin-bottom:0.35em;">
+      <div style="font-weight:600; color:#27ae60;">Volume has no Carcass Price</div>
+      <div style="color:#5d6d7e;">→ Customer volume with no matching carcass price</div>
+    </div>
+    <div style="margin-bottom:0.35em;">
+      <div style="font-weight:600; color:#27ae60;">Volume has no Bone Processing Fee</div>
+      <div style="color:#5d6d7e;">→ Customer volume with no matching bone fee</div>
+    </div>
+    <div>
+      <div style="font-weight:600; color:#27ae60;">Volume has no Kill Fee</div>
+      <div style="color:#5d6d7e;">→ Customer volume with no matching kill fee</div>
+    </div>
+  </div>
+
+  <!-- Inconsistency -->
+  <div style="background:#f5eef8; border-top:3px solid #8e44ad; border-radius:0 0 8px 8px; padding:0.6em 0.9em;">
+    <div style="font-weight:700; color:#4a235a; text-transform:uppercase; letter-spacing:0.07em; margin-bottom:0.45em;">⚖️ Inconsistency </div>
+    <div>
+      <div style="font-weight:600; color:#8e44ad;">Mismatch item in volume data</div>
+      <div style="color:#5d6d7e;">→ Produce n item A but no item A found in storage</div>
+    </div>
+  </div>
+
+</div>
 ```
 
 ------------------------------------------------------------------------
 
 ## Summary - Excel vs R {background-color="#f0f6fc"}
 
-```{r}
-tibble(
-  ` ` = c(
-    "Time to build each month",
-    "Adding a new Business Unit",
-    "Handling a rule change or new contract",
-    "Data error tracing",
-    "Risk of human error",
-    "Complex freight cost allocation",
-    "Quality assurance"
-  ),
-  `Excel (Before)` = c(
-    "A lot of time for manual work per period",
-    "Copy, paste and reformat an entire sheet",
-    "Manually update every affected cell",
-    "Manually scan rows - easy to miss",
-    "High - copy-paste mistakes go unnoticed",
-    "Averaged cost across all export types manually - imprecise and considered incorrect",
-    "Manual spot-check only"
-  ),
-  `R Pipeline (Now)` = c(
-    "One-click once - under 10 minutes",
-    "Add a filter condition and a join - minutes",
-    "Change one line of code, re-run",
-    "Gap Check pinpoints exact item, month, site",
-    "Low - same logic applied consistently every run",
-    "Many-to-many join assigns the correct rate to each specific export type automatically",
-    "Automated Gap Check runs after every build"
-  )
-) |> kable("simple")
+```{=html}
+<div style="display:flex; flex-direction:column; gap:0.42em; font-size:0.73em; margin-top:0.3em;">
+
+  <!-- Header row -->
+  <div style="display:grid; grid-template-columns:21% 37% 4% 37%; align-items:center; gap:0.4em;">
+    <div></div>
+    <div style="text-align:center; font-weight:700; color:#922b21; text-transform:uppercase; letter-spacing:0.07em;">❌ Excel (Before)</div>
+    <div></div>
+    <div style="text-align:center; font-weight:700; color:#1e5631; text-transform:uppercase; letter-spacing:0.07em;">✅ R Pipeline (Now)</div>
+  </div>
+
+  <!-- Row 1 -->
+  <div style="display:grid; grid-template-columns:21% 37% 4% 37%; align-items:center; gap:0.4em;">
+    <div style="font-weight:600; color:#1a3a5c;">⏱️ Time to build</div>
+    <div style="background:#fdecea; border:1px solid #e74c3c; border-radius:8px; padding:0.3em 0.7em; color:#7b241c;">Manual work required every period</div>
+    <div style="text-align:center; color:#95a5a6; font-size:1.3em;">→</div>
+    <div style="background:#eafaf1; border:1px solid #27ae60; border-radius:8px; padding:0.3em 0.7em; color:#1e5631;">One-click · under 10 minutes</div>
+  </div>
+
+  <!-- Row 2 -->
+  <div style="display:grid; grid-template-columns:21% 37% 4% 37%; align-items:center; gap:0.4em;">
+    <div style="font-weight:600; color:#1a3a5c;">🏢 Adding a Business Unit</div>
+    <div style="background:#fdecea; border:1px solid #e74c3c; border-radius:8px; padding:0.3em 0.7em; color:#7b241c;">Copy, paste &amp; reformat an entire sheet</div>
+    <div style="text-align:center; color:#95a5a6; font-size:1.3em;">→</div>
+    <div style="background:#eafaf1; border:1px solid #27ae60; border-radius:8px; padding:0.3em 0.7em; color:#1e5631;">Add a filter condition + a join · minutes</div>
+  </div>
+
+  <!-- Row 3 -->
+  <div style="display:grid; grid-template-columns:21% 37% 4% 37%; align-items:center; gap:0.4em;">
+    <div style="font-weight:600; color:#1a3a5c;">🔄 Rule or contract change</div>
+    <div style="background:#fdecea; border:1px solid #e74c3c; border-radius:8px; padding:0.3em 0.7em; color:#7b241c;">Manually update every affected cell</div>
+    <div style="text-align:center; color:#95a5a6; font-size:1.3em;">→</div>
+    <div style="background:#eafaf1; border:1px solid #27ae60; border-radius:8px; padding:0.3em 0.7em; color:#1e5631;">Change one line of code · re-run</div>
+  </div>
+
+  <!-- Row 4 -->
+  <div style="display:grid; grid-template-columns:21% 37% 4% 37%; align-items:center; gap:0.4em;">
+    <div style="font-weight:600; color:#1a3a5c;">🔍 Data error tracing</div>
+    <div style="background:#fdecea; border:1px solid #e74c3c; border-radius:8px; padding:0.3em 0.7em; color:#7b241c;">Manually scan rows · easy to miss</div>
+    <div style="text-align:center; color:#95a5a6; font-size:1.3em;">→</div>
+    <div style="background:#eafaf1; border:1px solid #27ae60; border-radius:8px; padding:0.3em 0.7em; color:#1e5631;">Gap Check pinpoints exact item, month &amp; site</div>
+  </div>
+
+  <!-- Row 5 -->
+  <div style="display:grid; grid-template-columns:21% 37% 4% 37%; align-items:center; gap:0.4em;">
+    <div style="font-weight:600; color:#1a3a5c;">⚠️ Risk of human error</div>
+    <div style="background:#fdecea; border:1px solid #e74c3c; border-radius:8px; padding:0.3em 0.7em; color:#7b241c;">High · copy-paste mistakes go unnoticed</div>
+    <div style="text-align:center; color:#95a5a6; font-size:1.3em;">→</div>
+    <div style="background:#eafaf1; border:1px solid #27ae60; border-radius:8px; padding:0.3em 0.7em; color:#1e5631;">Low · same logic applied consistently every run</div>
+  </div>
+
+  <!-- Row 6 -->
+  <div style="display:grid; grid-template-columns:21% 37% 4% 37%; align-items:center; gap:0.4em;">
+    <div style="font-weight:600; color:#1a3a5c;">🚢 Freight allocation</div>
+    <div style="background:#fdecea; border:1px solid #e74c3c; border-radius:8px; padding:0.3em 0.7em; color:#7b241c;">Averaged across all export types · imprecise &amp; incorrect</div>
+    <div style="text-align:center; color:#95a5a6; font-size:1.3em;">→</div>
+    <div style="background:#eafaf1; border:1px solid #27ae60; border-radius:8px; padding:0.3em 0.7em; color:#1e5631;">Many-to-many join assigns correct rate per export type</div>
+  </div>
+
+  <!-- Row 7 -->
+  <div style="display:grid; grid-template-columns:21% 37% 4% 37%; align-items:center; gap:0.4em;">
+    <div style="font-weight:600; color:#1a3a5c;">🛡️ Quality assurance</div>
+    <div style="background:#fdecea; border:1px solid #e74c3c; border-radius:8px; padding:0.3em 0.7em; color:#7b241c;">Manual spot-check only</div>
+    <div style="text-align:center; color:#95a5a6; font-size:1.3em;">→</div>
+    <div style="background:#eafaf1; border:1px solid #27ae60; border-radius:8px; padding:0.3em 0.7em; color:#1e5631;">Automated Gap Check runs after every build</div>
+  </div>
+
+</div>
 ```
 
 ------------------------------------------------------------------------
@@ -587,7 +752,10 @@ Questions &amp; Discussion
 </div>
 
 <div style="margin-top: 0.6em; font-size: 0.75em; color: #7fb3d3;">
-<em>Automating Financial Account Creation — An R Pipeline for SOP-to-Database Reporting</em>
+<em>Automating Financial Account Creation - An R Pipeline for SOP-to-Database Reporting</em>
 </div>
 
 </div>
+
+
+
