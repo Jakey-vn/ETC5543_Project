@@ -700,10 +700,10 @@ Built from real failure points during development - each check represents a prob
 
   <!-- Row 6 -->
   <div style="display:grid; grid-template-columns:21% 37% 4% 37%; align-items:center; gap:0.4em;">
-    <div style="font-weight:600; color:#1a3a5c;">🚢 Freight allocation</div>
-    <div style="background:#fdecea; border:1px solid #e74c3c; border-radius:8px; padding:0.3em 0.7em; color:#7b241c;">Averaged across all export types · imprecise &amp; incorrect</div>
+    <div style="font-weight:600; color:#1a3a5c;">📋 Advanced calculation</div>
+    <div style="background:#fdecea; border:1px solid #e74c3c; border-radius:8px; padding:0.3em 0.7em; color:#7b241c;">Very tedious to set up complicated formula · imprecise &amp; incorrect</div>
     <div style="text-align:center; color:#95a5a6; font-size:1.3em;">→</div>
-    <div style="background:#eafaf1; border:1px solid #27ae60; border-radius:8px; padding:0.3em 0.7em; color:#1e5631;">Many-to-many join assigns correct rate per export type</div>
+    <div style="background:#eafaf1; border:1px solid #27ae60; border-radius:8px; padding:0.3em 0.7em; color:#1e5631;">Fast and easy!!!</div>
   </div>
 
   <!-- Row 7 -->
