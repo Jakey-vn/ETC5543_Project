@@ -12,7 +12,9 @@ The main output is `GL_DB Template.csv`, structured for GL database input.
 ## Files
 - `Financial Calculating.qmd` - Main Quarto script containing all data processing and calculation logic
 - `Debug Code.qmd` - Standalone validation and debugging checks. Run these chunks after the main script to verify data integrity. See the [Debug Checks](#debug-checks) section for details.
+- `Gap_Check.R` - Gap analysis script that produces `Gap_Check.xlsx`. Run after `Financial Calculating.qmd` in the same R session (it references variables created there). See the [Gap Check](#gap-check) section for details.
 - `GL_DB Template.csv` - Output file generated after running the script (not included due to data privacy)
+- `Gap_Check.xlsx` - Output file generated after running `Gap_Check.R` (not included due to data privacy)
 - `Data Template.xlsx` - A sample template to help readers understand the structure of the data used to build the database. Note that due to the complexity of the data, various conditions and filtering rules are applied throughout the project code - the raw data alone does not reflect all the logic involved.
 
 ## Data Sources (not included in repo)
@@ -38,6 +40,7 @@ The main output is `GL_DB Template.csv`, structured for GL database input.
 2. Ensure all data source files are placed in the correct OneDrive path
 3. Run all chunks sequentially - the final chunk writes `GL_DB Template.csv`
 4. Optionally, open `Debug Code.qmd` and run its chunks to validate data integrity (requires the main script to have been run first in the same R session)
+5. Optionally, run `Gap_Check.R` to produce `Gap_Check.xlsx` — a weight reconciliation and data quality audit across all categories (also requires the main script to have been run first in the same R session)
 
 ## Key Logic
 
@@ -83,8 +86,11 @@ Volume data from `SOP Volumes.xlsx` is split into three datasets based on the `T
 - **FCOROWAWoolworths inherits price from FEXTERNALBig River Pork - Coles**: A special price inheritance rule applied during the Farm carcass price join.
 - **Laverton Kill - 6Way/Commodity customers temporarily excluded**: A temporary filter removes rows where Abattoir is Laverton, Tab is Kill, and the customer name contains "6WAY" or "COMMODITY".
 - **Laverton Export Packaging - $12.30/unit fee**: Laverton charges a fixed $12.30 per head for carcass export packaging (Singapore and Malaysia). Volume source is Kill service rows from `volume_farm_raw`, grouped by SOP Unicode and Month.
-- **Laverton Sow Packaging - temporary fixed fee of $0.095/kg**: Sow packaging price is currently missing from the `Packaging VA` sheet (VARIANT == 4), so a hardcoded rate of $0.095/kg is applied as a temporary fix until the data is updated.
-- **Packaging price fallback (variant 3 → 4)**: For edible offal packaging/pallet, prices are first looked up from VARIANT == 3. If an item has no price there (NA or zero weight), it falls back to VARIANT == 4.
+- **Laverton Sow Packaging - temporary fixed fee of $0.095/kg**: Sow packaging price is currently missing from the `Packaging VA` sheet (VARIANT == 4), so a hardcoded rate of $0.095/kg is unconditionally applied as a temporary fix until the data is updated.
+- **Packaging price fallback (variant 3 → 4)**: For edible offal packaging/pallet (Corowa and Laverton), prices are first looked up from VARIANT == 3. If an item has no price there (NA or zero weight), it falls back to VARIANT == 4.
+- **Packaging VARIANT by product type**: Edible offal uses VARIANT 3 with fallback to 4. 6 Way and Commodity packaging/pallet use VARIANT 4 directly (no fallback). VA / 3.Meat Sales packaging and pallet use VARIANT 2.
+- **Woolworths special contract parameters**: Packaging fee = $0.137/kg, margin = 45.26%. Both are applied to bone-out weight adjusted by hot-to-cold (90.9%) and cold-to-meat (88%) yield factors. Packaging (650301) is recorded as a positive cost; margin (650311) is negated.
+- **DRJ special contract parameters**: Packaging fee = $0.15/kg, margin = 10%. Same yield adjustments as Woolworths apply. Packaging (650301) is positive; margin (650311) is negated.
 
 ### Account Structure by Business Unit and Floor
 | Business Unit | Floor | GL Account | Cost Centre |
@@ -92,7 +98,7 @@ Volume data from `SOP Volumes.xlsx` is split into three datasets based on the `T
 | 1. Farming Operations | Farm | 400000 / 400028 | 10001812 |
 | 1. Farming Operations | V&V Gross Sales | 400350 | 10001812 |
 | 1. Farming Operations | V&V Cost of Sales | 510157 | 10001812 |
-| 1. Farming Operations | Freight In | 500195 | 10001812 |
+| 1. Farming Operations | Freight In *(not yet implemented)* | 500195 | 10001812 |
 | 2. Meat Processing | Kill Floor | 400000 / 400028 | 10201816 |
 | 2. Meat Processing | Boning Room | 400000 / 400028 | 11901816 |
 | 2. Meat Processing | Boxed Meat | 400000 / 400028 | 10501816 |
@@ -101,7 +107,7 @@ Volume data from `SOP Volumes.xlsx` is split into three datasets based on the `T
 | 2. Meat Processing | Inedible Offal | 400000 | 10801816 |
 | 2. Meat Processing | Pig from Farm (Expense) | 510167 | 10501816 |
 | 2. Meat Processing | Meat Trade Cost of Sales | 510167 | 10501816 |
-| 2. Meat Processing | Freight In | 500195 | 10001816 |
+| 2. Meat Processing | Freight In *(not yet implemented)* | 500195 | 10001816 |
 | 2. Meat Processing | Edible Offal Packaging | 650301 | 10001816 |
 | 2. Meat Processing | Edible Offal Pallet | 650303 | 10001816 |
 | 2. Meat Processing | 6 Way FRZ Packaging | 650301 | 10501816 |
@@ -142,7 +148,7 @@ Volume data from `SOP Volumes.xlsx` is split into three datasets based on the `T
 | 6. Laverton Processing | Edible Offal | 400028 | 10001854 |
 | 6. Laverton Processing | Inedible Offal | 400000 | 10801854 |
 | 6. Laverton Processing | Pig from Farm (Expense) | 510167 | 10501854 |
-| 6. Laverton Processing | Freight In | 500195 | 10501854 |
+| 6. Laverton Processing | Freight In *(not yet implemented)* | 500195 | 10501854 |
 | 6. Laverton Processing | Edible Offal Packaging | 650301 | 10001854 |
 | 6. Laverton Processing | Edible Offal Pallet | 650303 | 10001854 |
 | 6. Laverton Processing | 6 Way FRZ Packaging | 650301 | 10501854 |
@@ -195,13 +201,17 @@ The join key to the customer account table is `Service` (values: `6 Way`, `Commo
 
 **Packaging and Pallet Expenses**
 
-Packaging (650301) and Pallet (650303) accounts are created per BU and product group, mirroring the same customer filters used in their corresponding revenue accounts. Prices come from the `Packaging VA` sheet in `Prices.xlsb` (keyed by BOM item code and VARIANT number).
+Packaging (650301) and Pallet (650303) accounts are created per BU and product group, mirroring the same customer filters used in their corresponding revenue accounts. Prices come from the `Packaging VA` sheet in `Prices.xlsb` (keyed by BOM item code and VARIANT number). VARIANT used by product type:
+- Edible Offal (Corowa and Laverton): VARIANT 3, falling back to VARIANT 4 if price is missing
+- 6 Way and Commodity (Corowa and Laverton): VARIANT 4 directly
+- VA / 3.Meat Sales: VARIANT 2
 
-Note: Woolworths and DRJ use a **margin** account (650311) instead of a standard pallet account (650303) due to their special contract pricing arrangements. These two also filter by Tab == "Bone" and Floor == "Bone" (Boning Room), not Boxed Meat. Their values are calculated using fixed per-kg packaging fees and margin percentages applied to bone-out weight (adjusted by hot-to-cold and cold-to-meat yield factors).
+Note: Woolworths and DRJ use a **margin** account (650311) instead of a standard pallet account (650303) due to their special contract pricing arrangements. These two also filter by Tab == "Bone" and Floor == "Bone" (Boning Room), not Boxed Meat. Their values are calculated using fixed per-kg packaging fees and margin percentages applied to bone-out weight (adjusted by hot-to-cold and cold-to-meat yield factors). See [Special Conditions](#special-conditions) for the specific fee parameters.
 
 **Freight In (500195)**
 - Filters Customer name == "Freight In" from each BU's customer data
 - Covers: 1.Farming Operations (500195-10001812), 2.Meat Processing (500195-10001816), 6.Laverton Processing (500195-10501854)
+- **Note: Currently not implemented in the pipeline** — these accounts are not present in the final output. Freight In customers in `customer_data` are included in the farm revenue path but are not yet broken out as separate 500195 rows.
 
 **Trade Allowance (450050)**
 - **3.Meat Sales (450050-10001814)**: Joins VA revenue data with `Trade Allowance.xlsx` on Brand and Period. Calculates allowance as `Trade Spend % × Revenue Value` plus a fixed `Trade Spend Value`, summed by customer. Result is negated (expense).
@@ -261,6 +271,53 @@ All freight values are negated (expense).
 | No `.x`/`.y` column conflicts across datasets | *(inline lapply)* | All empty character vectors |
 
 The offal data print chunks (`Corowa_edible_check` and `Laverton_edible_check`) write intermediate CSVs to disk for manual inspection and are not strict pass/fail checks.
+
+## Gap Check
+
+`Gap_Check.R` must be run **after** `Financial Calculating.qmd` in the same R session (it references variables created there). It writes `Gap_Check.xlsx` with the following sheets:
+
+### Sheet 1: SOP vs DB
+Two sections in a single sheet:
+
+**Weight Comparison** — side-by-side SOP raw weight vs DB weight for every category:
+
+| Category | SOP Raw Weight (kg) | DB Weight (kg) |
+|----------|-------------------|----------------|
+| Corowa - Offal (Inedible + Edible) | … | … |
+| Laverton - Offal (Inedible + Edible) | … | … |
+| Corowa - 6 Way | … | … |
+| Laverton - 6 Way | … | … |
+| Laverton - Sow | … | … |
+| Corowa - Commodity (400000 + 400028) | … | … |
+| Laverton - Commodity CHILLED | … | … |
+| Laverton - Commodity FROZEN | … | … |
+| Meat Trade - 6 Way (Laverton → Corowa) | … | … |
+| Meat Trade - Commodity FROZEN (Laverton → Corowa) | … | … |
+| Meat Trade - Edible Offal (Laverton → Corowa) | … | … |
+| VA / Meat Sales | … | … |
+
+**Issues Summary** — one row per issue type showing rows affected, weight affected (kg), and suggested fix:
+
+| Category | Issue | Rows Affected | Weight Affected (kg) | Fix |
+|----------|-------|---------------|---------------------|-----|
+| Revenue | Bone - Item Code not in BM PRice sheet | … | … | Add Item Code to BM PRice sheet |
+| Revenue | Bone - Commodity: missing/invalid Storage | … | … | Fill in Storage (CHILLED / FROZEN) in SOP Volumes |
+| Revenue | Farm - FARM tab: no Carcass Price match | … | … | Add Unicode + Abattoir + Period to Carcass Price sheet |
+| Revenue | Farm - BONE tab: no Bone Fee match | … | … | Add Unicode + Abattoir + Period to Bone Fee sheet |
+| Revenue | Farm - KILL tab: no Kill Fee match | … | … | Add Unicode + Abattoir + Period to Kill Fee sheet |
+| Revenue | VA - Missing or zero price in SOP data | … | … | Fill in Price column in SOP Volumes (VA tab) |
+| Revenue | VA - Item Code not in Brand Mapping | … | … | Add Item Code to VA Brand mapping (Master Data - VA sheet) |
+| Revenue | Farm - Same Unicode has multiple Item Codes | … | … | Fix Unicode or Item Code mapping in SOP Volumes |
+| Revenue | Commodity - VA Procurement Item not in Bone | … | … | Add Item Code to bone commodity tab in SOP Volumes |
+| Expense | Expense - VA Sales: Missing Packaging Price | … | … | Add Item Code to packaging price data |
+| Expense | Expense - Laverton Edible Offal: Missing Packaging Price | … | … | Add Item Code to packaging price data |
+| Expense | Expense - Laverton Edible Offal: Missing Pallet Price | … | … | Add Item Code to pallet price data |
+| Expense | Expense - Laverton 6 Way: Missing Packaging Price | … | … | Add Item Code to packaging price data |
+| Expense | Expense - Laverton Sow: Missing Packaging Price | … | … | Add Item Code to packaging price data |
+| Expense | Expense - Laverton Commodity: Missing Packaging Price | … | … | Add Item Code to packaging price data |
+
+### Sheet 2: All Issues
+All issue rows from every check combined into a single table with `Revenue Related Issue` and `Expense Related Issue` columns, plus Abattoir, Tab, Item Code, Item Description, Run, Storage, Type, Group, SOP Unicode, Customer name, Units, and Total Weight.
 
 ## Requirements
 ### Please install these libraries beforehand in order to use the code
