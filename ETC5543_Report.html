@@ -1,0 +1,1625 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.8.25">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Andy Tran">
+<meta name="dcterms.date" content="2026-06-01">
+
+<title>Automating Financial Account Creation</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="ETC5543_Report_files/libs/clipboard/clipboard.min.js"></script>
+<script src="ETC5543_Report_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="ETC5543_Report_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="ETC5543_Report_files/libs/quarto-html/axe/axe-check.js" type="module"></script>
+<script src="ETC5543_Report_files/libs/quarto-html/popper.min.js"></script>
+<script src="ETC5543_Report_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="ETC5543_Report_files/libs/quarto-html/anchor.min.js"></script>
+<link href="ETC5543_Report_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="ETC5543_Report_files/libs/quarto-html/quarto-syntax-highlighting-7b89279ff1a6dce999919e0e67d4d9ec.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="ETC5543_Report_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="ETC5543_Report_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="ETC5543_Report_files/libs/bootstrap/bootstrap-4d7f0bce1131f3e5f9547cd857cfbfc8.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script src="ETC5543_Report_files/libs/quarto-diagram/mermaid.min.js"></script>
+<script src="ETC5543_Report_files/libs/quarto-diagram/mermaid-init.js"></script>
+<link href="ETC5543_Report_files/libs/quarto-diagram/mermaid.css" rel="stylesheet">
+<script src="ETC5543_Report_files/libs/kePrint-0.0.1/kePrint.js"></script>
+
+<link href="ETC5543_Report_files/libs/lightable-0.0.1/lightable.css" rel="stylesheet">
+
+<link href="ETC5543_Report_files/libs/pagedtable-1.1/css/pagedtable.css" rel="stylesheet">
+
+<script src="ETC5543_Report_files/libs/pagedtable-1.1/js/pagedtable.js"></script>
+
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction"><span class="header-section-number">1</span> Introduction</a>
+  <ul class="collapse">
+  <li><a href="#about-jbs" id="toc-about-jbs" class="nav-link" data-scroll-target="#about-jbs"><span class="header-section-number">1.1</span> About JBS</a></li>
+  <li><a href="#jbs-australia-pork-rivalea" id="toc-jbs-australia-pork-rivalea" class="nav-link" data-scroll-target="#jbs-australia-pork-rivalea"><span class="header-section-number">1.2</span> JBS Australia Pork (Rivalea)</a></li>
+  <li><a href="#the-finance-team" id="toc-the-finance-team" class="nav-link" data-scroll-target="#the-finance-team"><span class="header-section-number">1.3</span> The Finance Team</a></li>
+  <li><a href="#key-terms" id="toc-key-terms" class="nav-link" data-scroll-target="#key-terms"><span class="header-section-number">1.4</span> Key Terms</a>
+  <ul class="collapse">
+  <li><a href="#financial-terminology" id="toc-financial-terminology" class="nav-link" data-scroll-target="#financial-terminology"><span class="header-section-number">1.4.1</span> Financial Terminology</a></li>
+  <li><a href="#business-units" id="toc-business-units" class="nav-link" data-scroll-target="#business-units"><span class="header-section-number">1.4.2</span> Business Units</a></li>
+  <li><a href="#supply-chain-and-cost-terms" id="toc-supply-chain-and-cost-terms" class="nav-link" data-scroll-target="#supply-chain-and-cost-terms"><span class="header-section-number">1.4.3</span> Supply Chain and Cost Terms</a></li>
+  </ul></li>
+  <li><a href="#report-structure" id="toc-report-structure" class="nav-link" data-scroll-target="#report-structure"><span class="header-section-number">1.5</span> Report Structure</a></li>
+  </ul></li>
+  <li><a href="#background" id="toc-background" class="nav-link" data-scroll-target="#background"><span class="header-section-number">2</span> Background</a>
+  <ul class="collapse">
+  <li><a href="#the-problem" id="toc-the-problem" class="nav-link" data-scroll-target="#the-problem"><span class="header-section-number">2.1</span> The Problem</a></li>
+  <li><a href="#previous-solution" id="toc-previous-solution" class="nav-link" data-scroll-target="#previous-solution"><span class="header-section-number">2.2</span> Previous Solution</a></li>
+  <li><a href="#the-r-pipeline-solution" id="toc-the-r-pipeline-solution" class="nav-link" data-scroll-target="#the-r-pipeline-solution"><span class="header-section-number">2.3</span> The R Pipeline Solution</a></li>
+  <li><a href="#choice-of-tools" id="toc-choice-of-tools" class="nav-link" data-scroll-target="#choice-of-tools"><span class="header-section-number">2.4</span> Choice of Tools</a></li>
+  <li><a href="#data-sources" id="toc-data-sources" class="nav-link" data-scroll-target="#data-sources"><span class="header-section-number">2.5</span> Data Sources</a>
+  <ul class="collapse">
+  <li><a href="#overview-of-input-files" id="toc-overview-of-input-files" class="nav-link" data-scroll-target="#overview-of-input-files"><span class="header-section-number">2.5.1</span> Overview of Input Files</a></li>
+  <li><a href="#sop-volumes-structure" id="toc-sop-volumes-structure" class="nav-link" data-scroll-target="#sop-volumes-structure"><span class="header-section-number">2.5.2</span> SOP Volumes Structure</a></li>
+  <li><a href="#data-quality-challenges" id="toc-data-quality-challenges" class="nav-link" data-scroll-target="#data-quality-challenges"><span class="header-section-number">2.5.3</span> Data Quality Challenges</a></li>
+  </ul></li>
+  </ul></li>
+  <li><a href="#pipeline-design-and-methodology" id="toc-pipeline-design-and-methodology" class="nav-link" data-scroll-target="#pipeline-design-and-methodology"><span class="header-section-number">3</span> Pipeline Design and Methodology</a>
+  <ul class="collapse">
+  <li><a href="#architecture-overview" id="toc-architecture-overview" class="nav-link" data-scroll-target="#architecture-overview"><span class="header-section-number">3.1</span> Architecture Overview</a></li>
+  <li><a href="#data-ingestion-and-normalisation" id="toc-data-ingestion-and-normalisation" class="nav-link" data-scroll-target="#data-ingestion-and-normalisation"><span class="header-section-number">3.2</span> Data Ingestion and Normalisation</a></li>
+  <li><a href="#revenue-account-logic" id="toc-revenue-account-logic" class="nav-link" data-scroll-target="#revenue-account-logic"><span class="header-section-number">3.3</span> Revenue Account Logic</a>
+  <ul class="collapse">
+  <li><a href="#account-skeleton" id="toc-account-skeleton" class="nav-link" data-scroll-target="#account-skeleton"><span class="header-section-number">3.3.1</span> Account Skeleton</a></li>
+  <li><a href="#volume-join" id="toc-volume-join" class="nav-link" data-scroll-target="#volume-join"><span class="header-section-number">3.3.2</span> Volume Join</a></li>
+  <li><a href="#value-calculation" id="toc-value-calculation" class="nav-link" data-scroll-target="#value-calculation"><span class="header-section-number">3.3.3</span> Value Calculation</a></li>
+  <li><a href="#revenue-account-coverage" id="toc-revenue-account-coverage" class="nav-link" data-scroll-target="#revenue-account-coverage"><span class="header-section-number">3.3.4</span> Revenue Account Coverage</a></li>
+  </ul></li>
+  <li><a href="#expense-account-logic" id="toc-expense-account-logic" class="nav-link" data-scroll-target="#expense-account-logic"><span class="header-section-number">3.4</span> Expense Account Logic</a>
+  <ul class="collapse">
+  <li><a href="#packaging-variants" id="toc-packaging-variants" class="nav-link" data-scroll-target="#packaging-variants"><span class="header-section-number">3.4.1</span> Packaging Variants</a></li>
+  <li><a href="#freight-cost-allocation" id="toc-freight-cost-allocation" class="nav-link" data-scroll-target="#freight-cost-allocation"><span class="header-section-number">3.4.2</span> Freight Cost Allocation</a></li>
+  <li><a href="#special-customer-contracts" id="toc-special-customer-contracts" class="nav-link" data-scroll-target="#special-customer-contracts"><span class="header-section-number">3.4.3</span> Special Customer Contracts</a></li>
+  </ul></li>
+  <li><a href="#cross-site-logic" id="toc-cross-site-logic" class="nav-link" data-scroll-target="#cross-site-logic"><span class="header-section-number">3.5</span> Cross-Site Logic</a></li>
+  </ul></li>
+  <li><a href="#quality-assurance-gap-check" id="toc-quality-assurance-gap-check" class="nav-link" data-scroll-target="#quality-assurance-gap-check"><span class="header-section-number">4</span> Quality Assurance: Gap Check</a>
+  <ul class="collapse">
+  <li><a href="#motivation" id="toc-motivation" class="nav-link" data-scroll-target="#motivation"><span class="header-section-number">4.1</span> Motivation</a></li>
+  <li><a href="#output-structure" id="toc-output-structure" class="nav-link" data-scroll-target="#output-structure"><span class="header-section-number">4.2</span> Output Structure</a></li>
+  <li><a href="#checks-implemented" id="toc-checks-implemented" class="nav-link" data-scroll-target="#checks-implemented"><span class="header-section-number">4.3</span> Checks Implemented</a></li>
+  <li><a href="#usage-workflow" id="toc-usage-workflow" class="nav-link" data-scroll-target="#usage-workflow"><span class="header-section-number">4.4</span> Usage Workflow</a></li>
+  </ul></li>
+  <li><a href="#results-and-evaluation" id="toc-results-and-evaluation" class="nav-link" data-scroll-target="#results-and-evaluation"><span class="header-section-number">5</span> Results and Evaluation</a>
+  <ul class="collapse">
+  <li><a href="#before-and-after-comparison" id="toc-before-and-after-comparison" class="nav-link" data-scroll-target="#before-and-after-comparison"><span class="header-section-number">5.1</span> Before and After Comparison</a></li>
+  <li><a href="#account-coverage-achieved" id="toc-account-coverage-achieved" class="nav-link" data-scroll-target="#account-coverage-achieved"><span class="header-section-number">5.2</span> Account Coverage Achieved</a></li>
+  <li><a href="#data-quality-improvement" id="toc-data-quality-improvement" class="nav-link" data-scroll-target="#data-quality-improvement"><span class="header-section-number">5.3</span> Data Quality Improvement</a></li>
+  </ul></li>
+  <li><a href="#discussion-and-limitations" id="toc-discussion-and-limitations" class="nav-link" data-scroll-target="#discussion-and-limitations"><span class="header-section-number">6</span> Discussion and Limitations</a>
+  <ul class="collapse">
+  <li><a href="#current-limitations" id="toc-current-limitations" class="nav-link" data-scroll-target="#current-limitations"><span class="header-section-number">6.1</span> Current Limitations</a></li>
+  <li><a href="#future-improvements" id="toc-future-improvements" class="nav-link" data-scroll-target="#future-improvements"><span class="header-section-number">6.2</span> Future Improvements</a></li>
+  </ul></li>
+  <li><a href="#conclusion" id="toc-conclusion" class="nav-link" data-scroll-target="#conclusion"><span class="header-section-number">7</span> Conclusion</a></li>
+  <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references"><span class="header-section-number">8</span> References</a></li>
+  </ul>
+</nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Automating Financial Account Creation</h1>
+<p class="subtitle lead">An R Pipeline for SOP-to-Database Reporting at JBS Australia</p>
+</div>
+
+
+<div class="quarto-title-meta-author">
+  <div class="quarto-title-meta-heading">Author</div>
+  <div class="quarto-title-meta-heading">Affiliation</div>
+  
+    <div class="quarto-title-meta-contents">
+    <p class="author">Andy Tran </p>
+  </div>
+  <div class="quarto-title-meta-contents">
+        <p class="affiliation">
+            Department of Econometrics and Business Statistics, Monash University
+          </p>
+      </div>
+  </div>
+
+<div class="quarto-title-meta">
+
+      
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">June 1, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<div style="position: fixed; top: 15px; right: 20px; z-index: 9999;">
+  <img src="jbs_logo.png" style="width: 120px;">
+</div>
+<p><strong>Git Repository:</strong> <a href="https://github.com/Jakey-vn/ETC5543_Project" class="uri">https://github.com/Jakey-vn/ETC5543_Project</a></p>
+<p><strong>Generative AI Acknowledgement:</strong> Claude (Anthropic) was used to assist with structuring and drafting sections of this report, as well as debugging R code during development. All analysis, design decisions, and conclusions are the author’s own.</p>
+<hr>
+<section id="introduction" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> Introduction</h1>
+<p><img src="jbs_picture.jpg" class="img-fluid" style="width:100.0%"></p>
+<section id="about-jbs" class="level2" data-number="1.1">
+<h2 data-number="1.1" class="anchored" data-anchor-id="about-jbs"><span class="header-section-number">1.1</span> About JBS</h2>
+<p>JBS N.V. is a Brazilian multinational founded in 1953 in Anápolis, Goiás, and is the world’s largest meat processing enterprise by revenue. Headquartered in São Paulo and Amsterdam, the company processes beef, pork, chicken, lamb, and salmon. As of 2025, JBS operates more than 250 production facilities worldwide, with its products reaching consumers in 180 countries. In Australia, the company operates multiple beef, pork, and lamb processing facilities under several distinct business divisions.</p>
+</section>
+<section id="jbs-australia-pork-rivalea" class="level2" data-number="1.2">
+<h2 data-number="1.2" class="anchored" data-anchor-id="jbs-australia-pork-rivalea"><span class="header-section-number">1.2</span> JBS Australia Pork (Rivalea)</h2>
+<p>JBS Pork Australia, formerly known as Rivalea is the pork division of JBS in Australia, and the host organisation for this internship. Operating across Victoria and New South Wales, it is the country’s leading integrated pork producer, accounting for approximately 15% of Australia’s total domestic pork production and around 26% of the local fresh pork market share. The division supports high-quality pork production for both domestic and export markets through extensive agricultural, processing, and marketing operations.</p>
+</section>
+<section id="the-finance-team" class="level2" data-number="1.3">
+<h2 data-number="1.3" class="anchored" data-anchor-id="the-finance-team"><span class="header-section-number">1.3</span> The Finance Team</h2>
+<p>The Finance Team, where the author is currently interning, is responsible for generating financial reports on a weekly and monthly basis, covering two processing sites operated by JBS Pork Australia:</p>
+<ul>
+<li><strong>Corowa</strong> (New South Wales): the primary site, covering Farming Operations, Kill Floor, Boning Room, Boxed Meat, Offal, Commodity Bone, and Meat Trade</li>
+<li><strong>Laverton</strong> (Victoria): a secondary site handling Kill Floor, Boning Room, Boxed Meat, Offal, Commodity (chilled and frozen), and Sow Bone</li>
+</ul>
+<p>Across these two sites, financial account entries must be generated for each reporting period. These entries capture revenue (sales of various product categories) and expenses (packaging, trade allowances, storage, and freight), broken down by Business Unit (BU), GL account, Cost Centre, and month.</p>
+</section>
+<section id="key-terms" class="level2" data-number="1.4">
+<h2 data-number="1.4" class="anchored" data-anchor-id="key-terms"><span class="header-section-number">1.4</span> Key Terms</h2>
+<p>The following terms appear throughout this report. Readers from outside financial accounting or meat processing may find these definitions useful.</p>
+<section id="financial-terminology" class="level3" data-number="1.4.1">
+<h3 data-number="1.4.1" class="anchored" data-anchor-id="financial-terminology"><span class="header-section-number">1.4.1</span> Financial Terminology</h3>
+<p><strong>General Ledger (GL) Account</strong> - A numbered account in the company’s accounting system that categorises every financial transaction. Revenue from selling Boxed Meat, for example, posts to a different GL account than the expense for packaging materials. The GL account determines <em>what</em> a transaction represents in the accounts.</p>
+<p><strong>Cost Centre (CC)</strong> - A code that identifies <em>where</em> a cost or revenue belongs within the organisation - for example, the Boning Room at Corowa versus the Kill Floor at Laverton. GL account and Cost Centre together form the two-part key used to route every database row to the correct place in the financial system.</p>
+<p><strong>Business Unit (BU)</strong> - A distinct operational segment of the business. Each BU has its own set of GL accounts and Cost Centres, and the pipeline generates a separate block of database rows for each one.</p>
+<p><strong>Value-Add (VA)</strong> - Products that undergo an additional processing step to increase their market value beyond the base cut. A marinated pork loin is a typical example: the raw loin is transformed into a higher-value retail product through seasoning and packaging. VA products are reported under the Meat Sales Business Unit.</p>
+</section>
+<section id="business-units" class="level3" data-number="1.4.2">
+<h3 data-number="1.4.2" class="anchored" data-anchor-id="business-units"><span class="header-section-number">1.4.2</span> Business Units</h3>
+<p>Each processing site is divided into Business Units that fall into two categories: <strong>production operations</strong> (stages in the physical processing chain) and <strong>product categories</strong> (the type of product being reported on).</p>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart LR
+    BU["Business Unit (BU)"]
+    BU --&gt; OPS["Production Operations&lt;br/&gt;(where in the process)"]
+    BU --&gt; PROD["Product Categories&lt;br/&gt;(type of product)"]
+    OPS --&gt; FO["Farming Operations"]
+    OPS --&gt; KF["Kill Floor"]
+    OPS --&gt; BR["Boning Room"]
+    PROD --&gt; BM["Boxed Meat"]
+    PROD --&gt; OF["Offal"]
+    PROD --&gt; CB["Commodity Bone"]
+    PROD --&gt; MT["Meat Trade"]
+    PROD --&gt; SB["Sow Bone"]
+    PROD --&gt; SW["6Way"]
+    PROD --&gt; MS["Meat Sales"]
+
+    classDef rootNode fill:#d6eaf8,stroke:#2980b9,color:#1a5276,font-size:12px
+    classDef opsNode fill:#a9dfbf,stroke:#1e8449,color:#1a5276,font-size:12px
+    classDef prodNode fill:#fad7a0,stroke:#ca6f1e,color:#1a5276,font-size:12px
+    classDef opsLeaf fill:#d5f5e3,stroke:#1e8449,color:#1a5276,font-size:11px
+    classDef prodLeaf fill:#fef9e7,stroke:#ca6f1e,color:#1a5276,font-size:11px
+
+    class BU rootNode
+    class OPS opsNode
+    class PROD prodNode
+    class FO,KF,BR opsLeaf
+    class BM,OF,CB,MT,SB,SW,MS prodLeaf
+</pre>
+</div>
+<p></p></figure><p></p>
+</div>
+</div>
+</div>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Type</th>
+<th>Business Unit</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Production Operation</td>
+<td>Farming Operations</td>
+<td>Covers the farm stage of the supply chain - livestock rearing, feed costs, and farm-level expenses before pigs reach the processing facility</td>
+</tr>
+<tr class="even">
+<td>Production Operation</td>
+<td>Kill Floor</td>
+<td>The slaughter and primary carcass breakdown stage</td>
+</tr>
+<tr class="odd">
+<td>Production Operation</td>
+<td>Boning Room</td>
+<td>Separation of meat from bone after slaughter</td>
+</tr>
+<tr class="even">
+<td>Product Category</td>
+<td>Boxed Meat</td>
+<td>Portioned and vacuum-packed cuts prepared for sale</td>
+</tr>
+<tr class="odd">
+<td>Product Category</td>
+<td>Offal</td>
+<td>Co-products such as organs and secondary cuts</td>
+</tr>
+<tr class="even">
+<td>Product Category</td>
+<td>Commodity Bone</td>
+<td>Bone material sold as a commodity, either chilled or frozen</td>
+</tr>
+<tr class="odd">
+<td>Product Category</td>
+<td>Meat Sales</td>
+<td>Value-Add (VA) products sold with revenue; see <em>VA</em> in Financial Terminology above</td>
+</tr>
+<tr class="even">
+<td>Product Category</td>
+<td>Meat Trade</td>
+<td>Represents meat volume transferred from Laverton to Corowa for further processing or sale</td>
+</tr>
+<tr class="odd">
+<td>Product Category</td>
+<td>Sow Bone</td>
+<td>Bone from sow (female pig) carcasses; Laverton site only</td>
+</tr>
+<tr class="even">
+<td>Product Category</td>
+<td>6Way</td>
+<td>A pork carcass cut into six standard portions; revenue is tracked as a distinct product line</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="supply-chain-and-cost-terms" class="level3" data-number="1.4.3">
+<h3 data-number="1.4.3" class="anchored" data-anchor-id="supply-chain-and-cost-terms"><span class="header-section-number">1.4.3</span> Supply Chain and Cost Terms</h3>
+<p><strong>SOP Team (Sales &amp; Operations Planning)</strong> - The team responsible for forecasting production volumes and coordinating supply with demand. Their weekly SOP Volumes spreadsheet is the primary source of volume data for this pipeline.</p>
+<p><strong>Trade Discounts</strong> - Negotiated price reductions applied to specific customers or product lines. Rather than reducing the sale price directly, these are recorded as a separate expense line in the database.</p>
+<p><strong>Packaging Costs</strong> - The cost of materials used to pack finished product (vacuum bags, cartons, labels). These are calculated per kilogram of product and assigned as an expense account entry.</p>
+<p><strong>Storage Rates</strong> - Charges for holding product in chilled or frozen storage before dispatch. Applied to Commodity Bone and certain other product lines based on volume.</p>
+<p><strong>Freight</strong> - The cost of transporting product from the processing site to the customer. Rates vary by product line and are sourced from the Rates &amp; Allocation file.</p>
+</section>
+</section>
+<section id="report-structure" class="level2" data-number="1.5">
+<h2 data-number="1.5" class="anchored" data-anchor-id="report-structure"><span class="header-section-number">1.5</span> Report Structure</h2>
+<p>Section 2 provides background on the problem, the previous Excel-based solution, the rationale for choosing R, and the five input data sources. Section 3 describes the pipeline architecture and calculation methodology for both revenue and expense accounts. Section 4 documents the Gap Check quality assurance tool. Section 5 evaluates the pipeline against the manual process. Section 6 discusses current limitations and future improvements. Section 7 concludes.</p>
+<hr>
+</section>
+</section>
+<section id="background" class="level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> Background</h1>
+<section id="the-problem" class="level2" data-number="2.1">
+<h2 data-number="2.1" class="anchored" data-anchor-id="the-problem"><span class="header-section-number">2.1</span> The Problem</h2>
+<p>The Finance Team’s goal was to build a monthly financial report that could be refreshed each period with updated values, giving managers a clear picture of all products, categories, and revenue across both sites. The intended output was a structured database that anyone could query to retrieve information such as which products were produced at Corowa, what revenue they generated, and which General Ledger (GL) account and Cost Centre they belonged to.</p>
+<p>Building this report required bringing together data from multiple sources:</p>
+<ol type="1">
+<li>Volume data from the SOP Volumes spreadsheet, sourced from the S&amp;OP team</li>
+<li>Prices maintained by the Sales team and stored in a separate binary file (<code>Prices.xlsb</code>)</li>
+<li>GL and Cost Centre codes assigned from a Master Data file maintained by NAM and Commercial Finance</li>
+<li>Trade discounts, packaging costs, storage rates, and freight charges from two additional files provided by the Sales team and Business Planning Manager</li>
+</ol>
+</section>
+<section id="previous-solution" class="level2" data-number="2.2">
+<h2 data-number="2.2" class="anchored" data-anchor-id="previous-solution"><span class="header-section-number">2.2</span> Previous Solution</h2>
+<p>Prior to this project, the Commercial Finance Manager had implemented the report in Excel. While functional, the workbook grew to more than 20 sheets to accommodate the full scope of accounts across two sites and multiple Business Units. This scale made the file difficult to navigate, verify, and maintain. The process was not reproducible: each new reporting period required significant manual re-work, and the transformation logic was spread implicitly across sheet formulas rather than documented in any single place.</p>
+<p>The number of accounts involved compounded the risk. Two sites, multiple Business Units, twelve months, and numerous product categories each generate separate database rows. Any error like a missed row, an incorrect price lookup, or a copy-paste mistake would propagate into the financial database without automatic detection. Because the process had to be repeated every reporting period, this risk recurred each time.</p>
+</section>
+<section id="the-r-pipeline-solution" class="level2" data-number="2.3">
+<h2 data-number="2.3" class="anchored" data-anchor-id="the-r-pipeline-solution"><span class="header-section-number">2.3</span> The R Pipeline Solution</h2>
+<p>To address these limitations, this project re-implemented the pipeline in R. Unlike the Excel workbook, an R script is plain text that can be version-controlled in Git: every change to the logic is recorded with a timestamp and author, creating a full audit trail. The pipeline is fully reproducible: running the script on any machine with access to the shared OneDrive folder will always produce the same output from the same source files.</p>
+<p>The modular structure of the R code means adding a new Business Unit or adjusting a calculation requires editing one clearly-defined function rather than restructuring an entire workbook. A built-in quality assurance tool called “Gap Check” was developed to surface data integrity issues automatically before any output is submitted, replacing the manual spot-checks that the Excel approach required.</p>
+</section>
+<section id="choice-of-tools" class="level2" data-number="2.4">
+<h2 data-number="2.4" class="anchored" data-anchor-id="choice-of-tools"><span class="header-section-number">2.4</span> Choice of Tools</h2>
+<p><strong>R</strong> was selected as the primary language for this project for several practical reasons:</p>
+<ul>
+<li>JBS source files are Excel-based (<code>.xlsx</code> and <code>.xlsb</code>). The <code>readxl</code> and <code>openxlsx2</code> packages in R provide reliable, well-tested support for both formats, including multi-sheet workbooks and binary <code>.xlsb</code> files that other tools handle poorly.</li>
+<li>The <code>tidyverse</code> ecosystem, particularly <code>dplyr</code> and <code>tidyr</code> allows complex multi-file joins, filters, and transformations to be expressed in a clear, readable style that can be reviewed by colleagues without deep programming knowledge.</li>
+<li><code>openxlsx</code> enables the pipeline to write formatted Excel output (the Gap Check report), which is the format most accessible to the finance team.</li>
+</ul>
+<p><strong>Quarto</strong> (<code>.qmd</code>) was used as the document format. Quarto allows R code and written documentation to coexist in a single file, so the pipeline logic and its explanation are maintained together. It renders to HTML for interactive review and integrates naturally with Git version control.</p>
+</section>
+<section id="data-sources" class="level2" data-number="2.5">
+<h2 data-number="2.5" class="anchored" data-anchor-id="data-sources"><span class="header-section-number">2.5</span> Data Sources</h2>
+<section id="overview-of-input-files" class="level3" data-number="2.5.1">
+<h3 data-number="2.5.1" class="anchored" data-anchor-id="overview-of-input-files"><span class="header-section-number">2.5.1</span> Overview of Input Files</h3>
+<p>The pipeline reads five files at runtime. All files are stored in a shared OneDrive folder, so the pipeline always uses the most current version without a manual download step.</p>
+<div class="cell">
+<div id="tbl-sources" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-sources-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;1: Pipeline input files and their roles
+</figcaption>
+<div aria-describedby="tbl-sources-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output-display">
+<table class="table do-not-create-environment cell caption-top table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: left;" data-quarto-table-cell-role="th">File</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">Contents</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">Maintained By</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">SOP Volumes.xlsx</td>
+<td style="text-align: left;">Weekly volumes by Farm / Bone / VA product lines</td>
+<td style="text-align: left;">S&amp;OP Team</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Prices.xlsb</td>
+<td style="text-align: left;">Carcass price, Kill fee, Bone fee, Item prices, Packaging rates</td>
+<td style="text-align: left;">Sales Team</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Master Data.xlsx</td>
+<td style="text-align: left;">GL accounts, Cost Centre keys, Customer list, VA brand mapping</td>
+<td style="text-align: left;">NAM &amp; Commercial Finance</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Trade Allowance.xlsx</td>
+<td style="text-align: left;">Trade discount rates per customer</td>
+<td style="text-align: left;">Business Partner Manager</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Rates &amp; Allocation.xlsx</td>
+<td style="text-align: left;">VA brand allocations, freight rates, storage rates</td>
+<td style="text-align: left;">Business Partner Manager</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+</section>
+<section id="sop-volumes-structure" class="level3" data-number="2.5.2">
+<h3 data-number="2.5.2" class="anchored" data-anchor-id="sop-volumes-structure"><span class="header-section-number">2.5.2</span> SOP Volumes Structure</h3>
+<p>The SOP Volumes file contains a single sheet (<code>Sheet1</code>) with all product-customer-week-month combinations across both sites. A key column (column 2) identifies the product category type for each row:</p>
+<ul>
+<li><code>Farm</code>, <code>Kill</code>, <code>Bone</code> - livestock and primary processing operations (Farm tab)</li>
+<li><code>2.Meat Processing</code>, <code>6.Laverton Processing</code> - bone room and boxed meat (Bone tab)</li>
+<li><code>3.Meat Sales</code> - value-added products (VA tab)</li>
+</ul>
+<p>The file is loaded entirely as character text with no headers at import time, then split into three separate data frames based on this identifier column. This approach avoids type-parsing failures that arise from mixed numeric and text columns, which are common when R attempts to auto-detect column types in complex spreadsheets.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load raw volume as text - avoids type-parse errors on mixed columns</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>volume_raw <span class="ot">&lt;-</span> <span class="fu">read_excel</span>(</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="st">"C:/Users/ATran2/OneDrive - JBS/Forecast Project - Documents/SOP Volumes.xlsx"</span>,</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">sheet    =</span> <span class="st">"Sheet1"</span>,</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">col_names =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">col_types =</span> <span class="st">"text"</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Split into three data frames by product category identifier</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>volume_farm_raw <span class="ot">&lt;-</span> volume_raw <span class="sc">%&gt;%</span> <span class="fu">filter</span>(<span class="st">`</span><span class="at">...2</span><span class="st">`</span> <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"Farm"</span>, <span class="st">"Kill"</span>, <span class="st">"Bone"</span>))</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>volume_bone_raw <span class="ot">&lt;-</span> volume_raw <span class="sc">%&gt;%</span> <span class="fu">filter</span>(<span class="st">`</span><span class="at">...2</span><span class="st">`</span> <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"2.Meat Processing"</span>, <span class="st">"6.Laverton Processing"</span>))</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>volume_va_raw   <span class="ot">&lt;-</span> volume_raw <span class="sc">%&gt;%</span> <span class="fu">filter</span>(<span class="st">`</span><span class="at">...2</span><span class="st">`</span> <span class="sc">==</span> <span class="st">"3.Meat Sales"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+</section>
+<section id="data-quality-challenges" class="level3" data-number="2.5.3">
+<h3 data-number="2.5.3" class="anchored" data-anchor-id="data-quality-challenges"><span class="header-section-number">2.5.3</span> Data Quality Challenges</h3>
+<p>Source data quality was one of the most significant recurring challenges during development. Several categories of issues were encountered:</p>
+<p><strong>Inconsistent naming.</strong> Customer and product names in SOP Volumes contained trailing whitespace, inconsistent capitalisation, and occasional typos. These caused silent join failures - rows that should have matched a Master Data entry produced <code>NA</code> instead and were lost from the output. The solution was to apply <code>str_trim()</code> and <code>toupper()</code> to all key join columns before performing any merge.</p>
+<p><strong>Missing price entries.</strong> <code>Prices.xlsb</code> frequently lacked entries for newer item codes not yet added to the price reference sheets. Revenue rows for those items would produce <code>NA</code> values without any visible warning. This issue directly motivated the design of the Gap Check (Section 5).</p>
+<p><strong>Missing classification fields.</strong> Commodity Bone rows require a <code>Storage</code> field (<code>CHILLED</code> or <code>FROZEN</code>) to route to the correct account. When this field was blank or contained an unrecognised value, those rows could not be correctly categorised and were excluded from the output.</p>
+<p><strong>Incomplete Master Data.</strong> If a customer or GL account entry was absent from Master Data, the corresponding volume rows had no account to join to and were silently dropped. The Gap Check reconciliation table was designed to make this visible.</p>
+<hr>
+</section>
+</section>
+</section>
+<section id="pipeline-design-and-methodology" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> Pipeline Design and Methodology</h1>
+<section id="architecture-overview" class="level2" data-number="3.1">
+<h2 data-number="3.1" class="anchored" data-anchor-id="architecture-overview"><span class="header-section-number">3.1</span> Architecture Overview</h2>
+<p>The pipeline follows a three-stage pattern that is applied consistently to every Business Unit:</p>
+<ol type="1">
+<li><p><strong>Build account skeleton</strong> - Pull all relevant customers from Master Data and cross them with the correct GL account and Cost Centre key, then expand across all 12 months using <code>crossing(Period = 1:12)</code>. Building the skeleton first ensures that months with zero volume still produce a row in the database, rather than being silently absent from the output.</p></li>
+<li><p><strong>Join SOP volume</strong> - Match source volume rows from SOP Volumes onto the skeleton using a composite key (SOP Unicode or Item Code + Abattoir + Month + Tab). A left join is used so that skeleton rows with no matching volume retain a zero rather than being dropped - this is important for completeness in the final database.</p></li>
+<li><p><strong>Calculate financial value</strong> - Multiply the joined volume by the appropriate rate to produce a dollar value for each row. The rate source differs by tab type: Carcass Price per kg for Farm rows, Kill Fee per head for Kill rows, and Bone Fee per head for Bone rows. For expense accounts, rates are joined from Prices.xlsb, Trade Allowance, or Rates &amp; Allocation depending on the expense category.</p></li>
+</ol>
+<p>As a concrete example: for Farming Operations at Corowa, the skeleton contains all Corowa farm customers with GL 400000, replicated across 12 months. SOP volume rows for January are matched to their skeleton counterparts, and the resulting weight is multiplied by the carcass price to produce the January revenue value for each customer.</p>
+<p>The diagram below shows how the five source files interconnect at the system level, and how data flows from raw inputs through revenue and expense calculations into the final financial database.</p>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">%%{init: {'flowchart': {'nodeSpacing': 40, 'rankSpacing': 60}}}%%
+flowchart TD
+    subgraph ext ["Other Teams"]
+        A["SOP Volumes.xlsx&lt;br/&gt;S&amp;OP Team"]
+        B["Prices.xlsb&lt;br/&gt;Sales Team"]
+        C["Trade Allow.xlsx&lt;br/&gt;BP Manager"]
+        D["Rates &amp; Alloc.xlsx&lt;br/&gt;BP Manager"]
+    end
+
+    subgraph fin ["Finance Team"]
+        M["Master Data.xlsx&lt;br/&gt;NAM &amp; Comm. Finance"]
+    end
+
+    subgraph dev ["Development &amp; QA"]
+        DC["Debug Code (Development Checks)"]
+        DC --&gt; G["Gap_Check.R (QA Tool)"]
+    end
+
+    A  --&gt; FV["Financial Values (Volume × Price)"]
+    B  --&gt; FV
+    B  --&gt; ED
+
+    M  --&gt; RA["Revenue Accounts"]
+    M  --&gt; EA["Expense Accounts"]
+
+    FV --&gt; RD["Revenue Data"]
+    RA --&gt; RD
+
+    FV --&gt; ED["Expense Data"]
+    EA --&gt; ED
+    C  --&gt; ED
+    D  --&gt; ED
+
+    RD --&gt; DB[("Financial Database")]
+    ED --&gt; DB
+
+    DB &lt;--&gt; G
+
+    classDef extNode fill:#fad7a0,stroke:#ca6f1e,color:#1a5276,font-size:12px
+    classDef finNode fill:#a9dfbf,stroke:#1e8449,color:#1a5276,font-size:12px
+    classDef devNode fill:#d7bde2,stroke:#7d3c98,color:#1a5276,font-size:12px
+    classDef pipeNode fill:#d6eaf8,stroke:#2980b9,color:#1a5276,font-size:12px
+
+    class A,B,C,D extNode
+    class M finNode
+    class DC,G devNode
+    class FV,RA,EA,RD,ED,DB pipeNode
+
+    style ext fill:#fef9e7,stroke:#ca6f1e,color:#ca6f1e,font-size:13px
+    style fin fill:#d5f5e3,stroke:#1e8449,color:#1e8449,font-size:13px
+    style dev fill:#f4ecf7,stroke:#7d3c98,color:#7d3c98,font-size:13px
+</pre>
+</div>
+<p></p></figure><p></p>
+</div>
+</div>
+</div>
+</section>
+<section id="data-ingestion-and-normalisation" class="level2" data-number="3.2">
+<h2 data-number="3.2" class="anchored" data-anchor-id="data-ingestion-and-normalisation"><span class="header-section-number">3.2</span> Data Ingestion and Normalisation</h2>
+<p>All five files are read at the start of the pipeline. Normalisation is applied immediately after reading, before any joins are performed. The key normalisation steps are:</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Normalise key columns before any joins are attempted</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>bone_base <span class="ot">&lt;-</span> volume_bone_raw <span class="sc">%&gt;%</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">`</span><span class="at">Item Code</span><span class="st">`</span>    <span class="ot">=</span> <span class="fu">str_trim</span>(<span class="st">`</span><span class="at">Item Code</span><span class="st">`</span>),</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">Run            =</span> <span class="fu">toupper</span>(Run),</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">Type           =</span> <span class="fu">toupper</span>(Type),</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">Storage        =</span> <span class="fu">toupper</span>(Storage),</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">Abattoir       =</span> <span class="fu">toupper</span>(Abattoir),</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">Month          =</span> <span class="fu">toupper</span>(Month),</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">Tab            =</span> <span class="fu">toupper</span>(Tab),</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="st">`</span><span class="at">Total Weight</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">as.numeric</span>(<span class="st">`</span><span class="at">Total Weight</span><span class="st">`</span>)</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>The <code>BU</code> naming in <code>gl_cc_data</code> also required cleaning: the raw file contained inconsistent spacing after numeric prefixes (e.g., <code>"1. Farming"</code> vs <code>"1.Farming"</code>), which would silently break the skeleton join. A regex substitution resolved this:</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>gl_cc_data <span class="ot">&lt;-</span> gl_cc_data <span class="sc">%&gt;%</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">BU =</span> <span class="fu">str_replace_all</span>(BU, <span class="st">"(</span><span class="sc">\\</span><span class="st">d+</span><span class="sc">\\</span><span class="st">.)</span><span class="sc">\\</span><span class="st">s+"</span>, <span class="st">"</span><span class="sc">\\</span><span class="st">1"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+</section>
+<section id="revenue-account-logic" class="level2" data-number="3.3">
+<h2 data-number="3.3" class="anchored" data-anchor-id="revenue-account-logic"><span class="header-section-number">3.3</span> Revenue Account Logic</h2>
+<section id="account-skeleton" class="level3" data-number="3.3.1">
+<h3 data-number="3.3.1" class="anchored" data-anchor-id="account-skeleton"><span class="header-section-number">3.3.1</span> Account Skeleton</h3>
+<p>For each Business Unit, the first step builds a complete set of account rows from Master Data. This skeleton defines the shape of the output - every possible GL + Cost Centre + Customer combination - before any volume is joined. Using <code>crossing(Period = 1:12)</code> ensures one row per month for each account, so months with zero volume still appear in the output rather than being silently absent.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>account_rows <span class="ot">&lt;-</span> customer_data <span class="sc">%&gt;%</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(BU <span class="sc">==</span> <span class="st">"1.Farming Operations"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(gl_cc_data, <span class="at">by =</span> <span class="st">"BU"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">crossing</span>(<span class="at">Period =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">12</span>)   <span class="co"># ensures all 12 months are present</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+</section>
+<section id="volume-join" class="level3" data-number="3.3.2">
+<h3 data-number="3.3.2" class="anchored" data-anchor-id="volume-join"><span class="header-section-number">3.3.2</span> Volume Join</h3>
+<p>Volume is joined onto the skeleton using a composite key. For Farm tab rows, the join key is SOP Unicode + Abattoir + Month + Tab:</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>account_rows <span class="sc">%&gt;%</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    volume_farm_raw,</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"SOP Unicode"</span> <span class="ot">=</span> <span class="st">"Unicode"</span>, <span class="st">"Abattoir"</span>, <span class="st">"Month"</span>, <span class="st">"Tab"</span>)</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+</section>
+<section id="value-calculation" class="level3" data-number="3.3.3">
+<h3 data-number="3.3.3" class="anchored" data-anchor-id="value-calculation"><span class="header-section-number">3.3.3</span> Value Calculation</h3>
+<p>The calculation formula differs by tab type:</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mutate</span>(<span class="at">Value =</span> <span class="fu">case_when</span>(</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  Tab <span class="sc">==</span> <span class="st">"FARM"</span> <span class="sc">~</span> Total_Weight <span class="sc">*</span> Carcass_Price,</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  Tab <span class="sc">==</span> <span class="st">"KILL"</span> <span class="sc">~</span> Units        <span class="sc">*</span> Kill_Fee,</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  Tab <span class="sc">==</span> <span class="st">"BONE"</span> <span class="sc">~</span> Units        <span class="sc">*</span> Bone_Fee</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>The table below illustrates the expected output for one representative Business Unit after all three steps:</p>
+<div class="cell">
+<div id="tbl-revenue-mock" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-revenue-mock-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;2: Illustrative revenue calculation output for one Business Unit
+</figcaption>
+<div aria-describedby="tbl-revenue-mock-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output-display">
+<table class="table do-not-create-environment cell caption-top table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: left;" data-quarto-table-cell-role="th">Tab</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Units</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Weight (kg)</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">Rate</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Value ($)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">FARM</td>
+<td style="text-align: right;">120</td>
+<td style="text-align: right;">18500</td>
+<td style="text-align: left;">$3.25/kg</td>
+<td style="text-align: right;">60125</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">KILL</td>
+<td style="text-align: right;">120</td>
+<td style="text-align: right;">18500</td>
+<td style="text-align: left;">$45.50/hd</td>
+<td style="text-align: right;">5460</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">BONE</td>
+<td style="text-align: right;">85</td>
+<td style="text-align: right;">12000</td>
+<td style="text-align: left;">$28.00/hd</td>
+<td style="text-align: right;">2380</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+</section>
+<section id="revenue-account-coverage" class="level3" data-number="3.3.4">
+<h3 data-number="3.3.4" class="anchored" data-anchor-id="revenue-account-coverage"><span class="header-section-number">3.3.4</span> Revenue Account Coverage</h3>
+<p>The pipeline covers two distinct GL accounts for most Business Units:</p>
+<ul>
+<li><strong>GL 400000</strong> - sales to external customers</li>
+<li><strong>GL 400028</strong> - intercompany sales between JBS sites</li>
+</ul>
+<div class="cell">
+<div id="tbl-rev-coverage" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-rev-coverage-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;3: Revenue account coverage by site and Business Unit
+</figcaption>
+<div aria-describedby="tbl-rev-coverage-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output-display">
+<table class="table do-not-create-environment cell caption-top table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: left;" data-quarto-table-cell-role="th">Site</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">Business Unit</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left; color: rgba(30, 132, 73, 255) !important; background-color: rgba(213, 245, 227, 255) !important;">Corowa</td>
+<td style="text-align: left; color: rgba(30, 132, 73, 255) !important; background-color: rgba(213, 245, 227, 255) !important;">1. Farming Operations</td>
+</tr>
+<tr class="even">
+<td style="text-align: left; color: rgba(30, 132, 73, 255) !important; background-color: rgba(213, 245, 227, 255) !important;">Corowa</td>
+<td style="text-align: left; color: rgba(30, 132, 73, 255) !important; background-color: rgba(213, 245, 227, 255) !important;">2. Meat Processing - Kill Floor</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left; color: rgba(30, 132, 73, 255) !important; background-color: rgba(213, 245, 227, 255) !important;">Corowa</td>
+<td style="text-align: left; color: rgba(30, 132, 73, 255) !important; background-color: rgba(213, 245, 227, 255) !important;">2. Meat Processing - Boning Room</td>
+</tr>
+<tr class="even">
+<td style="text-align: left; color: rgba(30, 132, 73, 255) !important; background-color: rgba(213, 245, 227, 255) !important;">Corowa</td>
+<td style="text-align: left; color: rgba(30, 132, 73, 255) !important; background-color: rgba(213, 245, 227, 255) !important;">2. Meat Processing - Boxed Meat</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left; color: rgba(30, 132, 73, 255) !important; background-color: rgba(213, 245, 227, 255) !important;">Corowa</td>
+<td style="text-align: left; color: rgba(30, 132, 73, 255) !important; background-color: rgba(213, 245, 227, 255) !important;">Offal (Edible &amp; Inedible)</td>
+</tr>
+<tr class="even">
+<td style="text-align: left; color: rgba(30, 132, 73, 255) !important; background-color: rgba(213, 245, 227, 255) !important;">Corowa</td>
+<td style="text-align: left; color: rgba(30, 132, 73, 255) !important; background-color: rgba(213, 245, 227, 255) !important;">Commodity Bone</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left; color: rgba(30, 132, 73, 255) !important; background-color: rgba(213, 245, 227, 255) !important;">Corowa</td>
+<td style="text-align: left; color: rgba(30, 132, 73, 255) !important; background-color: rgba(213, 245, 227, 255) !important;">Meat Trade (receives Laverton volume under Corowa account)</td>
+</tr>
+<tr class="even">
+<td style="text-align: left; color: rgba(26, 82, 118, 255) !important; background-color: rgba(214, 234, 248, 255) !important;">Laverton</td>
+<td style="text-align: left; color: rgba(26, 82, 118, 255) !important; background-color: rgba(214, 234, 248, 255) !important;">6. Laverton Processing - Kill Floor</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left; color: rgba(26, 82, 118, 255) !important; background-color: rgba(214, 234, 248, 255) !important;">Laverton</td>
+<td style="text-align: left; color: rgba(26, 82, 118, 255) !important; background-color: rgba(214, 234, 248, 255) !important;">6. Laverton Processing - Boning Room</td>
+</tr>
+<tr class="even">
+<td style="text-align: left; color: rgba(26, 82, 118, 255) !important; background-color: rgba(214, 234, 248, 255) !important;">Laverton</td>
+<td style="text-align: left; color: rgba(26, 82, 118, 255) !important; background-color: rgba(214, 234, 248, 255) !important;">6. Laverton Processing - Boxed Meat</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left; color: rgba(26, 82, 118, 255) !important; background-color: rgba(214, 234, 248, 255) !important;">Laverton</td>
+<td style="text-align: left; color: rgba(26, 82, 118, 255) !important; background-color: rgba(214, 234, 248, 255) !important;">Offal (Edible shipped to Corowa via Lineage cold store)</td>
+</tr>
+<tr class="even">
+<td style="text-align: left; color: rgba(26, 82, 118, 255) !important; background-color: rgba(214, 234, 248, 255) !important;">Laverton</td>
+<td style="text-align: left; color: rgba(26, 82, 118, 255) !important; background-color: rgba(214, 234, 248, 255) !important;">Commodity Chilled &amp; Frozen</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left; color: rgba(26, 82, 118, 255) !important; background-color: rgba(214, 234, 248, 255) !important;">Laverton</td>
+<td style="text-align: left; color: rgba(26, 82, 118, 255) !important; background-color: rgba(214, 234, 248, 255) !important;">Sow Bone</td>
+</tr>
+<tr class="even">
+<td style="text-align: left; color: rgba(202, 111, 30, 255) !important; background-color: rgba(254, 249, 231, 255) !important;">Cross-site</td>
+<td style="text-align: left; color: rgba(202, 111, 30, 255) !important; background-color: rgba(254, 249, 231, 255) !important;">3. Meat Sales (VA / Value-Add)</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+</section>
+</section>
+<section id="expense-account-logic" class="level2" data-number="3.4">
+<h2 data-number="3.4" class="anchored" data-anchor-id="expense-account-logic"><span class="header-section-number">3.4</span> Expense Account Logic</h2>
+<p>Expense accounts follow the same skeleton-join-calculate pattern as revenue. The key difference is the rate source: instead of a price per unit, rates are joined from external files (Prices.xlsb packaging sheet, Trade Allowance, and Rates &amp; Allocation). The value formula is consistently:</p>
+<p><span class="math display">\[\text{Value} = \text{Total Weight (kg)} \times \text{Rate (\$/kg)}\]</span></p>
+<div class="cell">
+<div id="tbl-expense-sources" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-expense-sources-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;4: Expense categories, GL accounts, and rate sources
+</figcaption>
+<div aria-describedby="tbl-expense-sources-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output-display">
+<table class="table do-not-create-environment cell caption-top table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: left;" data-quarto-table-cell-role="th">Category</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">GL Account</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">Rate Source</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Packaging &amp; Pallet</td>
+<td style="text-align: left;">650301 / 650303 / 650311</td>
+<td style="text-align: left;">Prices.xlsb - Packaging VA sheet</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Trade Allowance</td>
+<td style="text-align: left;">450050</td>
+<td style="text-align: left;">Trade Allowance.xlsx</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Storage</td>
+<td style="text-align: left;">730010</td>
+<td style="text-align: left;">Rates &amp; Allocation.xlsx (Sheet2)</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Freight</td>
+<td style="text-align: left;">500192 / 500609</td>
+<td style="text-align: left;">Rates &amp; Allocation.xlsx (Sheet2)</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<div class="cell">
+<div id="tbl-expense-mock" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-expense-mock-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;5: Illustrative expense calculation output for one Business Unit
+</figcaption>
+<div aria-describedby="tbl-expense-mock-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output-display">
+<table class="table do-not-create-environment cell caption-top table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: left;" data-quarto-table-cell-role="th">Category</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Weight (kg)</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Rate ($/kg)</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Value ($)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Packaging</td>
+<td style="text-align: right;">18500</td>
+<td style="text-align: right;">0.12</td>
+<td style="text-align: right;">2220</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Trade Allowance</td>
+<td style="text-align: right;">18500</td>
+<td style="text-align: right;">0.05</td>
+<td style="text-align: right;">925</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Storage</td>
+<td style="text-align: right;">18500</td>
+<td style="text-align: right;">0.08</td>
+<td style="text-align: right;">1480</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Freight</td>
+<td style="text-align: right;">18500</td>
+<td style="text-align: right;">0.15</td>
+<td style="text-align: right;">2775</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<section id="packaging-variants" class="level3" data-number="3.4.1">
+<h3 data-number="3.4.1" class="anchored" data-anchor-id="packaging-variants"><span class="header-section-number">3.4.1</span> Packaging Variants</h3>
+<p>Packaging rates in <code>Prices.xlsb</code> are structured around BOM (Bill of Materials) codes and variant numbers. An item is considered priced if either variant 3 or variant 4 provides a valid rate. The pipeline uses a grouped maximum across these two variants:</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>price_lookup <span class="ot">&lt;-</span> packaging_price_data <span class="sc">%&gt;%</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(VARIANT <span class="sc">%in%</span> <span class="fu">c</span>(<span class="dv">3</span>, <span class="dv">4</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">BOM =</span> <span class="fu">as.character</span>(BOM)) <span class="sc">%&gt;%</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(BOM) <span class="sc">%&gt;%</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">PACKAGING =</span> <span class="fu">suppressWarnings</span>(<span class="fu">max</span>(PACKAGING, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)),</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>            <span class="at">.groups =</span> <span class="st">"drop"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">PACKAGING =</span> <span class="fu">if_else</span>(<span class="fu">is.infinite</span>(PACKAGING), <span class="cn">NA_real_</span>, PACKAGING))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+</section>
+<section id="freight-cost-allocation" class="level3" data-number="3.4.2">
+<h3 data-number="3.4.2" class="anchored" data-anchor-id="freight-cost-allocation"><span class="header-section-number">3.4.2</span> Freight Cost Allocation</h3>
+<p>Freight is split between domestic (GL 500192) and ocean/export (GL 500609). The pipeline uses a many-to-many join to assign the correct rate to each specific export product type automatically - replacing the manual process of averaging across all export types, which was acknowledged to be imprecise.</p>
+</section>
+<section id="special-customer-contracts" class="level3" data-number="3.4.3">
+<h3 data-number="3.4.3" class="anchored" data-anchor-id="special-customer-contracts"><span class="header-section-number">3.4.3</span> Special Customer Contracts</h3>
+<p>Two customers require non-standard treatment:</p>
+<ul>
+<li><strong>Woolworths</strong> and <strong>DRJ</strong>: use a separate margin account (GL 650311) rather than the standard packaging GL. The pipeline applies this via a conditional filter before joining rates.</li>
+<li><strong>VA Brand Allocation</strong>: Value-Add products are allocated across brands using percentage weights read from Master Data. These proportions are normalised on load so they always sum to 100%:</li>
+</ul>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>VA_allocation_data <span class="ot">&lt;-</span> VA_allocation_data <span class="sc">%&gt;%</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(Brand)) <span class="sc">%&gt;%</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="st">`</span><span class="at">%</span><span class="st">`</span> <span class="ot">=</span> <span class="st">`</span><span class="at">%</span><span class="st">`</span> <span class="sc">/</span> <span class="fu">sum</span>(<span class="st">`</span><span class="at">%</span><span class="st">`</span>), <span class="at">.by =</span> Brand)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+</section>
+</section>
+<section id="cross-site-logic" class="level2" data-number="3.5">
+<h2 data-number="3.5" class="anchored" data-anchor-id="cross-site-logic"><span class="header-section-number">3.5</span> Cross-Site Logic</h2>
+<p>Several accounts involve volume flowing between sites:</p>
+<ul>
+<li><strong>Meat Trade</strong>: Laverton volume (6 Way, Commodity Frozen, Edible Offal) is recorded under Corowa GL accounts. The pipeline handles this by filtering Laverton source rows but joining them to Corowa account skeleton rows.</li>
+<li><strong>Laverton Edible Offal</strong>: Edible offal from Laverton is shipped to Corowa via the Lineage cold store. This is treated as a separate line item in the Laverton expense accounts.</li>
+</ul>
+<hr>
+</section>
+</section>
+<section id="quality-assurance-gap-check" class="level1" data-number="4">
+<h1 data-number="4"><span class="header-section-number">4</span> Quality Assurance: Gap Check</h1>
+<section id="motivation" class="level2" data-number="4.1">
+<h2 data-number="4.1" class="anchored" data-anchor-id="motivation"><span class="header-section-number">4.1</span> Motivation</h2>
+<p>The Gap Check was built incrementally during pipeline development. Each check in the tool represents a real failure that was discovered during testing - a scenario where the pipeline produced a wrong or missing value without any visible error message. By the end of development, the Gap Check had captured eight distinct failure modes, covering both revenue and expense accounts.</p>
+<blockquote class="blockquote">
+<p>Unlike manual Excel review, R pinpoints the exact item, month, and site instantly - a major reduction in the time required to diagnose and fix data issues.</p>
+</blockquote>
+</section>
+<section id="output-structure" class="level2" data-number="4.2">
+<h2 data-number="4.2" class="anchored" data-anchor-id="output-structure"><span class="header-section-number">4.2</span> Output Structure</h2>
+<p>The Gap Check produces <code>Gap_Check.xlsx</code> with two sections:</p>
+<p><strong>Section 1 - Weight Reconciliation</strong>: compares total weight in the SOP raw data against the total weight that made it into the financial database, for twelve product categories. A discrepancy between these two figures (a “GAP”) indicates that some volume was lost during processing - typically due to one of the issues described below.</p>
+<p><strong>Section 2 - Issues Detail</strong>: lists every row that failed to enter the database, along with the reason, the affected weight, and the recommended fix.</p>
+</section>
+<section id="checks-implemented" class="level2" data-number="4.3">
+<h2 data-number="4.3" class="anchored" data-anchor-id="checks-implemented"><span class="header-section-number">4.3</span> Checks Implemented</h2>
+<div class="cell">
+<div id="tbl-gap-checks" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-gap-checks-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;6: Gap Check: all eight revenue checks with causes and fixes
+</figcaption>
+<div aria-describedby="tbl-gap-checks-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output-display">
+<table class="table do-not-create-environment cell caption-top table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: right;" data-quarto-table-cell-role="th">#</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">Check</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">What It Catches</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">Recommended Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right; width: 0.4cm;">1</td>
+<td style="text-align: left; width: 5cm;">Item Code not found in price reference (BM PRice sheet)</td>
+<td style="text-align: left; width: 4.5cm;">New product not yet added to the price reference file</td>
+<td style="text-align: left; width: 4.5cm;">Add Item Code to BM PRice sheet in Prices.xlsb</td>
+</tr>
+<tr class="even">
+<td style="text-align: right; width: 0.4cm;">2</td>
+<td style="text-align: left; width: 5cm;">Commodity Bone: missing or invalid Storage classification</td>
+<td style="text-align: left; width: 4.5cm;">Missing Chilled / Frozen label in SOP source data</td>
+<td style="text-align: left; width: 4.5cm;">Fill Storage column (CHILLED / FROZEN) in SOP Volumes</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right; width: 0.4cm;">3</td>
+<td style="text-align: left; width: 5cm;">Farm FARM tab: no Carcass Price match</td>
+<td style="text-align: left; width: 4.5cm;">Customer volume with no matching Carcass Price for that period</td>
+<td style="text-align: left; width: 4.5cm;">Add Unicode + Abattoir + Period to Carcass Price sheet</td>
+</tr>
+<tr class="even">
+<td style="text-align: right; width: 0.4cm;">4</td>
+<td style="text-align: left; width: 5cm;">Farm BONE tab: no Bone Processing Fee match</td>
+<td style="text-align: left; width: 4.5cm;">Customer volume with no matching Bone Fee</td>
+<td style="text-align: left; width: 4.5cm;">Add Unicode + Abattoir + Period to Bone Fee sheet</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right; width: 0.4cm;">5</td>
+<td style="text-align: left; width: 5cm;">Farm KILL tab: no Kill Fee match</td>
+<td style="text-align: left; width: 4.5cm;">Customer volume with no matching Kill Fee</td>
+<td style="text-align: left; width: 4.5cm;">Add Unicode + Abattoir + Period to Kill Fee sheet</td>
+</tr>
+<tr class="even">
+<td style="text-align: right; width: 0.4cm;">6</td>
+<td style="text-align: left; width: 5cm;">VA Sales: missing or zero price in SOP data</td>
+<td style="text-align: left; width: 4.5cm;">Sale record with blank or zero price in the SOP file</td>
+<td style="text-align: left; width: 4.5cm;">Fill Price column in SOP Volumes (VA tab)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right; width: 0.4cm;">7</td>
+<td style="text-align: left; width: 5cm;">VA Sales: Item Code not in Brand Mapping</td>
+<td style="text-align: left; width: 4.5cm;">Item sold under VA Sales but not yet added to VA Brand mapping in Master Data</td>
+<td style="text-align: left; width: 4.5cm;">Add Item Code to VA sheet in Master Data</td>
+</tr>
+<tr class="even">
+<td style="text-align: right; width: 0.4cm;">8</td>
+<td style="text-align: left; width: 5cm;">Farm: same SOP Unicode mapped to multiple Item Codes</td>
+<td style="text-align: left; width: 4.5cm;">Data entry error in SOP: one Unicode row associated with multiple Item Codes</td>
+<td style="text-align: left; width: 4.5cm;">Correct Unicode or Item Code mapping in SOP Volumes</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<p>In addition to the eight revenue checks, the Gap Check also covers expense-side packaging and pallet price gaps for five product categories: VA Sales, Laverton Edible Offal (packaging and pallets separately), Laverton 6 Way, Laverton Sow, and Laverton Commodity.</p>
+</section>
+<section id="usage-workflow" class="level2" data-number="4.4">
+<h2 data-number="4.4" class="anchored" data-anchor-id="usage-workflow"><span class="header-section-number">4.4</span> Usage Workflow</h2>
+<p>The Gap Check is designed to be run immediately after every pipeline render. The standard workflow is:</p>
+<ol type="1">
+<li>Render <code>Financial Calculating.qmd</code> - this produces the financial database output and leaves all pipeline data frames in the R environment.</li>
+<li>Source <code>Gap_Check.R</code> - this reads those data frames and writes <code>Gap_Check.xlsx</code>.</li>
+<li>Open <code>Gap_Check.xlsx</code> and review: any non-zero <code>Rows Affected</code> value in the Issues Summary table identifies data that needs to be fixed in the source files before submission.</li>
+<li>Fix the source file issues, re-render the pipeline, and re-run the Gap Check.</li>
+</ol>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart TD
+    R["① Render pipeline&lt;br/&gt;Financial Calculating.qmd"]
+    G["② Run Gap Check&lt;br/&gt;source Gap_Check.R"]
+    O["③ Review output&lt;br/&gt;Gap_Check.xlsx"]
+    D{Any gaps&lt;br/&gt;found?}
+    F["④ Fix source files&lt;br/&gt;add prices / fill blanks&lt;br/&gt;correct mappings"]
+    S["✓ Submit database"]
+
+    R --&gt; G --&gt; O --&gt; D
+    D -- Yes --&gt; F --&gt; R
+    D -- No  --&gt; S
+
+    classDef pipeNode fill:#d6eaf8,stroke:#2980b9,color:#1a5276,font-size:12px
+    classDef devNode  fill:#d7bde2,stroke:#7d3c98,color:#1a5276,font-size:12px
+    classDef fixNode  fill:#fad7a0,stroke:#ca6f1e,color:#1a5276,font-size:12px
+    classDef doneNode fill:#a9dfbf,stroke:#1e8449,color:#1a5276,font-size:12px
+    classDef decNode  fill:#fef9e7,stroke:#ca6f1e,color:#7d6608,font-size:12px
+
+    class R pipeNode
+    class G,O devNode
+    class F fixNode
+    class S doneNode
+    class D decNode
+</pre>
+</div>
+<p></p></figure><p></p>
+</div>
+</div>
+</div>
+<p>This cycle ensures the submitted database is as complete as possible, with any remaining gaps explicitly documented rather than silently absent.</p>
+<hr>
+</section>
+</section>
+<section id="results-and-evaluation" class="level1" data-number="5">
+<h1 data-number="5"><span class="header-section-number">5</span> Results and Evaluation</h1>
+<section id="before-and-after-comparison" class="level2" data-number="5.1">
+<h2 data-number="5.1" class="anchored" data-anchor-id="before-and-after-comparison"><span class="header-section-number">5.1</span> Before and After Comparison</h2>
+<div class="cell">
+<div id="tbl-comparison" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-comparison-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;7: Excel manual process vs R pipeline comparison
+</figcaption>
+<div aria-describedby="tbl-comparison-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output-display">
+<table class="table do-not-create-environment cell caption-top table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: left;" data-quarto-table-cell-role="th">Dimension</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">Manual Excel (Before)</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">R Pipeline (Now)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left; width: 4cm;">Time to build each period</td>
+<td style="text-align: left; width: 5.5cm;">Several hours of manual work per period</td>
+<td style="text-align: left; width: 5.5cm;">One-click render, under 10 minutes</td>
+</tr>
+<tr class="even">
+<td style="text-align: left; width: 4cm;">Adding a new Business Unit</td>
+<td style="text-align: left; width: 5.5cm;">Copy, paste and reformat an entire sheet manually</td>
+<td style="text-align: left; width: 5.5cm;">Add a filter condition and a join - minutes of code change</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left; width: 4cm;">Handling a rule change or new contract</td>
+<td style="text-align: left; width: 5.5cm;">Manually update every affected cell across all months</td>
+<td style="text-align: left; width: 5.5cm;">Edit one conditional or rate value, re-run</td>
+</tr>
+<tr class="even">
+<td style="text-align: left; width: 4cm;">Data error detection</td>
+<td style="text-align: left; width: 5.5cm;">Manual row-by-row scanning - easy to miss</td>
+<td style="text-align: left; width: 5.5cm;">Gap Check pinpoints exact item, month, and site instantly</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left; width: 4cm;">Risk of human error</td>
+<td style="text-align: left; width: 5.5cm;">High - copy-paste mistakes and missed rows go unnoticed</td>
+<td style="text-align: left; width: 5.5cm;">Low - identical logic applied on every run</td>
+</tr>
+<tr class="even">
+<td style="text-align: left; width: 4cm;">Freight cost allocation</td>
+<td style="text-align: left; width: 5.5cm;">Cost averaged across all export types - imprecise and acknowledged to be incorrect</td>
+<td style="text-align: left; width: 5.5cm;">Many-to-many join assigns the exact rate to each specific export type automatically</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left; width: 4cm;">Quality assurance</td>
+<td style="text-align: left; width: 5.5cm;">Manual spot-check only</td>
+<td style="text-align: left; width: 5.5cm;">Automated Gap Check runs after every build</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+</section>
+<section id="account-coverage-achieved" class="level2" data-number="5.2">
+<h2 data-number="5.2" class="anchored" data-anchor-id="account-coverage-achieved"><span class="header-section-number">5.2</span> Account Coverage Achieved</h2>
+<p>The pipeline covers the full set of accounts required across both sites:</p>
+<ul>
+<li><strong>Revenue</strong>: 14 distinct Business Unit / site combinations, each with GL 400000 and/or GL 400028 entries across up to 12 months</li>
+<li><strong>Expense</strong>: four expense categories (Packaging, Trade Allowance, Storage, Freight) applied across all applicable BUs, with several GL variants per category</li>
+</ul>
+<p>The Gap Check weight reconciliation table provides a quantitative measure of pipeline completeness: the closer the DB Weight column is to the SOP Raw Weight for each category, the more complete the output. Any remaining gap is documented with an identified cause.</p>
+</section>
+<section id="data-quality-improvement" class="level2" data-number="5.3">
+<h2 data-number="5.3" class="anchored" data-anchor-id="data-quality-improvement"><span class="header-section-number">5.3</span> Data Quality Improvement</h2>
+<p>Beyond the core pipeline output, the development process itself improved data quality in the source files. Each Gap Check failure during testing triggered a fix - either in the pipeline logic or, more often, in the source file (adding a missing price, correcting a spelling, filling a blank storage field). The iterative nature of development meant these fixes accumulated over multiple runs, resulting in cleaner source data going forward.</p>
+<hr>
+</section>
+</section>
+<section id="discussion-and-limitations" class="level1" data-number="6">
+<h1 data-number="6"><span class="header-section-number">6</span> Discussion and Limitations</h1>
+<section id="current-limitations" class="level2" data-number="6.1">
+<h2 data-number="6.1" class="anchored" data-anchor-id="current-limitations"><span class="header-section-number">6.1</span> Current Limitations</h2>
+<p>There are quite a lot of limitations to the project due to the limitation of time and the limited skill of the author:</p>
+<ol type="1">
+<li><p><strong>Hardcoded file paths.</strong> The pipeline reads files from absolute OneDrive paths specific to the development machine (<code>C:/Users/ATran2/OneDrive - JBS/...</code>). Running the pipeline on any other machine requires updating these paths. A configuration file or relative path approach would make the pipeline portable across the team.</p></li>
+<li><p><strong>Sensitivity to source file structure.</strong> The pipeline depends on specific sheet names, column positions, and value formats in each source file. If a source file’s structure changes - for example, if a sheet is renamed, a column is added, or the SOP identifier values change - the pipeline will fail silently or produce incorrect output. Adding schema validation checks at the top of the pipeline would catch these changes before they propagate.</p></li>
+<li><p><strong>Growing conditional complexity.</strong> Each new customer contract with special pricing or GL rules requires additional conditional logic in the pipeline. Over time, this makes the codebase harder to maintain and reason about. A more scalable approach would be to encode all special cases in the Master Data file itself (as a rules table), rather than in the R code.</p></li>
+<li><p><strong>No automated scheduling.</strong> The pipeline must be manually triggered each reporting period. While the one-click render is a major improvement over manual Excel work, further automation (e.g., a scheduled RScript run triggered on file update) would reduce dependency on the analyst being available.</p></li>
+<li><p><strong>Prices.xlsb format.</strong> Binary <code>.xlsb</code> files are not natively supported by all R packages. The pipeline uses <code>openxlsx2::wb_to_df()</code> which handles this format, but it is slower and occasionally less robust than reading <code>.xlsx</code> files. If the Sales Team can export Prices as <code>.xlsx</code>, this dependency would be removed.</p></li>
+<li><p><strong>Limited R adoption within Rivalea.</strong> R is not widely used or supported at JBS Pork Australia at the time of writing. This means the pipeline currently depends on the author being available to run and maintain it. A colleague unfamiliar with R would face a steep setup cost - installing R, RStudio, and the required packages - before being able to execute the pipeline at all. This limits the pipeline’s resilience as a business tool if the author is unavailable.</p></li>
+<li><p><strong>Single-file codebase.</strong> The entire pipeline is contained in one <code>.qmd</code> file exceeding 5,000 lines of code. While this was practical during development, it is not a maintainable structure for the long term. Navigating, debugging, or extending any one Business Unit requires scrolling through a large undivided file, and a mistake in one section can unintentionally affect another.</p></li>
+</ol>
+</section>
+<section id="future-improvements" class="level2" data-number="6.2">
+<h2 data-number="6.2" class="anchored" data-anchor-id="future-improvements"><span class="header-section-number">6.2</span> Future Improvements</h2>
+<p>Several extensions would increase the utility and robustness of the pipeline:</p>
+<ol type="1">
+<li><strong>Parameterised paths</strong>: read file locations from a single config file, allowing the pipeline to be run on any machine without code changes.</li>
+<li><strong>Schema validation on load</strong>: check that expected columns and sheets exist before the pipeline proceeds, and produce a clear error message if not.</li>
+<li><strong>Rules-driven special cases</strong>: move contract-specific GL rules from R code into Master Data, so the finance team can update them without touching the pipeline.</li>
+<li><strong>Shiny front-end</strong>: a simple Shiny app wrapping the pipeline would allow non-R users to trigger a run, review the Gap Check, and download the output without opening RStudio.</li>
+<li><strong>Unit tests</strong>: <code>testthat</code> tests on key calculation functions (value = weight × rate, skeleton join completeness) would provide confidence that pipeline logic changes have not broken existing accounts.</li>
+<li><strong>Modular code restructure</strong>: the current single-file structure should be split into separate modules, one per Business Unit or logical group. The proposed naming convention - <code>&lt;bu&gt;_&lt;gl_account&gt;_&lt;cc_key&gt;.R</code> (e.g., <code>offal_glaccount_cckey.R</code>) - would make each module self-describing: given the file name alone, a reader would immediately know which product, GL account, and Cost Centre it covers, along with the calculated values it produces. This would dramatically reduce the cognitive load of maintaining or extending any individual account block, and allow multiple people to work on different modules simultaneously without risk of conflict.</li>
+</ol>
+<hr>
+</section>
+</section>
+<section id="conclusion" class="level1" data-number="7">
+<h1 data-number="7"><span class="header-section-number">7</span> Conclusion</h1>
+<p>This project successfully delivered an automated R pipeline that replaces the manual, error-prone Excel-based workflow for financial account creation at JBS Pork Australia (Rivalea). The pipeline reads five source files from a shared OneDrive folder, applies the full revenue and expense calculation logic across all Business Units at both the Corowa and Laverton sites, and produces a structured financial database ready for import.</p>
+<p>The companion Gap Check tool was an equally important contribution: by making data integrity issues visible and actionable immediately after each pipeline run, it addresses the core risk of the original workflow - that errors would propagate silently into the submitted output.</p>
+<p>The most significant practical limitations are the limited adoption of R within Rivalea, which means the pipeline currently depends on the author to run and maintain it, and the single-file codebase structure, which at over 5,000 lines is difficult to navigate and extend. Hardcoded file paths and growing conditional complexity from special contract logic are further constraints. The most important future step is a modular restructure - splitting the pipeline into per-account modules named by GL account and Cost Centre key - which would make the codebase maintainable by others and easier to extend as new Business Units or contracts are added. The foundation built here - a reproducible, version-controlled, auditable pipeline - provides a substantially better basis for financial reporting than the manual process it replaces.</p>
+<hr>
+</section>
+<section id="references" class="level1" data-number="8">
+<h1 data-number="8"><span class="header-section-number">8</span> References</h1>
+<p>The following R packages were used in this project:</p>
+<ul>
+<li>Wickham, H. et al.&nbsp;(2023). <em>dplyr: A Grammar of Data Manipulation</em>. R package version 1.1.4. <a href="https://dplyr.tidyverse.org" class="uri">https://dplyr.tidyverse.org</a></li>
+<li>Wickham, H. and Bryan, J. (2023). <em>readxl: Read Excel Files</em>. R package version 1.4.3. <a href="https://readxl.tidyverse.org" class="uri">https://readxl.tidyverse.org</a></li>
+<li>Schauberger, P. and Walker, A. (2023). <em>openxlsx: Read, Write and Edit xlsx Files</em>. R package version 4.2.5. <a href="https://CRAN.R-project.org/package=openxlsx" class="uri">https://CRAN.R-project.org/package=openxlsx</a></li>
+<li>Hester, J. et al.&nbsp;(2024). <em>openxlsx2: Read, Write and Edit xlsx Files</em>. R package version 1.1. <a href="https://janmarvin.github.io/openxlsx2/" class="uri">https://janmarvin.github.io/openxlsx2/</a></li>
+<li>Wickham, H. (2023). <em>stringr: Simple, Consistent Wrappers for Common String Operations</em>. R package version 1.5.1. <a href="https://stringr.tidyverse.org" class="uri">https://stringr.tidyverse.org</a></li>
+<li>Grolemund, G. and Wickham, H. (2011). <em>lubridate: Make Dealing with Dates a Little Easier</em>. R package version 1.9.3. <a href="https://lubridate.tidyverse.org" class="uri">https://lubridate.tidyverse.org</a></li>
+<li>Wickham, H. and Girlich, M. (2022). <em>tidyr: Tidy Messy Data</em>. R package version 1.3.0. <a href="https://tidyr.tidyverse.org" class="uri">https://tidyr.tidyverse.org</a></li>
+<li>Xie, Y. (2024). <em>knitr: A General-Purpose Package for Dynamic Report Generation in R</em>. R package version 1.45. <a href="https://yihui.org/knitr/" class="uri">https://yihui.org/knitr/</a></li>
+<li>Zhu, H. (2024). <em>kableExtra: Construct Complex Table with ‘kable’ and Pipe Syntax</em>. R package version 1.3.4. <a href="https://haozhu233.github.io/kableExtra/" class="uri">https://haozhu233.github.io/kableExtra/</a></li>
+</ul>
+<hr>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

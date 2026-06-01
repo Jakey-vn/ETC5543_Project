@@ -1,0 +1,744 @@
+---
+title: "Automating Financial Account Creation"
+subtitle: "An R Pipeline for SOP-to-Database Reporting at JBS Australia"
+author:
+  - name: "Andy Tran"
+    affiliation: "Department of Econometrics and Business Statistics, Monash University"
+date: "June 2026"
+format:
+  html:
+    toc: true
+    toc-float: true
+    toc-depth: 3
+    number-sections: true
+    theme: cosmo
+    code-fold: true
+    df-print: paged
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r setup}
+library(dplyr)
+library(knitr)
+library(kableExtra)
+```
+
+```{=html}
+<div style="position: fixed; top: 15px; right: 20px; z-index: 9999;">
+  <img src="jbs_logo.png" style="width: 120px;" />
+</div>
+```
+
+**Git Repository:** <https://github.com/Jakey-vn/ETC5543_Project>
+
+**Generative AI Acknowledgement:** Claude (Anthropic) was used to assist with structuring and drafting sections of this report, as well as debugging R code during development. All analysis, design decisions, and conclusions are the author's own.
+
+---
+
+# Introduction
+
+![](jbs_picture.jpg){width=100%}
+
+## About JBS
+
+JBS N.V. is a Brazilian multinational founded in 1953 in Anápolis, Goiás, and is the world’s largest meat processing enterprise by revenue. Headquartered in São Paulo and Amsterdam, the company processes beef, pork, chicken, lamb, and salmon. As of 2025, JBS operates more than 250 production facilities worldwide, with its products reaching consumers in 180 countries. In Australia, the company operates multiple beef, pork, and lamb processing facilities under several distinct business divisions.
+
+## JBS Australia Pork (Rivalea)
+
+JBS Pork Australia, formerly known as Rivalea is the pork division of JBS in Australia, and the host organisation for this internship. Operating across Victoria and New South Wales, it is the country’s leading integrated pork producer, accounting for approximately 15% of Australia’s total domestic pork production and around 26% of the local fresh pork market share. The division supports high-quality pork production for both domestic and export markets through extensive agricultural, processing, and marketing operations.
+
+## The Finance Team
+
+The Finance Team, where the author is currently interning, is responsible for generating financial reports on a weekly and monthly basis, covering two processing sites operated by JBS Pork Australia:
+
+- **Corowa** (New South Wales): the primary site, covering Farming Operations, Kill Floor, Boning Room, Boxed Meat, Offal, Commodity Bone, and Meat Trade
+- **Laverton** (Victoria): a secondary site handling Kill Floor, Boning Room, Boxed Meat, Offal, Commodity (chilled and frozen), and Sow Bone
+
+Across these two sites, financial account entries must be generated for each reporting period. These entries capture revenue (sales of various product categories) and expenses (packaging, trade allowances, storage, and freight), broken down by Business Unit (BU), GL account, Cost Centre, and month.
+
+## Key Terms
+
+The following terms appear throughout this report. Readers from outside financial accounting or meat processing may find these definitions useful.
+
+### Financial Terminology
+
+**General Ledger (GL) Account** - A numbered account in the company's accounting system that categorises every financial transaction. Revenue from selling Boxed Meat, for example, posts to a different GL account than the expense for packaging materials. The GL account determines *what* a transaction represents in the accounts.
+
+**Cost Centre (CC)** - A code that identifies *where* a cost or revenue belongs within the organisation - for example, the Boning Room at Corowa versus the Kill Floor at Laverton. GL account and Cost Centre together form the two-part key used to route every database row to the correct place in the financial system.
+
+**Business Unit (BU)** - A distinct operational segment of the business. Each BU has its own set of GL accounts and Cost Centres, and the pipeline generates a separate block of database rows for each one.
+
+**Value-Add (VA)** - Products that undergo an additional processing step to increase their market value beyond the base cut. A marinated pork loin is a typical example: the raw loin is transformed into a higher-value retail product through seasoning and packaging. VA products are reported under the Meat Sales Business Unit.
+
+### Business Units
+
+Each processing site is divided into Business Units that fall into two categories: **production operations** (stages in the physical processing chain) and **product categories** (the type of product being reported on).
+
+```{mermaid}
+flowchart LR
+    BU["Business Unit (BU)"]
+    BU --> OPS["Production Operations<br/>(where in the process)"]
+    BU --> PROD["Product Categories<br/>(type of product)"]
+    OPS --> FO["Farming Operations"]
+    OPS --> KF["Kill Floor"]
+    OPS --> BR["Boning Room"]
+    PROD --> BM["Boxed Meat"]
+    PROD --> OF["Offal"]
+    PROD --> CB["Commodity Bone"]
+    PROD --> MT["Meat Trade"]
+    PROD --> SB["Sow Bone"]
+    PROD --> SW["6Way"]
+    PROD --> MS["Meat Sales"]
+
+    classDef rootNode fill:#d6eaf8,stroke:#2980b9,color:#1a5276,font-size:12px
+    classDef opsNode fill:#a9dfbf,stroke:#1e8449,color:#1a5276,font-size:12px
+    classDef prodNode fill:#fad7a0,stroke:#ca6f1e,color:#1a5276,font-size:12px
+    classDef opsLeaf fill:#d5f5e3,stroke:#1e8449,color:#1a5276,font-size:11px
+    classDef prodLeaf fill:#fef9e7,stroke:#ca6f1e,color:#1a5276,font-size:11px
+
+    class BU rootNode
+    class OPS opsNode
+    class PROD prodNode
+    class FO,KF,BR opsLeaf
+    class BM,OF,CB,MT,SB,SW,MS prodLeaf
+```
+
+| Type | Business Unit | Description |
+|---|---|---|
+| Production Operation | Farming Operations | Covers the farm stage of the supply chain - livestock rearing, feed costs, and farm-level expenses before pigs reach the processing facility |
+| Production Operation | Kill Floor | The slaughter and primary carcass breakdown stage |
+| Production Operation | Boning Room | Separation of meat from bone after slaughter |
+| Product Category | Boxed Meat | Portioned and vacuum-packed cuts prepared for sale |
+| Product Category | Offal | Co-products such as organs and secondary cuts |
+| Product Category | Commodity Bone | Bone material sold as a commodity, either chilled or frozen |
+| Product Category | Meat Sales | Value-Add (VA) products sold with revenue; see *VA* in Financial Terminology above |
+| Product Category | Meat Trade | Represents meat volume transferred from Laverton to Corowa for further processing or sale |
+| Product Category | Sow Bone | Bone from sow (female pig) carcasses; Laverton site only |
+| Product Category | 6Way | A pork carcass cut into six standard portions; revenue is tracked as a distinct product line |
+
+### Supply Chain and Cost Terms
+
+**SOP Team (Sales & Operations Planning)** - The team responsible for forecasting production volumes and coordinating supply with demand. Their weekly SOP Volumes spreadsheet is the primary source of volume data for this pipeline.
+
+**Trade Discounts** - Negotiated price reductions applied to specific customers or product lines. Rather than reducing the sale price directly, these are recorded as a separate expense line in the database.
+
+**Packaging Costs** - The cost of materials used to pack finished product (vacuum bags, cartons, labels). These are calculated per kilogram of product and assigned as an expense account entry.
+
+**Storage Rates** - Charges for holding product in chilled or frozen storage before dispatch. Applied to Commodity Bone and certain other product lines based on volume.
+
+**Freight** - The cost of transporting product from the processing site to the customer. Rates vary by product line and are sourced from the Rates & Allocation file.
+
+## Report Structure
+
+Section 2 provides background on the problem, the previous Excel-based solution, the rationale for choosing R, and the five input data sources. Section 3 describes the pipeline architecture and calculation methodology for both revenue and expense accounts. Section 4 documents the Gap Check quality assurance tool. Section 5 evaluates the pipeline against the manual process. Section 6 discusses current limitations and future improvements. Section 7 concludes.
+
+---
+
+# Background
+
+## The Problem
+
+The Finance Team's goal was to build a monthly financial report that could be refreshed each period with updated values, giving managers a clear picture of all products, categories, and revenue across both sites. The intended output was a structured database that anyone could query to retrieve information such as which products were produced at Corowa, what revenue they generated, and which General Ledger (GL) account and Cost Centre they belonged to.
+
+Building this report required bringing together data from multiple sources:
+
+1. Volume data from the SOP Volumes spreadsheet, sourced from the S&OP team
+2. Prices maintained by the Sales team and stored in a separate binary file (`Prices.xlsb`)
+3. GL and Cost Centre codes assigned from a Master Data file maintained by NAM and Commercial Finance
+4. Trade discounts, packaging costs, storage rates, and freight charges from two additional files provided by the Sales team and Business Planning Manager
+
+## Previous Solution
+
+Prior to this project, the Commercial Finance Manager had implemented the report in Excel. While functional, the workbook grew to more than 20 sheets to accommodate the full scope of accounts across two sites and multiple Business Units. This scale made the file difficult to navigate, verify, and maintain. The process was not reproducible: each new reporting period required significant manual re-work, and the transformation logic was spread implicitly across sheet formulas rather than documented in any single place.
+
+The number of accounts involved compounded the risk. Two sites, multiple Business Units, twelve months, and numerous product categories each generate separate database rows. Any error like a missed row, an incorrect price lookup, or a copy-paste mistake would propagate into the financial database without automatic detection. Because the process had to be repeated every reporting period, this risk recurred each time.
+
+## The R Pipeline Solution
+
+To address these limitations, this project re-implemented the pipeline in R. Unlike the Excel workbook, an R script is plain text that can be version-controlled in Git: every change to the logic is recorded with a timestamp and author, creating a full audit trail. The pipeline is fully reproducible: running the script on any machine with access to the shared OneDrive folder will always produce the same output from the same source files.
+
+The modular structure of the R code means adding a new Business Unit or adjusting a calculation requires editing one clearly-defined function rather than restructuring an entire workbook. A built-in quality assurance tool called "Gap Check" was developed to surface data integrity issues automatically before any output is submitted, replacing the manual spot-checks that the Excel approach required.
+
+## Choice of Tools
+
+**R** was selected as the primary language for this project for several practical reasons:
+
+- JBS source files are Excel-based (`.xlsx` and `.xlsb`). The `readxl` and `openxlsx2` packages in R provide reliable, well-tested support for both formats, including multi-sheet workbooks and binary `.xlsb` files that other tools handle poorly.
+- The `tidyverse` ecosystem, particularly `dplyr` and `tidyr` allows complex multi-file joins, filters, and transformations to be expressed in a clear, readable style that can be reviewed by colleagues without deep programming knowledge.
+- `openxlsx` enables the pipeline to write formatted Excel output (the Gap Check report), which is the format most accessible to the finance team.
+
+**Quarto** (`.qmd`) was used as the document format. Quarto allows R code and written documentation to coexist in a single file, so the pipeline logic and its explanation are maintained together. It renders to HTML for interactive review and integrates naturally with Git version control.
+
+## Data Sources
+
+### Overview of Input Files
+
+The pipeline reads five files at runtime. All files are stored in a shared OneDrive folder, so the pipeline always uses the most current version without a manual download step.
+
+```{r tbl-sources}
+tibble(
+  File = c(
+    "SOP Volumes.xlsx",
+    "Prices.xlsb",
+    "Master Data.xlsx",
+    "Trade Allowance.xlsx",
+    "Rates & Allocation.xlsx"
+  ),
+  Contents = c(
+    "Weekly volumes by Farm / Bone / VA product lines",
+    "Carcass price, Kill fee, Bone fee, Item prices, Packaging rates",
+    "GL accounts, Cost Centre keys, Customer list, VA brand mapping",
+    "Trade discount rates per customer",
+    "VA brand allocations, freight rates, storage rates"
+  ),
+  `Maintained By` = c(
+    "S&OP Team",
+    "Sales Team",
+    "NAM & Commercial Finance",
+    "Business Partner Manager",
+    "Business Partner Manager"
+  )
+) |>
+  kable(caption = "Pipeline input files and their roles", booktabs = TRUE) |>
+  kable_styling(full_width = FALSE)
+```
+
+### SOP Volumes Structure
+
+The SOP Volumes file contains a single sheet (`Sheet1`) with all product-customer-week-month combinations across both sites. A key column (column 2) identifies the product category type for each row:
+
+- `Farm`, `Kill`, `Bone` - livestock and primary processing operations (Farm tab)
+- `2.Meat Processing`, `6.Laverton Processing` - bone room and boxed meat (Bone tab)
+- `3.Meat Sales` - value-added products (VA tab)
+
+The file is loaded entirely as character text with no headers at import time, then split into three separate data frames based on this identifier column. This approach avoids type-parsing failures that arise from mixed numeric and text columns, which are common when R attempts to auto-detect column types in complex spreadsheets.
+
+```{r}
+#| echo: true
+#| eval: false
+# Load raw volume as text - avoids type-parse errors on mixed columns
+volume_raw <- read_excel(
+  "C:/Users/ATran2/OneDrive - JBS/Forecast Project - Documents/SOP Volumes.xlsx",
+  sheet    = "Sheet1",
+  col_names = FALSE,
+  col_types = "text"
+)
+
+# Split into three data frames by product category identifier
+volume_farm_raw <- volume_raw %>% filter(`...2` %in% c("Farm", "Kill", "Bone"))
+volume_bone_raw <- volume_raw %>% filter(`...2` %in% c("2.Meat Processing", "6.Laverton Processing"))
+volume_va_raw   <- volume_raw %>% filter(`...2` == "3.Meat Sales")
+```
+
+### Data Quality Challenges
+
+Source data quality was one of the most significant recurring challenges during development. Several categories of issues were encountered:
+
+**Inconsistent naming.** Customer and product names in SOP Volumes contained trailing whitespace, inconsistent capitalisation, and occasional typos. These caused silent join failures - rows that should have matched a Master Data entry produced `NA` instead and were lost from the output. The solution was to apply `str_trim()` and `toupper()` to all key join columns before performing any merge.
+
+**Missing price entries.** `Prices.xlsb` frequently lacked entries for newer item codes not yet added to the price reference sheets. Revenue rows for those items would produce `NA` values without any visible warning. This issue directly motivated the design of the Gap Check (Section 5).
+
+**Missing classification fields.** Commodity Bone rows require a `Storage` field (`CHILLED` or `FROZEN`) to route to the correct account. When this field was blank or contained an unrecognised value, those rows could not be correctly categorised and were excluded from the output.
+
+**Incomplete Master Data.** If a customer or GL account entry was absent from Master Data, the corresponding volume rows had no account to join to and were silently dropped. The Gap Check reconciliation table was designed to make this visible.
+
+---
+
+# Pipeline Design and Methodology
+
+## Architecture Overview
+
+The pipeline follows a three-stage pattern that is applied consistently to every Business Unit:
+
+1. **Build account skeleton** - Pull all relevant customers from Master Data and cross them with the correct GL account and Cost Centre key, then expand across all 12 months using `crossing(Period = 1:12)`. Building the skeleton first ensures that months with zero volume still produce a row in the database, rather than being silently absent from the output.
+
+2. **Join SOP volume** - Match source volume rows from SOP Volumes onto the skeleton using a composite key (SOP Unicode or Item Code + Abattoir + Month + Tab). A left join is used so that skeleton rows with no matching volume retain a zero rather than being dropped - this is important for completeness in the final database.
+
+3. **Calculate financial value** - Multiply the joined volume by the appropriate rate to produce a dollar value for each row. The rate source differs by tab type: Carcass Price per kg for Farm rows, Kill Fee per head for Kill rows, and Bone Fee per head for Bone rows. For expense accounts, rates are joined from Prices.xlsb, Trade Allowance, or Rates & Allocation depending on the expense category.
+
+As a concrete example: for Farming Operations at Corowa, the skeleton contains all Corowa farm customers with GL 400000, replicated across 12 months. SOP volume rows for January are matched to their skeleton counterparts, and the resulting weight is multiplied by the carcass price to produce the January revenue value for each customer.
+
+The diagram below shows how the five source files interconnect at the system level, and how data flows from raw inputs through revenue and expense calculations into the final financial database.
+
+```{mermaid}
+%%{init: {'flowchart': {'nodeSpacing': 40, 'rankSpacing': 60}}}%%
+flowchart TD
+    subgraph ext ["Other Teams"]
+        A["SOP Volumes.xlsx<br/>S&OP Team"]
+        B["Prices.xlsb<br/>Sales Team"]
+        C["Trade Allow.xlsx<br/>BP Manager"]
+        D["Rates & Alloc.xlsx<br/>BP Manager"]
+    end
+
+    subgraph fin ["Finance Team"]
+        M["Master Data.xlsx<br/>NAM & Comm. Finance"]
+    end
+
+    subgraph dev ["Development & QA"]
+        DC["Debug Code (Development Checks)"]
+        DC --> G["Gap_Check.R (QA Tool)"]
+    end
+
+    A  --> FV["Financial Values (Volume × Price)"]
+    B  --> FV
+    B  --> ED
+
+    M  --> RA["Revenue Accounts"]
+    M  --> EA["Expense Accounts"]
+
+    FV --> RD["Revenue Data"]
+    RA --> RD
+
+    FV --> ED["Expense Data"]
+    EA --> ED
+    C  --> ED
+    D  --> ED
+
+    RD --> DB[("Financial Database")]
+    ED --> DB
+
+    DB <--> G
+
+    classDef extNode fill:#fad7a0,stroke:#ca6f1e,color:#1a5276,font-size:12px
+    classDef finNode fill:#a9dfbf,stroke:#1e8449,color:#1a5276,font-size:12px
+    classDef devNode fill:#d7bde2,stroke:#7d3c98,color:#1a5276,font-size:12px
+    classDef pipeNode fill:#d6eaf8,stroke:#2980b9,color:#1a5276,font-size:12px
+
+    class A,B,C,D extNode
+    class M finNode
+    class DC,G devNode
+    class FV,RA,EA,RD,ED,DB pipeNode
+
+    style ext fill:#fef9e7,stroke:#ca6f1e,color:#ca6f1e,font-size:13px
+    style fin fill:#d5f5e3,stroke:#1e8449,color:#1e8449,font-size:13px
+    style dev fill:#f4ecf7,stroke:#7d3c98,color:#7d3c98,font-size:13px
+```
+
+## Data Ingestion and Normalisation
+
+All five files are read at the start of the pipeline. Normalisation is applied immediately after reading, before any joins are performed. The key normalisation steps are:
+
+```{r}
+#| echo: true
+#| eval: false
+# Normalise key columns before any joins are attempted
+bone_base <- volume_bone_raw %>%
+  mutate(
+    `Item Code`    = str_trim(`Item Code`),
+    Run            = toupper(Run),
+    Type           = toupper(Type),
+    Storage        = toupper(Storage),
+    Abattoir       = toupper(Abattoir),
+    Month          = toupper(Month),
+    Tab            = toupper(Tab),
+    `Total Weight` = as.numeric(`Total Weight`)
+  )
+```
+
+The `BU` naming in `gl_cc_data` also required cleaning: the raw file contained inconsistent spacing after numeric prefixes (e.g., `"1. Farming"` vs `"1.Farming"`), which would silently break the skeleton join. A regex substitution resolved this:
+
+```{r}
+#| echo: true
+#| eval: false
+gl_cc_data <- gl_cc_data %>%
+  mutate(BU = str_replace_all(BU, "(\\d+\\.)\\s+", "\\1"))
+```
+
+## Revenue Account Logic
+
+### Account Skeleton
+
+For each Business Unit, the first step builds a complete set of account rows from Master Data. This skeleton defines the shape of the output - every possible GL + Cost Centre + Customer combination - before any volume is joined. Using `crossing(Period = 1:12)` ensures one row per month for each account, so months with zero volume still appear in the output rather than being silently absent.
+
+```{r}
+#| echo: true
+#| eval: false
+account_rows <- customer_data %>%
+  filter(BU == "1.Farming Operations") %>%
+  left_join(gl_cc_data, by = "BU") %>%
+  crossing(Period = 1:12)   # ensures all 12 months are present
+```
+
+### Volume Join
+
+Volume is joined onto the skeleton using a composite key. For Farm tab rows, the join key is SOP Unicode + Abattoir + Month + Tab:
+
+```{r}
+#| echo: true
+#| eval: false
+account_rows %>%
+  left_join(
+    volume_farm_raw,
+    by = c("SOP Unicode" = "Unicode", "Abattoir", "Month", "Tab")
+  )
+```
+
+### Value Calculation
+
+The calculation formula differs by tab type:
+
+```{r}
+#| echo: true
+#| eval: false
+mutate(Value = case_when(
+  Tab == "FARM" ~ Total_Weight * Carcass_Price,
+  Tab == "KILL" ~ Units        * Kill_Fee,
+  Tab == "BONE" ~ Units        * Bone_Fee
+))
+```
+
+The table below illustrates the expected output for one representative Business Unit after all three steps:
+
+```{r tbl-revenue-mock}
+tibble(
+  Tab          = c("FARM", "KILL", "BONE"),
+  Units        = c(120L, 120L, 85L),
+  `Weight (kg)` = c(18500, 18500, 12000),
+  `Rate`        = c("$3.25/kg", "$45.50/hd", "$28.00/hd"),
+  `Value ($)`   = c(60125, 5460, 2380)
+) |>
+  kable(caption = "Illustrative revenue calculation output for one Business Unit",
+        booktabs = TRUE) |>
+  kable_styling(full_width = FALSE)
+```
+
+### Revenue Account Coverage
+
+The pipeline covers two distinct GL accounts for most Business Units:
+
+- **GL 400000** - sales to external customers
+- **GL 400028** - intercompany sales between JBS sites
+
+```{r tbl-rev-coverage}
+coverage <- tibble(
+  Site  = c(rep("Corowa", 7), rep("Laverton", 6), "Cross-site"),
+  `Business Unit` = c(
+    "1. Farming Operations",
+    "2. Meat Processing - Kill Floor",
+    "2. Meat Processing - Boning Room",
+    "2. Meat Processing - Boxed Meat",
+    "Offal (Edible & Inedible)",
+    "Commodity Bone",
+    "Meat Trade (receives Laverton volume under Corowa account)",
+    "6. Laverton Processing - Kill Floor",
+    "6. Laverton Processing - Boning Room",
+    "6. Laverton Processing - Boxed Meat",
+    "Offal (Edible shipped to Corowa via Lineage cold store)",
+    "Commodity Chilled & Frozen",
+    "Sow Bone",
+    "3. Meat Sales (VA / Value-Add)"
+  )
+)
+
+corowa_rows    <- which(coverage$Site == "Corowa")
+laverton_rows  <- which(coverage$Site == "Laverton")
+crosssite_rows <- which(coverage$Site == "Cross-site")
+
+coverage |>
+  kable(caption = "Revenue account coverage by site and Business Unit",
+        booktabs = TRUE) |>
+  kable_styling(full_width = FALSE) |>
+  row_spec(corowa_rows,    background = "#d5f5e3", color = "#1e8449") |>
+  row_spec(laverton_rows,  background = "#d6eaf8", color = "#1a5276") |>
+  row_spec(crosssite_rows, background = "#fef9e7", color = "#ca6f1e")
+```
+
+## Expense Account Logic
+
+Expense accounts follow the same skeleton-join-calculate pattern as revenue. The key difference is the rate source: instead of a price per unit, rates are joined from external files (Prices.xlsb packaging sheet, Trade Allowance, and Rates & Allocation). The value formula is consistently:
+
+$$\text{Value} = \text{Total Weight (kg)} \times \text{Rate (\$/kg)}$$
+
+```{r tbl-expense-sources}
+tibble(
+  Category            = c("Packaging & Pallet", "Trade Allowance",
+                           "Storage", "Freight"),
+  `GL Account`        = c("650301 / 650303 / 650311", "450050",
+                           "730010", "500192 / 500609"),
+  `Rate Source`       = c("Prices.xlsb - Packaging VA sheet",
+                           "Trade Allowance.xlsx",
+                           "Rates & Allocation.xlsx (Sheet2)",
+                           "Rates & Allocation.xlsx (Sheet2)")
+) |>
+  kable(caption = "Expense categories, GL accounts, and rate sources",
+        booktabs = TRUE) |>
+  kable_styling(full_width = FALSE)
+```
+
+```{r tbl-expense-mock}
+tibble(
+  Category      = c("Packaging", "Trade Allowance", "Storage", "Freight"),
+  `Weight (kg)` = c(18500, 18500, 18500, 18500),
+  `Rate ($/kg)` = c(0.12, 0.05, 0.08, 0.15),
+  `Value ($)`   = c(2220, 925, 1480, 2775)
+) |>
+  kable(caption = "Illustrative expense calculation output for one Business Unit",
+        booktabs = TRUE) |>
+  kable_styling(full_width = FALSE)
+```
+
+### Packaging Variants
+
+Packaging rates in `Prices.xlsb` are structured around BOM (Bill of Materials) codes and variant numbers. An item is considered priced if either variant 3 or variant 4 provides a valid rate. The pipeline uses a grouped maximum across these two variants:
+
+```{r}
+#| echo: true
+#| eval: false
+price_lookup <- packaging_price_data %>%
+  filter(VARIANT %in% c(3, 4)) %>%
+  mutate(BOM = as.character(BOM)) %>%
+  group_by(BOM) %>%
+  summarise(PACKAGING = suppressWarnings(max(PACKAGING, na.rm = TRUE)),
+            .groups = "drop") %>%
+  mutate(PACKAGING = if_else(is.infinite(PACKAGING), NA_real_, PACKAGING))
+```
+
+### Freight Cost Allocation
+
+Freight is split between domestic (GL 500192) and ocean/export (GL 500609). The pipeline uses a many-to-many join to assign the correct rate to each specific export product type automatically - replacing the manual process of averaging across all export types, which was acknowledged to be imprecise.
+
+### Special Customer Contracts
+
+Two customers require non-standard treatment:
+
+- **Woolworths** and **DRJ**: use a separate margin account (GL 650311) rather than the standard packaging GL. The pipeline applies this via a conditional filter before joining rates.
+- **VA Brand Allocation**: Value-Add products are allocated across brands using percentage weights read from Master Data. These proportions are normalised on load so they always sum to 100%:
+
+```{r}
+#| echo: true
+#| eval: false
+VA_allocation_data <- VA_allocation_data %>%
+  filter(!is.na(Brand)) %>%
+  mutate(`%` = `%` / sum(`%`), .by = Brand)
+```
+
+## Cross-Site Logic
+
+Several accounts involve volume flowing between sites:
+
+- **Meat Trade**: Laverton volume (6 Way, Commodity Frozen, Edible Offal) is recorded under Corowa GL accounts. The pipeline handles this by filtering Laverton source rows but joining them to Corowa account skeleton rows.
+- **Laverton Edible Offal**: Edible offal from Laverton is shipped to Corowa via the Lineage cold store. This is treated as a separate line item in the Laverton expense accounts.
+
+---
+
+# Quality Assurance: Gap Check
+
+## Motivation
+
+The Gap Check was built incrementally during pipeline development. Each check in the tool represents a real failure that was discovered during testing - a scenario where the pipeline produced a wrong or missing value without any visible error message. By the end of development, the Gap Check had captured eight distinct failure modes, covering both revenue and expense accounts.
+
+> Unlike manual Excel review, R pinpoints the exact item, month, and site instantly - a major reduction in the time required to diagnose and fix data issues.
+
+## Output Structure
+
+The Gap Check produces `Gap_Check.xlsx` with two sections:
+
+**Section 1 - Weight Reconciliation**: compares total weight in the SOP raw data against the total weight that made it into the financial database, for twelve product categories. A discrepancy between these two figures (a "GAP") indicates that some volume was lost during processing - typically due to one of the issues described below.
+
+**Section 2 - Issues Detail**: lists every row that failed to enter the database, along with the reason, the affected weight, and the recommended fix.
+
+## Checks Implemented
+
+```{r tbl-gap-checks}
+tibble(
+  `#`    = 1:8,
+  Check  = c(
+    "Item Code not found in price reference (BM PRice sheet)",
+    "Commodity Bone: missing or invalid Storage classification",
+    "Farm FARM tab: no Carcass Price match",
+    "Farm BONE tab: no Bone Processing Fee match",
+    "Farm KILL tab: no Kill Fee match",
+    "VA Sales: missing or zero price in SOP data",
+    "VA Sales: Item Code not in Brand Mapping",
+    "Farm: same SOP Unicode mapped to multiple Item Codes"
+  ),
+  `What It Catches` = c(
+    "New product not yet added to the price reference file",
+    "Missing Chilled / Frozen label in SOP source data",
+    "Customer volume with no matching Carcass Price for that period",
+    "Customer volume with no matching Bone Fee",
+    "Customer volume with no matching Kill Fee",
+    "Sale record with blank or zero price in the SOP file",
+    "Item sold under VA Sales but not yet added to VA Brand mapping in Master Data",
+    "Data entry error in SOP: one Unicode row associated with multiple Item Codes"
+  ),
+  `Recommended Fix` = c(
+    "Add Item Code to BM PRice sheet in Prices.xlsb",
+    "Fill Storage column (CHILLED / FROZEN) in SOP Volumes",
+    "Add Unicode + Abattoir + Period to Carcass Price sheet",
+    "Add Unicode + Abattoir + Period to Bone Fee sheet",
+    "Add Unicode + Abattoir + Period to Kill Fee sheet",
+    "Fill Price column in SOP Volumes (VA tab)",
+    "Add Item Code to VA sheet in Master Data",
+    "Correct Unicode or Item Code mapping in SOP Volumes"
+  )
+) |>
+  kable(caption = "Gap Check: all eight revenue checks with causes and fixes",
+        booktabs = TRUE) |>
+  kable_styling(full_width = FALSE) |>
+  column_spec(1, width = "0.4cm") |>
+  column_spec(2, width = "5cm") |>
+  column_spec(3, width = "4.5cm") |>
+  column_spec(4, width = "4.5cm")
+```
+
+In addition to the eight revenue checks, the Gap Check also covers expense-side packaging and pallet price gaps for five product categories: VA Sales, Laverton Edible Offal (packaging and pallets separately), Laverton 6 Way, Laverton Sow, and Laverton Commodity.
+
+## Usage Workflow
+
+The Gap Check is designed to be run immediately after every pipeline render. The standard workflow is:
+
+1. Render `Financial Calculating.qmd` - this produces the financial database output and leaves all pipeline data frames in the R environment.
+2. Source `Gap_Check.R` - this reads those data frames and writes `Gap_Check.xlsx`.
+3. Open `Gap_Check.xlsx` and review: any non-zero `Rows Affected` value in the Issues Summary table identifies data that needs to be fixed in the source files before submission.
+4. Fix the source file issues, re-render the pipeline, and re-run the Gap Check.
+
+```{mermaid}
+flowchart TD
+    R["① Render pipeline<br/>Financial Calculating.qmd"]
+    G["② Run Gap Check<br/>source Gap_Check.R"]
+    O["③ Review output<br/>Gap_Check.xlsx"]
+    D{Any gaps<br/>found?}
+    F["④ Fix source files<br/>add prices / fill blanks<br/>correct mappings"]
+    S["✓ Submit database"]
+
+    R --> G --> O --> D
+    D -- Yes --> F --> R
+    D -- No  --> S
+
+    classDef pipeNode fill:#d6eaf8,stroke:#2980b9,color:#1a5276,font-size:12px
+    classDef devNode  fill:#d7bde2,stroke:#7d3c98,color:#1a5276,font-size:12px
+    classDef fixNode  fill:#fad7a0,stroke:#ca6f1e,color:#1a5276,font-size:12px
+    classDef doneNode fill:#a9dfbf,stroke:#1e8449,color:#1a5276,font-size:12px
+    classDef decNode  fill:#fef9e7,stroke:#ca6f1e,color:#7d6608,font-size:12px
+
+    class R pipeNode
+    class G,O devNode
+    class F fixNode
+    class S doneNode
+    class D decNode
+```
+
+This cycle ensures the submitted database is as complete as possible, with any remaining gaps explicitly documented rather than silently absent.
+
+---
+
+# Results and Evaluation
+
+## Before and After Comparison
+
+```{r tbl-comparison}
+tibble(
+  Dimension = c(
+    "Time to build each period",
+    "Adding a new Business Unit",
+    "Handling a rule change or new contract",
+    "Data error detection",
+    "Risk of human error",
+    "Freight cost allocation",
+    "Quality assurance"
+  ),
+  `Manual Excel (Before)` = c(
+    "Several hours of manual work per period",
+    "Copy, paste and reformat an entire sheet manually",
+    "Manually update every affected cell across all months",
+    "Manual row-by-row scanning - easy to miss",
+    "High - copy-paste mistakes and missed rows go unnoticed",
+    "Cost averaged across all export types - imprecise and acknowledged to be incorrect",
+    "Manual spot-check only"
+  ),
+  `R Pipeline (Now)` = c(
+    "One-click render, under 10 minutes",
+    "Add a filter condition and a join - minutes of code change",
+    "Edit one conditional or rate value, re-run",
+    "Gap Check pinpoints exact item, month, and site instantly",
+    "Low - identical logic applied on every run",
+    "Many-to-many join assigns the exact rate to each specific export type automatically",
+    "Automated Gap Check runs after every build"
+  )
+) |>
+  kable(caption = "Excel manual process vs R pipeline comparison",
+        booktabs = TRUE) |>
+  kable_styling(full_width = FALSE) |>
+  column_spec(1, width = "4cm") |>
+  column_spec(2, width = "5.5cm") |>
+  column_spec(3, width = "5.5cm")
+```
+
+## Account Coverage Achieved
+
+The pipeline covers the full set of accounts required across both sites:
+
+- **Revenue**: 14 distinct Business Unit / site combinations, each with GL 400000 and/or GL 400028 entries across up to 12 months
+- **Expense**: four expense categories (Packaging, Trade Allowance, Storage, Freight) applied across all applicable BUs, with several GL variants per category
+
+The Gap Check weight reconciliation table provides a quantitative measure of pipeline completeness: the closer the DB Weight column is to the SOP Raw Weight for each category, the more complete the output. Any remaining gap is documented with an identified cause.
+
+## Data Quality Improvement
+
+Beyond the core pipeline output, the development process itself improved data quality in the source files. Each Gap Check failure during testing triggered a fix - either in the pipeline logic or, more often, in the source file (adding a missing price, correcting a spelling, filling a blank storage field). The iterative nature of development meant these fixes accumulated over multiple runs, resulting in cleaner source data going forward.
+
+---
+
+# Discussion and Limitations
+
+## Current Limitations
+
+There are quite a lot of limitations to the project due to the limitation of time and the limited skill of the author:
+
+1. **Hardcoded file paths.** The pipeline reads files from absolute OneDrive paths specific to the development machine (`C:/Users/ATran2/OneDrive - JBS/...`). Running the pipeline on any other machine requires updating these paths. A configuration file or relative path approach would make the pipeline portable across the team.
+
+2. **Sensitivity to source file structure.** The pipeline depends on specific sheet names, column positions, and value formats in each source file. If a source file's structure changes - for example, if a sheet is renamed, a column is added, or the SOP identifier values change - the pipeline will fail silently or produce incorrect output. Adding schema validation checks at the top of the pipeline would catch these changes before they propagate.
+
+3. **Growing conditional complexity.** Each new customer contract with special pricing or GL rules requires additional conditional logic in the pipeline. Over time, this makes the codebase harder to maintain and reason about. A more scalable approach would be to encode all special cases in the Master Data file itself (as a rules table), rather than in the R code.
+
+4. **No automated scheduling.** The pipeline must be manually triggered each reporting period. While the one-click render is a major improvement over manual Excel work, further automation (e.g., a scheduled RScript run triggered on file update) would reduce dependency on the analyst being available.
+
+5. **Prices.xlsb format.** Binary `.xlsb` files are not natively supported by all R packages. The pipeline uses `openxlsx2::wb_to_df()` which handles this format, but it is slower and occasionally less robust than reading `.xlsx` files. If the Sales Team can export Prices as `.xlsx`, this dependency would be removed.
+
+6. **Limited R adoption within Rivalea.** R is not widely used or supported at JBS Pork Australia at the time of writing. This means the pipeline currently depends on the author being available to run and maintain it. A colleague unfamiliar with R would face a steep setup cost - installing R, RStudio, and the required packages - before being able to execute the pipeline at all. This limits the pipeline's resilience as a business tool if the author is unavailable.
+
+7. **Single-file codebase.** The entire pipeline is contained in one `.qmd` file exceeding 5,000 lines of code. While this was practical during development, it is not a maintainable structure for the long term. Navigating, debugging, or extending any one Business Unit requires scrolling through a large undivided file, and a mistake in one section can unintentionally affect another.
+
+## Future Improvements
+
+Several extensions would increase the utility and robustness of the pipeline:
+
+1. **Parameterised paths**: read file locations from a single config file, allowing the pipeline to be run on any machine without code changes.
+2. **Schema validation on load**: check that expected columns and sheets exist before the pipeline proceeds, and produce a clear error message if not.
+3. **Rules-driven special cases**: move contract-specific GL rules from R code into Master Data, so the finance team can update them without touching the pipeline.
+4. **Shiny front-end**: a simple Shiny app wrapping the pipeline would allow non-R users to trigger a run, review the Gap Check, and download the output without opening RStudio.
+5. **Unit tests**: `testthat` tests on key calculation functions (value = weight × rate, skeleton join completeness) would provide confidence that pipeline logic changes have not broken existing accounts.
+6. **Modular code restructure**: the current single-file structure should be split into separate modules, one per Business Unit or logical group. The proposed naming convention - `<bu>_<gl_account>_<cc_key>.R` (e.g., `offal_glaccount_cckey.R`) - would make each module self-describing: given the file name alone, a reader would immediately know which product, GL account, and Cost Centre it covers, along with the calculated values it produces. This would dramatically reduce the cognitive load of maintaining or extending any individual account block, and allow multiple people to work on different modules simultaneously without risk of conflict.
+
+---
+
+# Conclusion
+
+This project successfully delivered an automated R pipeline that replaces the manual, error-prone Excel-based workflow for financial account creation at JBS Pork Australia (Rivalea). The pipeline reads five source files from a shared OneDrive folder, applies the full revenue and expense calculation logic across all Business Units at both the Corowa and Laverton sites, and produces a structured financial database ready for import.
+
+The companion Gap Check tool was an equally important contribution: by making data integrity issues visible and actionable immediately after each pipeline run, it addresses the core risk of the original workflow - that errors would propagate silently into the submitted output.
+
+The most significant practical limitations are the limited adoption of R within Rivalea, which means the pipeline currently depends on the author to run and maintain it, and the single-file codebase structure, which at over 5,000 lines is difficult to navigate and extend. Hardcoded file paths and growing conditional complexity from special contract logic are further constraints. The most important future step is a modular restructure - splitting the pipeline into per-account modules named by GL account and Cost Centre key - which would make the codebase maintainable by others and easier to extend as new Business Units or contracts are added. The foundation built here - a reproducible, version-controlled, auditable pipeline - provides a substantially better basis for financial reporting than the manual process it replaces.
+
+---
+
+# References
+
+The following R packages were used in this project:
+
+- Wickham, H. et al. (2023). *dplyr: A Grammar of Data Manipulation*. R package version 1.1.4. <https://dplyr.tidyverse.org>
+- Wickham, H. and Bryan, J. (2023). *readxl: Read Excel Files*. R package version 1.4.3. <https://readxl.tidyverse.org>
+- Schauberger, P. and Walker, A. (2023). *openxlsx: Read, Write and Edit xlsx Files*. R package version 4.2.5. <https://CRAN.R-project.org/package=openxlsx>
+- Hester, J. et al. (2024). *openxlsx2: Read, Write and Edit xlsx Files*. R package version 1.1. <https://janmarvin.github.io/openxlsx2/>
+- Wickham, H. (2023). *stringr: Simple, Consistent Wrappers for Common String Operations*. R package version 1.5.1. <https://stringr.tidyverse.org>
+- Grolemund, G. and Wickham, H. (2011). *lubridate: Make Dealing with Dates a Little Easier*. R package version 1.9.3. <https://lubridate.tidyverse.org>
+- Wickham, H. and Girlich, M. (2022). *tidyr: Tidy Messy Data*. R package version 1.3.0. <https://tidyr.tidyverse.org>
+- Xie, Y. (2024). *knitr: A General-Purpose Package for Dynamic Report Generation in R*. R package version 1.45. <https://yihui.org/knitr/>
+- Zhu, H. (2024). *kableExtra: Construct Complex Table with 'kable' and Pipe Syntax*. R package version 1.3.4. <https://haozhu233.github.io/kableExtra/>
+
+---
+
