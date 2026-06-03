@@ -59,22 +59,22 @@ other_allocation_data <- other_allocation_data %>%
   select(1:6)
 
 # Split volume_raw into three data types based on col 2 identifier
-volume_farm_raw <- volume_raw %>%
+volume_carcass_raw <- volume_raw %>% #carcass 
   filter(`...2` %in% c("Farm", "Kill", "Bone")) %>%
   select(1:25)
 
-volume_bone_raw <- volume_raw %>%
+volume_boxed_meat_raw <- volume_raw %>% #boxed meat
   filter(`...2` %in% c("2.Meat Processing", "6.Laverton Processing")) %>%
   select(1:25)
 
-volume_va_raw <- volume_raw %>%
+volume_va_raw <- volume_raw %>% 
   filter(`...2` == "3.Meat Sales") %>%
   select(1:25)
 
 # Assign names for each separate data
-colnames(volume_farm_raw) <- c("Unicode", "Tab", "Week", "Month", "Year", "Abattoir", "Service", "Int/Ext", "Vendor Type", "Customer Code", "Customer name", "Item type", "Item Code", "Item Description", "Run", "Storage", "Type", "Group", "Primal", "Units", "Avg Weight", "Total Weight", "Check", "Price", "Value")
+colnames(volume_carcass_raw) <- c("Unicode", "Tab", "Week", "Month", "Year", "Abattoir", "Service", "Int/Ext", "Vendor Type", "Customer Code", "Customer name", "Item type", "Item Code", "Item Description", "Run", "Storage", "Type", "Group", "Primal", "Units", "Avg Weight", "Total Weight", "Check", "Price", "Value")
 
-colnames(volume_bone_raw) <- c("Unicode", "Tab", "Week", "Month", "Year", "Abattoir", "Service", "Int/Ext", "Vendor Type", "Customer Code", "Customer name", "Item type", "Item Code", "Item Description", "Run", "Storage", "Type", "Group", "Primal", "Units", "Avg Weight", "Total Weight", "Check", "Price", "Value")
+colnames(volume_boxed_meat_raw) <- c("Unicode", "Tab", "Week", "Month", "Year", "Abattoir", "Service", "Int/Ext", "Vendor Type", "Customer Code", "Customer name", "Item type", "Item Code", "Item Description", "Run", "Storage", "Type", "Group", "Primal", "Units", "Avg Weight", "Total Weight", "Check", "Price", "Value")
 
 colnames(volume_va_raw)   <- c("Unicode", "Tab", "Week", "Month", "Year", "Abattoir", "Service", "Int/Ext", "Vendor Type", "Customer Code", "Customer name", "Item type", "Item Code", "Item Description", "Run", "Storage", "Type", "Group", "Primal", "Units", "Avg Weight", "Total Weight", "Check", "Price", "Value")
 
@@ -728,7 +728,7 @@ meat_trade_data_new <- meat_trade_data %>%
 ### Join all prepared data together to create the main data
 
 ```{r}
-all_revenue_farm <- bind_rows(
+all_revenue_carcass <- bind_rows(
   farm_sales_400000_10001812_new,
   farm_sales_400028_10001812_new,
   meat_sales_kill_400000_10201816_new,
@@ -751,7 +751,7 @@ all_revenue_farm <- bind_rows(
 
 ```{r}
 # Here are some special conditions, filtering that i applied due to guidance from my manager, some are only tempotarily, some are because of the way data was recorded (unwanted data get in the way so those data need to be filter out)
-all_revenue_farm <- all_revenue_farm %>%
+all_revenue_carcass <- all_revenue_carcass %>%
   mutate(Abattoir = if_else(is.na(Abattoir) | Abattoir == "", "EXTERNAL", Abattoir)) %>%  # fill blank Abattoir and also when its External because external mean the process did not happen within the company so there is no need to include this result
   mutate(`Customer name` = if_else(
     BU == "2.Meat Processing" & Tab %in% c("Boxed Meat", "Meat Trade") & `SOP Unicode` == "CommodityChilInternalVA",
@@ -760,7 +760,7 @@ all_revenue_farm <- all_revenue_farm %>%
     # Change name for some customer based on guidance
   )) %>%
   mutate(Month = month.name[Period]) %>%
-  mutate(`Customer Group` = if_else(`Customer Group` == "Wangarrata", "Wangaratta", `Customer Group`)) %>%  # fix typo
+  mutate(`Customer Group` = if_else(`Customer Group` == "", "Wangaratta", `Customer Group`)) %>%  # fix typo
 filter(!(toupper(Abattoir) == "LAVERTON" & Tab == "Kill" & str_detect(toupper(`Customer name`), "6WAY|COMMODITY"))) # Temporarily special condition
 ```
 
@@ -768,7 +768,7 @@ filter(!(toupper(Abattoir) == "LAVERTON" & Tab == "Kill" & str_detect(toupper(`C
 
 ```{r}
 # Pre-standardise keys once
-all_revenue_farm_std <- all_revenue_farm %>%
+all_revenue_carcass_std <- all_revenue_carcass %>%
   mutate(
     `SOP Unicode` = toupper(`SOP Unicode`),
     Abattoir      = toupper(Abattoir),
@@ -776,10 +776,10 @@ all_revenue_farm_std <- all_revenue_farm %>%
     Tab           = toupper(Tab)
   )
 
-# Join volume_farm_raw on SOP Unicode + Abattoir + Month + Tab
-all_revenue_farm_new <- all_revenue_farm_std %>%
+# Join volume_carcass_raw on SOP Unicode + Abattoir + Month + Tab
+all_revenue_carcass_new <- all_revenue_carcass_std %>%
   left_join(
-    volume_farm_raw %>%
+    volume_carcass_raw %>%
       filter(!(`Int/Ext` %in% "External" & Tab == "Farm")) %>%
       filter(!(Service == "live" & Tab %in% c("Kill", "Bone"))) %>%
       mutate(
@@ -795,8 +795,8 @@ all_revenue_farm_new <- all_revenue_farm_std %>%
       summarise(
         `Item Code`    = first(`Item Code`),
         Units          = sum(Units, na.rm = TRUE),
-        `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
         `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+        `Avg Weight`   = `Total Weight` / Units,
         .groups = "drop"
       ),
     by = c("SOP Unicode" = "Unicode", "Abattoir", "Month", "Tab")
@@ -807,9 +807,9 @@ all_revenue_farm_new <- all_revenue_farm_std %>%
 
 ```{r}
 # Split by Tab to apply the correct price source for each type
-all_revenue_farm_final <- bind_rows(
+all_revenue_carcass_final <- bind_rows(
   # Join Farm Tab to Carcass Price, add condition: FCOROWAWoolworths inherits price from FEXTERNALBig River Pork - Coles
-  all_revenue_farm_new %>%
+  all_revenue_carcass_new %>%
     mutate(`SOP Unicode` = str_trim(`SOP Unicode`)) %>%
     filter(Tab == "FARM") %>%
     left_join(
@@ -825,7 +825,7 @@ all_revenue_farm_final <- bind_rows(
       by = c("SOP Unicode" = "Farm Unicode", "Abattoir", "Period")
     ),
   # Join Bone Tab to Fee Data
-  all_revenue_farm_new %>%
+  all_revenue_carcass_new %>%
     mutate(`SOP Unicode` = str_trim(`SOP Unicode`)) %>%
     filter(Tab == "BONE") %>%
     left_join(
@@ -837,7 +837,7 @@ all_revenue_farm_final <- bind_rows(
       by = c("SOP Unicode", "Abattoir", "Period")
     ),
   # join Kill tab to Fee Data 
-  all_revenue_farm_new %>%
+  all_revenue_carcass_new %>%
     mutate(`SOP Unicode` = str_trim(`SOP Unicode`)) %>%
     filter(Tab == "KILL") %>%
     left_join(
@@ -849,7 +849,7 @@ all_revenue_farm_final <- bind_rows(
       by = c("SOP Unicode", "Abattoir", "Period")
     ),
   # All other Tab types — no price applied
-  all_revenue_farm_new %>%
+  all_revenue_carcass_new %>%
     filter(is.na(Tab) | !Tab %in% c("FARM", "BONE", "KILL"))
 )
 ```
@@ -858,18 +858,18 @@ all_revenue_farm_final <- bind_rows(
 
 ```{r}
 # Farm: Total Weight x Carcass Price | Bone/Kill: Units x Fee
-all_revenue_farm_calculated <- all_revenue_farm_final %>%
+all_revenue_carcass_calculated <- all_revenue_carcass_final %>%
   mutate(Value = case_when(
     Tab == "FARM" ~ `Total Weight` * `Carcass Price`,
     Tab %in% c("BONE", "KILL") ~ Units * Fee,
     TRUE ~ NA_real_))
 ```
 
-## Join Price Data to Volume Data for Bone Data in order to calculate the value for each item
+## Join Price Data to Volume Data for Boxed Meat Data in order to calculate the value for each item
 
 ```{r}
-# Join volume_bone_raw with item_price_data on Item Code, calculate Value per item, then aggregate by BU/Abattoir/Month
-volume_bone_price_calculated <- volume_bone_raw %>%
+# Join volume_boxed_meat_raw with item_price_data on Item Code, calculate Value per item, then aggregate by BU/Abattoir/Month
+volume_boxed_meat_price_calculated <- volume_boxed_meat_raw %>%
   mutate(
     Tab         = toupper(Tab),
     Abattoir    = toupper(Abattoir),
@@ -885,7 +885,7 @@ volume_bone_price_calculated <- volume_bone_raw %>%
   mutate(Value = `Total Weight` * `Current Price`)
 ```
 
-## Offal Data from Bone Data
+## Offal Data from Boxed Meat Data
 
 ### Join all data to create main data
 
@@ -906,11 +906,11 @@ all_revenue_offal_data_std <- all_revenue_offal_data %>%
   )
 ```
 
-### Filter calculated bone data for offal data
+### Filter calculated boxed meat data for offal data
 
 ```{r}
 # Group value for Corowa and filter out unrelevant data for Offal Data
-volume_offal_corowa <- volume_bone_price_calculated %>%
+volume_offal_corowa <- volume_boxed_meat_price_calculated %>%
   mutate(Type = toupper(Type)) %>%
   filter(toupper(Abattoir) == "COROWA") %>%
   filter(Type %in% c("INEDIBLE", "OFFALS", "BACON CUTS")) %>%
@@ -933,14 +933,14 @@ volume_offal_corowa <- volume_bone_price_calculated %>%
   group_by(Tab, Abattoir, Month, `Customer Group`, `Customer name`) %>%
   summarise(
     Units          = sum(Units, na.rm = TRUE),
-    `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
     `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+    `Avg Weight`   = `Total Weight` / Units,
     Value          = sum(Value, na.rm = TRUE),
     .groups = "drop"
   )
 
 # Group value for Corowa and filter out unrelevant data for Offal Data and apply special discount for Laverton since this site ship the offal to Lineage whom charge a special discount which is also the reason why Corowa and Laverton was splitted
-volume_offal_laverton <- volume_bone_price_calculated %>%
+volume_offal_laverton <- volume_boxed_meat_price_calculated %>%
   mutate(Type = toupper(Type)) %>%
   filter(toupper(Abattoir) == "LAVERTON") %>%
   filter(Type %in% c("INEDIBLE", "OFFALS", "BACON CUTS")) %>%
@@ -963,8 +963,8 @@ volume_offal_laverton <- volume_bone_price_calculated %>%
   group_by(Tab, Abattoir, Month, `Customer Group`, `Customer name`) %>%
   summarise(
     Units          = sum(Units, na.rm = TRUE),
-    `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
     `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+    `Avg Weight`   = `Total Weight` / Units,
     Value          = sum(Value, na.rm = TRUE),
     .groups = "drop"
   ) %>%
@@ -981,7 +981,7 @@ all_revenue_offal_data_calculated <- all_revenue_offal_data_std %>%
   )
 ```
 
-## 6Way and Sow Data from Bone Data
+## 6Way and Sow Data from Boxed Meat Data
 
 ### Join all data to create main data
 
@@ -1002,11 +1002,11 @@ all_revenue_6way_sow_data_std <- all_revenue_6way_sow_data %>%
   )
 ```
 
-### Filter calculated bone data for 6 way and sow data
+### Filter calculated boxed meat data for 6 way and sow data
 
 ```{r}
 # Group value for Corowa and filter out unrelevant data for commodity Data 
-volume_6way_sow_corowa <- volume_bone_price_calculated %>%
+volume_6way_sow_corowa <- volume_boxed_meat_price_calculated %>%
   mutate(Type = toupper(Type)) %>%
   filter(toupper(Abattoir) == "COROWA") %>%
   filter(toupper(Run) == "6 WAY") %>%
@@ -1023,14 +1023,14 @@ volume_6way_sow_corowa <- volume_bone_price_calculated %>%
   group_by(Tab, Abattoir, Month, `Customer Group`, `Customer name`) %>%
   summarise(
     Units          = sum(Units, na.rm = TRUE),
-    `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
     `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+    `Avg Weight`   = `Total Weight` / Units,
     Value          = sum(Value, na.rm = TRUE),
     .groups = "drop"
   )
 
 # Group value for Laverton and filter out unrelevant data for commodity Data 
-volume_6way_sow_laverton <- volume_bone_price_calculated %>%
+volume_6way_sow_laverton <- volume_boxed_meat_price_calculated %>%
   mutate(Type = toupper(Type)) %>%
   filter(toupper(Abattoir) == "LAVERTON") %>%
   filter(toupper(Run) %in% c("6 WAY", "SOW BONE")) %>%
@@ -1050,8 +1050,8 @@ volume_6way_sow_laverton <- volume_bone_price_calculated %>%
   group_by(Tab, Abattoir, Month, `Customer Group`, `Customer name`) %>%
   summarise(
     Units          = sum(Units, na.rm = TRUE),
-    `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
     `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+    `Avg Weight`   = `Total Weight` / Units,
     Value          = sum(Value, na.rm = TRUE),
     .groups = "drop"
   ) %>%
@@ -1068,7 +1068,7 @@ all_revenue_6way_sow_data_calculated <- all_revenue_6way_sow_data_std %>%
   )
 ```
 
-## Commodity Data from Bone Data for Corowa (special)
+## Commodity Data from Boxed Meat Data for Corowa (special)
 
 ### Join all data to create main data
 
@@ -1106,7 +1106,7 @@ volume_commodity_corowa_400028 <- volume_va_raw %>%
   )
 
 # Filter for Corowa commodity bone and assign Customer Group - covers both 400000 and 400028
-volume_commodity_corowa <- volume_bone_raw %>%
+volume_commodity_corowa <- volume_boxed_meat_raw %>%
   filter(toupper(Abattoir) == "COROWA") %>%
   filter(toupper(Run) == "COMMODITY BONE") %>%
   mutate(
@@ -1168,7 +1168,7 @@ volume_commodity_corowa_400000_calculated <- volume_commodity_corowa_400000 %>%
   mutate(Value = `Total Weight` * `Current Price`)
 ```
 
-### Group calculated bone data for commodity data - 400000 and 400028 of Corowa from 3.Meat Sales
+### Group calculated boxed meat data for commodity data - 400000 and 400028 of Corowa from 3.Meat Sales
 
 ```{r}
 # Group 400028 volume by Abattoir + Month, then derive Period from Month name
@@ -1226,11 +1226,11 @@ all_revenue_commodity_corowa_calculated <- bind_rows(
 )
 ```
 
-## Commodity Data from Bone Data for Laverton
+## Commodity Data from Boxed Meat Data for Laverton
 
 ```{r}
 # CHIL storage → matches laverton_commodity_chil_400000_10501854 (GL 400000)
-volume_commodity_laverton_chil <- volume_bone_price_calculated %>%
+volume_commodity_laverton_chil <- volume_boxed_meat_price_calculated %>%
   mutate(Type = toupper(Type)) %>%
   filter(toupper(Abattoir) == "LAVERTON") %>%
   filter(toupper(Run) == "COMMODITY BONE") %>%
@@ -1248,15 +1248,15 @@ volume_commodity_laverton_chil <- volume_bone_price_calculated %>%
   group_by(Tab, Abattoir, Month, `Customer Group`, `Customer name`) %>%
   summarise(
     Units          = sum(Units, na.rm = TRUE),
-    `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
     `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+    `Avg Weight`   = `Total Weight` / Units,
     Value          = sum(Value, na.rm = TRUE),
     .groups = "drop"
   ) %>%
   mutate(Period = match(Month, toupper(month.name)))
 
 # FRZ storage → matches laverton_commodity_frz_400028_10501854 (GL 400028)
-volume_commodity_laverton_frz <- volume_bone_price_calculated %>%
+volume_commodity_laverton_frz <- volume_boxed_meat_price_calculated %>%
   mutate(Type = toupper(Type)) %>%
   filter(toupper(Abattoir) == "LAVERTON") %>%
   filter(toupper(Run) == "COMMODITY BONE") %>%
@@ -1274,8 +1274,8 @@ volume_commodity_laverton_frz <- volume_bone_price_calculated %>%
   group_by(Tab, Abattoir, Month, `Customer Group`, `Customer name`) %>%
   summarise(
     Units          = sum(Units, na.rm = TRUE),
-    `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
     `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+    `Avg Weight`   = `Total Weight` / Units,
     Value          = sum(Value, na.rm = TRUE),
     .groups = "drop"
   ) %>%
@@ -1321,7 +1321,7 @@ all_revenue_meat_trade_data_std <- meat_trade_data_new %>%
 ### Match 6Way from Laverton to Corowa Meat Trade
 
 ```{r}
-volume_meat_trade_6way <- volume_bone_price_calculated %>%
+volume_meat_trade_6way <- volume_boxed_meat_price_calculated %>%
   mutate(Type = toupper(Type)) %>%
   filter(toupper(Abattoir) == "LAVERTON") %>%
   filter(toupper(Run) %in% c("6 WAY")) %>%
@@ -1338,8 +1338,8 @@ volume_meat_trade_6way <- volume_bone_price_calculated %>%
   group_by(Tab, Abattoir, Month, `Customer Group`, `Customer name`) %>%
   summarise(
     Units          = sum(Units, na.rm = TRUE),
-    `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
     `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+    `Avg Weight`   = `Total Weight` / Units,
     Value          = sum(Value, na.rm = TRUE),
     .groups = "drop"
   ) %>% 
@@ -1350,7 +1350,7 @@ volume_meat_trade_6way <- volume_bone_price_calculated %>%
 ### Match Commodity Data from Laverton (FRZ) to Corowa Meat Trade
 
 ```{r}
-volume_meat_trade_commodity <- volume_bone_price_calculated %>%
+volume_meat_trade_commodity <- volume_boxed_meat_price_calculated %>%
   mutate(Type = toupper(Type)) %>%
   filter(toupper(Abattoir) == "LAVERTON") %>%
   filter(toupper(Run) == "COMMODITY BONE") %>%
@@ -1368,8 +1368,8 @@ volume_meat_trade_commodity <- volume_bone_price_calculated %>%
   group_by(Tab, Abattoir, Month, `Customer Group`, `Customer name`) %>%
   summarise(
     Units          = sum(Units, na.rm = TRUE),
-    `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
     `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+    `Avg Weight`   = `Total Weight` / Units,
     Value          = sum(Value, na.rm = TRUE),
     .groups = "drop"
   ) %>%
@@ -1380,7 +1380,7 @@ volume_meat_trade_commodity <- volume_bone_price_calculated %>%
 ### Match Edible Data from Laverton to Corowa Meat Trade
 
 ```{r}
-volume_meat_trade_edible_offal <- volume_bone_price_calculated %>%
+volume_meat_trade_edible_offal <- volume_boxed_meat_price_calculated %>%
   mutate(Type = toupper(Type)) %>%
   filter(toupper(Abattoir) == "LAVERTON") %>%
   filter(Type %in% c("OFFALS", "BACON CUTS")) %>%
@@ -1398,8 +1398,8 @@ volume_meat_trade_edible_offal <- volume_bone_price_calculated %>%
   group_by(Tab, Abattoir, Month, `Customer Group`, `Customer name`) %>%
   summarise(
     Units          = sum(Units, na.rm = TRUE),
-    `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
     `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+    `Avg Weight`   = `Total Weight` / Units,
     Value          = sum(Value, na.rm = TRUE),
     .groups = "drop"
   ) %>%
@@ -1463,8 +1463,8 @@ all_revenue_meat_sales <- volume_VA_price_calculated %>%
   group_by(Tab, Abattoir, Month, `Customer name`) %>%
   summarise(
     Units          = sum(Units, na.rm = TRUE),
-    `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
     `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+    `Avg Weight`   = `Total Weight` / Units,
     Value          = sum(Value, na.rm = TRUE),
     .groups = "drop"
   ) %>%
@@ -2493,7 +2493,7 @@ all_expense_new_team_calculated <- bind_rows(farm_sales_400350_10001812_calculat
 
 ```{r}
 # Prepare separated data for Corowa and Laverton so it is easier to debug in the future
-corowa_laverton_transactions <- volume_farm_raw %>%
+corowa_laverton_transactions <- volume_carcass_raw %>%
       filter(!(`Int/Ext` %in% "External" ))
 
 # Calculate pig fee by buying from farm
@@ -2522,8 +2522,8 @@ corowa_farm_510167_10501816_buy_calculated <- corowa_laverton_transactions %>%
   group_by(`Customer name`, Month, Period) %>%
   summarise(
     Units          = sum(Units, na.rm = TRUE),
-    `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
     `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+    `Avg Weight`   = `Total Weight` / Units,
     Value          = sum(Value, na.rm = TRUE),
     .groups = "drop"
   ) %>%
@@ -2567,8 +2567,8 @@ corowa_farm_510167_10501816_kill_calculated <- corowa_laverton_transactions %>%
   group_by(`Customer name`, Month, Period) %>%
   summarise(
     Units          = sum(Units, na.rm = TRUE),
-    `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
     `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+    `Avg Weight`   = `Total Weight` / Units,
     Fee            = mean(Fee, na.rm = TRUE),
     Value          = sum(Value, na.rm = TRUE),
     .groups = "drop"
@@ -2613,8 +2613,8 @@ corowa_farm_510167_10501816_bone_calculated <- corowa_laverton_transactions %>%
   group_by(`Customer name`, Month, Period) %>%
   summarise(
     Units          = sum(Units, na.rm = TRUE),
-    `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
     `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+    `Avg Weight`   = `Total Weight` / Units,
     Fee            = mean(Fee, na.rm = TRUE),
     Value          = sum(Value, na.rm = TRUE),
     .groups = "drop"
@@ -2661,8 +2661,8 @@ laverton_farm_510167_10501854_calculated <- corowa_laverton_transactions %>%
   group_by(`Customer name`, Month, Period) %>%
   summarise(
     Units          = sum(Units, na.rm = TRUE),
-    `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
     `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+    `Avg Weight`   = `Total Weight` / Units,
     Value          = sum(Value, na.rm = TRUE),
     .groups = "drop"
   ) %>%
@@ -2751,8 +2751,8 @@ volume_expense_VA_calculated <- volume_va_raw %>%
   group_by(Tab, Abattoir, Month, Period, `Vendor Type`) %>%
   summarise(
     Units          = sum(Units, na.rm = TRUE),
-    `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
     `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+    `Avg Weight`   = `Total Weight` / Units,
     Value          = sum(Value, na.rm = TRUE),
     .groups = "drop"
   )
@@ -2860,8 +2860,8 @@ meat_sales_packaging_650311_10001814_calculated <- meat_sales_packaging_650311_1
       group_by(Tab, Abattoir, Month, Period, `Customer name`) %>%
       summarise(
         Units          = sum(Units, na.rm = TRUE),
-        `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
         `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+        `Avg Weight`   = `Total Weight` / Units,
         Value          = sum(Value, na.rm = TRUE),
         .groups = "drop"
       ),
@@ -2876,8 +2876,8 @@ meat_sales_pallet_650303_10001814_calculated <- meat_sales_pallet_650303_1000181
       group_by(Tab, Abattoir, Month, Period, `Customer name`) %>%
       summarise(
         Units          = sum(Units, na.rm = TRUE),
-        `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
         `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+        `Avg Weight`   = `Total Weight` / Units,
         Value          = sum(Value, na.rm = TRUE),
         .groups = "drop"
       ),
@@ -2945,7 +2945,7 @@ offal_corowa_pallet_650303_10001816_new_std <- offal_corowa_pallet_650303_100018
   ) 
 
 # Prepare the edible offal volume data
-corowa_edible_offal_volume_data <- volume_bone_raw %>% 
+corowa_edible_offal_volume_data <- volume_boxed_meat_raw %>% 
   mutate(Type = toupper(Type)) %>%
   filter(toupper(Abattoir) == "COROWA") %>%
   filter(Type %in% c("OFFALS", "BACON CUTS")) %>%
@@ -2978,8 +2978,8 @@ offal_corowa_packaging_650301_10001816_calculated <- offal_corowa_packaging_6503
       group_by(Tab, Abattoir, Month, Period, `Customer Group`) %>%
       summarise(
         Units          = sum(Units, na.rm = TRUE),
-        `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
         `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+        `Avg Weight`   = `Total Weight` / Units,
         Value          = sum(Value, na.rm = TRUE),
         .groups = "drop"
       ),
@@ -2994,8 +2994,8 @@ offal_corowa_pallet_650303_10001816_calculated <- offal_corowa_pallet_650303_100
       group_by(Tab, Abattoir, Month, Period, `Customer Group`) %>%
       summarise(
         Units          = sum(Units, na.rm = TRUE),
-        `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
         `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+        `Avg Weight`   = `Total Weight` / Units,
         Value          = sum(Value, na.rm = TRUE),
         .groups = "drop"
       ),
@@ -3026,7 +3026,7 @@ corowa_6way_pallet_frz_650303_10501816_new_std <- corowa_6way_pallet_frz_650303_
     Month         = toupper(month.name[Period])
   ) 
 
-corowa_volume_6way_data <- volume_bone_raw %>%
+corowa_volume_6way_data <- volume_boxed_meat_raw %>%
   mutate(
     Tab         = toupper(Tab),
     Abattoir    = toupper(Abattoir),
@@ -3083,8 +3083,8 @@ corowa_6way_packaging_frz_650301_10501816_calculated <- corowa_6way_packaging_fr
       group_by(Tab, Abattoir, Month, Period, `Customer Group`) %>%
       summarise(
         Units          = sum(Units, na.rm = TRUE),
-        `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
         `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+        `Avg Weight`   = `Total Weight` / Units,
         Value          = sum(Value, na.rm = TRUE),
         .groups = "drop"
       ),
@@ -3099,8 +3099,8 @@ corowa_6way_pallet_frz_650303_10501816_calculated <- corowa_6way_pallet_frz_6503
       group_by(Tab, Abattoir, Month, Period, `Customer Group`) %>%
       summarise(
         Units          = sum(Units, na.rm = TRUE),
-        `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
         `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+        `Avg Weight`   = `Total Weight` / Units,
         Value          = sum(Value, na.rm = TRUE),
         .groups = "drop"
       ),
@@ -3168,8 +3168,8 @@ corowa_commodity_packaging_frz_650301_10501816_calculated <- corowa_commodity_pa
       group_by(Tab, Abattoir, Month, Period, `Customer Group`) %>%
       summarise(
         Units          = sum(Units, na.rm = TRUE),
-        `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
         `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+        `Avg Weight`   = `Total Weight` / Units,
         Value          = sum(Value, na.rm = TRUE),
         .groups = "drop"
       ),
@@ -3184,8 +3184,8 @@ corowa_commodity_pallet_frz_650303_10501816_calculated <- corowa_commodity_palle
       group_by(Tab, Abattoir, Month, Period, `Customer Group`) %>%
       summarise(
         Units          = sum(Units, na.rm = TRUE),
-        `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
         `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+        `Avg Weight`   = `Total Weight` / Units,
         Value          = sum(Value, na.rm = TRUE),
         .groups = "drop"
       ),
@@ -3234,7 +3234,7 @@ corowa_ww_packaging_margin_650311_11901816_new_std <- corowa_ww_packaging_margin
   ) 
 
 # Prepare the data
-corowa_volume_ww_data <- volume_farm_raw %>%
+corowa_volume_ww_data <- volume_carcass_raw %>%
   mutate(
     Tab         = toupper(Tab),
     Abattoir    = toupper(Abattoir),
@@ -3328,7 +3328,7 @@ corowa_DRJ_packaging_margin_650311_11901816_new_std <- corowa_DRJ_packaging_marg
   ) 
 
 # Prepare the data
-corowa_volume_DRJ_data <- volume_farm_raw %>%
+corowa_volume_DRJ_data <- volume_carcass_raw %>%
   mutate(
     Tab         = toupper(Tab),
     Abattoir    = toupper(Abattoir),
@@ -3425,7 +3425,7 @@ offal_laverton_pallet_650303_10001854_new_std <- offal_laverton_pallet_650303_10
   ) 
 
 # Prepare the edible offal volume data
-laverton_edible_offal_volume_data <- volume_bone_raw %>% 
+laverton_edible_offal_volume_data <- volume_boxed_meat_raw %>% 
   mutate(Type = toupper(Type)) %>%
   filter(toupper(Abattoir) == "LAVERTON") %>%
   filter(Type %in% c("OFFALS", "BACON CUTS")) %>%
@@ -3457,8 +3457,8 @@ offal_laverton_packaging_650301_10001854_calculated <- offal_laverton_packaging_
       group_by(Tab, Abattoir, Month, Period, `Customer Group`) %>%
       summarise(
         Units          = sum(Units, na.rm = TRUE),
-        `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
         `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+        `Avg Weight`   = `Total Weight` / Units,
         Value          = sum(Value, na.rm = TRUE),
         .groups = "drop"
       ),
@@ -3473,8 +3473,8 @@ offal_laverton_pallet_650303_10001854_calculated <- offal_laverton_pallet_650303
       group_by(Tab, Abattoir, Month, Period, `Customer Group`) %>%
       summarise(
         Units          = sum(Units, na.rm = TRUE),
-        `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
         `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+        `Avg Weight`   = `Total Weight` / Units,
         Value          = sum(Value, na.rm = TRUE),
         .groups = "drop"
       ),
@@ -3506,7 +3506,7 @@ laverton_6way_pallet_frz_650303_10501854_new_std <- laverton_6way_pallet_frz_650
   ) 
 
 # Prepare the data
-laverton_volume_6way_data <- volume_bone_raw %>%
+laverton_volume_6way_data <- volume_boxed_meat_raw %>%
   mutate(
     Tab         = toupper(Tab),
     Abattoir    = toupper(Abattoir),
@@ -3563,8 +3563,8 @@ laverton_6way_packaging_frz_650301_10501854_calculated <- laverton_6way_packagin
       group_by(Tab, Abattoir, Month, Period, `Customer Group`) %>%
       summarise(
         Units          = sum(Units, na.rm = TRUE),
-        `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
         `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+        `Avg Weight`   = `Total Weight` / Units,
         Value          = sum(Value, na.rm = TRUE),
         .groups = "drop"
       ),
@@ -3579,8 +3579,8 @@ laverton_6way_pallet_frz_650303_10501854_calculated <- laverton_6way_pallet_frz_
       group_by(Tab, Abattoir, Month, Period, `Customer Group`) %>%
       summarise(
         Units          = sum(Units, na.rm = TRUE),
-        `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
         `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+        `Avg Weight`   = `Total Weight` / Units,
         Value          = sum(Value, na.rm = TRUE),
         .groups = "drop"
       ),
@@ -3612,7 +3612,7 @@ laverton_commodity_pallet_frz_650303_10501854_new_std <- laverton_commodity_pall
   ) 
 
 # Prepare the data
-laverton_volume_commodity_data <- volume_bone_raw %>%
+laverton_volume_commodity_data <- volume_boxed_meat_raw %>%
   mutate(
     Tab         = toupper(Tab),
     Abattoir    = toupper(Abattoir),
@@ -3669,8 +3669,8 @@ laverton_commodity_packaging_frz_650301_10501854_calculated <- laverton_commodit
       group_by(Tab, Abattoir, Month, Period, `Customer Group`) %>%
       summarise(
         Units          = sum(Units, na.rm = TRUE),
-        `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
         `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+        `Avg Weight`   = `Total Weight` / Units,
         Value          = sum(Value, na.rm = TRUE),
         .groups = "drop"
       ),
@@ -3685,8 +3685,8 @@ laverton_commodity_pallet_frz_650303_10501854_calculated <- laverton_commodity_p
       group_by(Tab, Abattoir, Month, Period, `Customer Group`) %>%
       summarise(
         Units          = sum(Units, na.rm = TRUE),
-        `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
         `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+        `Avg Weight`   = `Total Weight` / Units,
         Value          = sum(Value, na.rm = TRUE),
         .groups = "drop"
       ),
@@ -3719,7 +3719,7 @@ laverton_sow_pallet_frz_650303_10501854_new_std <- laverton_sow_pallet_frz_65030
   ) 
 
 # Prepare the data
-laverton_volume_sow_data <- volume_bone_raw %>%
+laverton_volume_sow_data <- volume_boxed_meat_raw %>%
   mutate(
     Tab         = toupper(Tab),
     Abattoir    = toupper(Abattoir),
@@ -3779,8 +3779,8 @@ laverton_sow_packaging_frz_650301_10501854_calculated <- laverton_sow_packaging_
       group_by(Tab, Abattoir, Month, Period, `Customer Group`) %>%
       summarise(
         Units          = sum(Units, na.rm = TRUE),
-        `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
         `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+        `Avg Weight`   = `Total Weight` / Units,
         Value          = sum(Value, na.rm = TRUE),
         .groups = "drop"
       ),
@@ -3795,8 +3795,8 @@ laverton_sow_pallet_frz_650303_10501854_calculated <- laverton_sow_pallet_frz_65
       group_by(Tab, Abattoir, Month, Period, `Customer Group`) %>%
       summarise(
         Units          = sum(Units, na.rm = TRUE),
-        `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
         `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+        `Avg Weight`   = `Total Weight` / Units,
         Value          = sum(Value, na.rm = TRUE),
         .groups = "drop"
       ),
@@ -3820,10 +3820,10 @@ laverton_export_packaging_650301_10201854_new_std <- laverton_export_packaging_6
     Month         = toupper(month.name[Period])
   ) 
 
-# Join volume_farm_raw on SOP Unicode
+# Join volume_carcass_raw on SOP Unicode
 laverton_export_packaging_650301_10201854_calculated <- laverton_export_packaging_650301_10201854_new_std %>%
   left_join(
-    volume_farm_raw %>%
+    volume_carcass_raw %>%
       filter(Service == "Kill") %>% 
       mutate(
         Unicode        = toupper(Unicode),
@@ -3837,8 +3837,8 @@ laverton_export_packaging_650301_10201854_calculated <- laverton_export_packagin
       group_by(Unicode, Month) %>%
       summarise(
         Units          = sum(Units, na.rm = TRUE),
-        `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
         `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+        `Avg Weight`   = `Total Weight` / Units,
         .groups = "drop"
       ),
     by = c("SOP Unicode" = "Unicode", "Month")
@@ -3890,8 +3890,8 @@ trade_allowance_meat_sales_volume <- all_revenue_meat_sales  %>%
   group_by(Tab, Abattoir, Month, Period, `Customer name`) %>%
   summarise(
     Units          = sum(Units, na.rm = TRUE),
-    `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
     `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+    `Avg Weight`   = `Total Weight` / Units,
     Value          = sum(Value, na.rm = TRUE),
     .groups = "drop"
   )
@@ -3908,7 +3908,7 @@ trade_allowance_meat_sales_calculated <- trade_allowance_meat_sales_450050_10001
 
 ```{r}
 rebates_BE_camp <- 5.80
-laverton_trade_allowance_volume <- volume_farm_raw %>% 
+laverton_trade_allowance_volume <- volume_carcass_raw %>% 
   filter(Tab == "Kill") %>% 
   filter(Abattoir == "LAVERTON") %>% 
   filter(`Customer name` %in% c("BE Campbells Bacon", "B.E. Campbell"))
@@ -3957,7 +3957,7 @@ hold_cost_rate <- 0.01
 
 ```{r}
 # Prepare the data for frozen offal
-volume_offal_frz_corowa <- volume_bone_price_calculated %>%
+volume_offal_frz_corowa <- volume_boxed_meat_price_calculated %>%
   # Add condition to filter frozen offal only
   filter(`Storage` == "FROZEN") %>% 
   mutate(Type = toupper(Type)) %>%
@@ -3982,8 +3982,8 @@ volume_offal_frz_corowa <- volume_bone_price_calculated %>%
   group_by(Tab, Abattoir, Month, `Customer Group`, `Customer name`) %>%
   summarise(
     Units          = sum(Units, na.rm = TRUE),
-    `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
     `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+    `Avg Weight`   = `Total Weight` / Units,
     Value          = sum(Value, na.rm = TRUE),
     .groups = "drop"
   ) %>% 
@@ -4059,7 +4059,7 @@ corowa_commodity_frz_storage_7300100_10501816_calculated <- corowa_commodity_frz
 
 ```{r}
 # Prepare the data for frozen 6Way item only
-volume_6way_frz_corowa <- volume_bone_price_calculated %>%
+volume_6way_frz_corowa <- volume_boxed_meat_price_calculated %>%
   filter(`Storage` == "FROZEN") %>% 
   mutate(Type = toupper(Type)) %>%
   filter(toupper(Abattoir) == "COROWA") %>%
@@ -4077,8 +4077,8 @@ volume_6way_frz_corowa <- volume_bone_price_calculated %>%
   group_by(Tab, Abattoir, Month, `Customer Group`, `Customer name`) %>%
   summarise(
     Units          = sum(Units, na.rm = TRUE),
-    `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
     `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+    `Avg Weight`   = `Total Weight` / Units,
     Value          = sum(Value, na.rm = TRUE),
     .groups = "drop"
   )
@@ -4116,7 +4116,7 @@ corowa_6way_frz_storage_730010_10501816_calculated <- corowa_6way_frz_storage_73
 
 ```{r, eval=FALSE}
 # Prepare the data for Meat Trade (only Frozen)
-volume_meat_trade_6way_frz <- volume_bone_price_calculated %>%
+volume_meat_trade_6way_frz <- volume_boxed_meat_price_calculated %>%
   mutate(Type = toupper(Type)) %>%
   filter(toupper(Abattoir) == "LAVERTON") %>%
   filter(toupper(Run) %in% c("6 WAY")) %>%
@@ -4134,8 +4134,8 @@ volume_meat_trade_6way_frz <- volume_bone_price_calculated %>%
   group_by(Tab, Abattoir, Month, `Customer Group`, `Customer name`) %>%
   summarise(
     Units          = sum(Units, na.rm = TRUE),
-    `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
     `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+    `Avg Weight`   = `Total Weight` / Units,
     Value          = sum(Value, na.rm = TRUE),
     .groups = "drop"
   ) %>% 
@@ -4144,7 +4144,7 @@ volume_meat_trade_6way_frz <- volume_bone_price_calculated %>%
 
 volume_meat_trade_commodity_frz <- volume_meat_trade_commodity
 
-volume_meat_trade_edible_offal_frz <- volume_bone_price_calculated %>%
+volume_meat_trade_edible_offal_frz <- volume_boxed_meat_price_calculated %>%
   mutate(Type = toupper(Type)) %>%
   filter(toupper(Abattoir) == "LAVERTON") %>%
   filter(Type %in% c("OFFALS", "BACON CUTS")) %>%
@@ -4163,8 +4163,8 @@ volume_meat_trade_edible_offal_frz <- volume_bone_price_calculated %>%
   group_by(Tab, Abattoir, Month, `Customer Group`, `Customer name`) %>%
   summarise(
     Units          = sum(Units, na.rm = TRUE),
-    `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
     `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+    `Avg Weight`   = `Total Weight` / Units,
     Value          = sum(Value, na.rm = TRUE),
     .groups = "drop"
   ) %>%
@@ -4214,7 +4214,7 @@ meat_trade_storage_data_calculated <- meat_trade_storage_data_new_std %>%
 
 ```{r}
 # Prepare the frozen sow data for laverton
-volume_sow_frz_laverton <- volume_bone_price_calculated %>%
+volume_sow_frz_laverton <- volume_boxed_meat_price_calculated %>%
   # Another condition to filter frozen item
   filter(`Storage` == "FROZEN") %>% 
   mutate(Type = toupper(Type)) %>%
@@ -4236,8 +4236,8 @@ volume_sow_frz_laverton <- volume_bone_price_calculated %>%
   group_by(Tab, Abattoir, Month, `Customer Group`, `Customer name`) %>%
   summarise(
     Units          = sum(Units, na.rm = TRUE),
-    `Avg Weight`   = mean(`Avg Weight`, na.rm = TRUE),
     `Total Weight` = sum(`Total Weight`, na.rm = TRUE),
+    `Avg Weight`   = `Total Weight` / Units,
     Value          = sum(Value, na.rm = TRUE),
     .groups = "drop"
   ) %>%
@@ -4707,7 +4707,7 @@ all_expense_freight_calculated <- bind_rows(
 ```{r}
 final_file <- bind_rows(
   all_revenue_offal_data_calculated,
-  all_revenue_farm_calculated,
+  all_revenue_carcass_calculated,
   all_revenue_6way_sow_data_calculated,
   all_revenue_commodity_corowa_calculated,
   all_revenue_commodity_laverton_calculated,
