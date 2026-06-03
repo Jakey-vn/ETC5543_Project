@@ -57,7 +57,7 @@ The Finance Team, where the internship take place, is responsible for generating
 - **Corowa** (New South Wales): the primary site, covering Farming Operations, Kill Floor, Boning Room, Boxed Meat, Offal, Commodity Bone, and Meat Trade
 - **Laverton** (Victoria): a secondary site handling Kill Floor, Boning Room, Boxed Meat, Offal, Commodity (chilled and frozen), and Sow Bone
 
-Across these two sites, financial account entries must be generated for each reporting period. These entries capture revenue (sales of various product categories) and expenses (packaging, trade allowances, storage, and freight), broken down by Business Unit (BU), GL account, Cost Centre, and month.
+Across these two sites, financial account entries must be generated for each reporting period. These entries capture revenue (sales of various product categories) and expenses (packaging, trade allowances, storage, and freight), broken down by Business Unit (BU), GL account, Cost Center, and month.
 
 ## Key Terms
 
@@ -67,9 +67,9 @@ The following terms appear throughout this report. Readers from outside financia
 
 **General Ledger (GL) Account** - A numbered account in the company's accounting system that categorises every financial transaction. Revenue from selling Boxed Meat, for example, posts to a different GL account than the expense for packaging materials. The GL account determines *what* a transaction represents in the accounts.
 
-**Cost Centre (CC)** - A code that identifies *where* a cost or revenue belongs within the organisation - for example, the Boning Room at Corowa versus the Kill Floor at Laverton. GL account and Cost Centre together form the two-part key used to route every database row to the correct place in the financial system.
+**Cost Center (CC)** - A code that identifies *where* a cost or revenue belongs within the organisation - for example, the Boning Room at Corowa versus the Kill Floor at Laverton. GL account and Cost Center together form the two-part key used to route every database row to the correct place in the financial system.
 
-**Business Unit (BU)** - A distinct operational segment of the business. Each BU has its own set of GL accounts and Cost Centres, and the pipeline generates a separate block of database rows for each one.
+**Business Unit (BU)** - A distinct operational segment of the business. Each BU has its own set of GL accounts and Cost Centers, and the pipeline generates a separate block of database rows for each one.
 
 **Value-Add (VA)** - Products that undergo an additional processing step to increase their market value beyond the base cut. A marinated pork loin is a typical example: the raw loin is transformed into a higher-value retail product through seasoning and packaging. VA products are reported under the Meat Sales Business Unit.
 
@@ -141,13 +141,13 @@ Section 2 provides background on the problem, the previous Excel-based solution,
 
 ## The Problem
 
-The Finance Team's goal was to build a monthly financial report that could be refreshed each period with updated values, giving managers a clear picture of all products, categories, and revenue across both sites. The intended output was a structured database that anyone could query to retrieve information such as which products were produced at Corowa, what revenue they generated, and which General Ledger (GL) account and Cost Centre they belonged to.
+The Finance Team's goal was to build a monthly financial report that could be refreshed each period with updated values, giving managers a clear picture of all products, categories, and revenue across both sites. The intended output was a structured database that anyone could query to retrieve information such as which products were produced at Corowa, what revenue they generated, and which General Ledger (GL) account and Cost Center they belonged to.
 
 Building this report required bringing together data from multiple sources:
 
 1. Volume data from the SOP Volumes spreadsheet, sourced from the S&OP team
 2. Prices maintained by the Sales team and stored in a separate binary file (`Prices.xlsb`)
-3. GL and Cost Centre codes assigned from a Master Data file maintained by NAM and Commercial Finance
+3. GL and Cost Center codes assigned from a Master Data file maintained by NAM and Commercial Finance
 4. Trade discounts, packaging costs, storage rates, and freight charges from two additional files provided by the Sales team and Business Planning Manager
 
 ## Previous Solution
@@ -190,7 +190,7 @@ tibble(
   Contents = c(
     "Weekly volumes by Farm / Bone / VA product lines",
     "Carcass price, Kill fee, Bone fee, Item prices, Packaging rates",
-    "GL accounts, Cost Centre keys, Customer list, VA brand mapping",
+    "GL accounts, Cost Center keys, Customer list, VA brand mapping",
     "Trade discount rates per customer",
     "VA brand allocations, freight rates, storage rates"
   ),
@@ -253,7 +253,7 @@ Source data quality was one of the most significant recurring challenges during 
 
 The pipeline follows a three-stage pattern that is applied consistently to every Business Unit:
 
-1. **Build account skeleton** - Pull all relevant customers from Master Data and cross them with the correct GL account and Cost Centre key, then expand across all 12 months using `crossing(Period = 1:12)`. Building the skeleton first ensures that months with zero volume still produce a row in the database, rather than being silently absent from the output.
+1. **Build account skeleton** - Pull all relevant customers from Master Data and cross them with the correct GL account and Cost Center key, then expand across all 12 months using `crossing(Period = 1:12)`. Building the skeleton first ensures that months with zero volume still produce a row in the database, rather than being silently absent from the output.
 
 2. **Join SOP volume** - Match source volume rows from SOP Volumes onto the skeleton using a composite key (SOP Unicode or Item Code + Abattoir + Month + Tab). A left join is used so that skeleton rows with no matching volume retain a zero rather than being dropped - this is important for completeness in the final database.
 
@@ -380,7 +380,7 @@ tibble(
 
 ### Account Skeleton
 
-For each Business Unit, the first step builds a complete set of account rows from Master Data. This skeleton defines the shape of the output - every possible GL + Cost Centre + Customer combination - before any volume is joined. Using `crossing(Period = 1:12)` ensures one row per month for each account, so months with zero volume still appear in the output rather than being silently absent.
+For each Business Unit, the first step builds a complete set of account rows from Master Data. This skeleton defines the shape of the output - every possible GL + Cost Center + Customer combination - before any volume is joined. Using `crossing(Period = 1:12)` ensures one row per month for each account, so months with zero volume still appear in the output rather than being silently absent.
 
 ```{r}
 #| echo: true
@@ -638,7 +638,7 @@ The contract parameters differ by customer:
 | Woolworths | \$0.137 / kg | 45.26% |
 | DRJ | \$0.15 / kg | 10.00% |
 
-Both customers produce two GL rows per period under cost centre 11901816. Packaging cost is posted to GL 650301 as a positive expense; the margin is posted to GL 650311 and negated. This contrasts with standard boning room lines, which record pallet costs to GL 650303 rather than carrying a margin account at all.
+Both customers produce two GL rows per period under cost Center 11901816. Packaging cost is posted to GL 650301 as a positive expense; the margin is posted to GL 650311 and negated. This contrasts with standard boning room lines, which record pallet costs to GL 650303 rather than carrying a margin account at all.
 
 A further pricing rule applies to Woolworths specifically: the `FCOROWAWoolworths` customer record inherits its carcass price from `FEXTERNALBig River Pork - Coles` during the farm price join. This inheritance is applied as a targeted override before the standard price lookup, ensuring the correct benchmark price flows through to the contract margin calculation.
 
@@ -660,7 +660,7 @@ In addition to the packaging and freight expenses above, the pipeline generates 
 
 **V&V Sell and Buy-Back (GL 400350 and GL 510157 - Farming Operations)**
 
-The V&V (Vertically integrated Ventures) arrangement involves Farming Operations selling live pigs to an external party and buying them back as processed product. The pipeline filters the `FLAVERTONNew Team` SOP Unicode from customer data, then calculates value from external VA procurement rows (External vendor, Procurement service) joined to the carcass price ("Other Transactions" row). Two paired rows are produced per period, both under cost centre 10001812:
+The V&V (Vertically integrated Ventures) arrangement involves Farming Operations selling live pigs to an external party and buying them back as processed product. The pipeline filters the `FLAVERTONNew Team` SOP Unicode from customer data, then calculates value from external VA procurement rows (External vendor, Procurement service) joined to the carcass price ("Other Transactions" row). Two paired rows are produced per period, both under cost Center 10001812:
 
 - **Gross Sales** (GL 400350): the sell-side value, negated as a revenue offset
 - **Cost of Sales** (GL 510157): the buy-back cost
@@ -673,13 +673,13 @@ This account captures the cost that Meat Processing pays to Farming Operations f
 - **Kill**: Units × Kill Fee (Kill tab, averaged across COROWA6WAY and COROWACOMMODITY unicodes)
 - **Bone**: Units × Bone Fee (Bone tab, averaged across COROWA6WAY and COROWACOMMODITY unicodes)
 
-For Laverton, a single row type is produced: Total Weight × Carcass Price (Farm tab only). Output rows use GL 510167 under cost centre 10501816 (Corowa) and 10501854 (Laverton) respectively.
+For Laverton, a single row type is produced: Total Weight × Carcass Price (Farm tab only). Output rows use GL 510167 under cost Center 10501816 (Corowa) and 10501854 (Laverton) respectively.
 
 > **Note:** A known mismatch between customer data and GL & CC accounts exists in this section and is still under investigation.
 
 **Meat Trade Cost of Sales (GL 510167-10501816 - 2.Meat Processing)**
 
-Corowa records an intercompany cost of sales for Laverton products that are transferred to Corowa as Meat Trade. The pipeline filters `Customer Group == "Meat Trade"` from 2.Meat Processing customer data and creates a corresponding cost row under GL 510167, cost centre 10501816.
+Corowa records an intercompany cost of sales for Laverton products that are transferred to Corowa as Meat Trade. The pipeline filters `Customer Group == "Meat Trade"` from 2.Meat Processing customer data and creates a corresponding cost row under GL 510167, cost Center 10501816.
 
 **Meat Sales Cost of Sales - Internal and External (3.Meat Sales)**
 
@@ -754,7 +754,7 @@ Several accounts involve volume flowing between sites.
 
 ### Meat Trade (Laverton → Corowa)
 
-Corowa's Boxed Meat section includes a Meat Trade category that consolidates three Laverton product lines sold commercially under Corowa's name. Source rows are drawn from Laverton bone data and remapped so that Corowa is the selling entity (`Abattoir = COROWA`, `GL Account = 400000`, `Cost Centre = 10501816`). The three product types and their source filters are:
+Corowa's Boxed Meat section includes a Meat Trade category that consolidates three Laverton product lines sold commercially under Corowa's name. Source rows are drawn from Laverton bone data and remapped so that Corowa is the selling entity (`Abattoir = COROWA`, `GL Account = 400000`, `Cost Center = 10501816`). The three product types and their source filters are:
 
 ```{r tbl-meat-trade}
 tibble(
@@ -1025,7 +1025,7 @@ Several extensions would increase the utility and robustness of the pipeline:
 3. **Rules-driven special cases**: move contract-specific GL rules from R code into Master Data, so the finance team can update them without touching the pipeline.
 4. **Shiny front-end**: a simple Shiny app wrapping the pipeline would allow non-R users to trigger a run, review the Gap Check, and download the output without opening RStudio.
 5. **Unit tests**: `testthat` tests on key calculation functions (value = weight × rate, skeleton join completeness) would provide confidence that pipeline logic changes have not broken existing accounts.
-6. **Modular code restructure**: the current single-file structure should be split into separate modules, one per Business Unit or logical group. The proposed naming convention - `<bu>_<gl_account>_<cc_key>.R` (e.g., `offal_glaccount_cckey.R`) - would make each module self-describing: given the file name alone, a reader would immediately know which product, GL account, and Cost Centre it covers, along with the calculated values it produces. This would dramatically reduce the cognitive load of maintaining or extending any individual account block, and allow multiple people to work on different modules simultaneously without risk of conflict.
+6. **Modular code restructure**: the current single-file structure should be split into separate modules, one per Business Unit or logical group. The proposed naming convention - `<bu>_<gl_account>_<cc_key>.R` (e.g., `offal_glaccount_cckey.R`) - would make each module self-describing: given the file name alone, a reader would immediately know which product, GL account, and Cost Center it covers, along with the calculated values it produces. This would dramatically reduce the cognitive load of maintaining or extending any individual account block, and allow multiple people to work on different modules simultaneously without risk of conflict.
 
 ---
 
@@ -1035,7 +1035,7 @@ This project successfully delivered an automated R pipeline that replaces the ma
 
 The companion Gap Check tool was an equally important contribution: by making data integrity issues visible and actionable immediately after each pipeline run, it addresses the core risk of the original workflow - that errors would propagate silently into the submitted output.
 
-The most significant practical limitations are the limited adoption of R within Rivalea, which means the pipeline currently depends on the owner of the project to run and maintain it, and the single-file codebase structure, which at over 5,000 lines is difficult to navigate and extend. Hardcoded file paths and growing conditional complexity from special contract logic are further constraints. The most important future step is a modular restructure - splitting the pipeline into per-account modules named by GL account and Cost Centre key - which would make the codebase maintainable by others and easier to extend as new Business Units or contracts are added. The foundation built here - a reproducible, version-controlled, auditable pipeline - provides a substantially better basis for financial reporting than the manual process it replaces.
+The most significant practical limitations are the limited adoption of R within Rivalea, which means the pipeline currently depends on the owner of the project to run and maintain it, and the single-file codebase structure, which at over 5,000 lines is difficult to navigate and extend. Hardcoded file paths and growing conditional complexity from special contract logic are further constraints. The most important future step is a modular restructure - splitting the pipeline into per-account modules named by GL account and Cost Center key - which would make the codebase maintainable by others and easier to extend as new Business Units or contracts are added. The foundation built here - a reproducible, version-controlled, auditable pipeline - provides a substantially better basis for financial reporting than the manual process it replaces.
 
 ---
 

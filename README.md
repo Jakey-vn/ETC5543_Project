@@ -26,7 +26,7 @@ The main output is `GL_DB Template.csv`, structured for GL database input.
 | `Prices.xlsb` | Kill Fee | Kill fee per SOP Unicode and Abattoir by period |
 | `Prices.xlsb` | BM PRice | Item-level unit prices used for Boxed Meat, Offal, and Commodity value calculations |
 | `Prices.xlsb` | Packaging VA | Packaging and pallet rates per BOM item and variant, used for all packaging/pallet expense calculations |
-| `Master Data..xlsx` | GL & CC | GL account and cost centre mappings by BU |
+| `Master Data..xlsx` | GL & CC | GL account and cost Center mappings by BU |
 | `Master Data..xlsx` | Customer | Customer list with SOP Unicode, BU, Tab, Floor, and Customer Group |
 | `Master Data..xlsx` | VA | VA brand data - maps Item Code to Brand name, used to assign customer names in Meat Sales output |
 | `Trade Allowance.xlsx` | Sheet1 | Trade allowance rates (% of revenue and fixed $ value) per Brand and Period for 3.Meat Sales |
@@ -93,7 +93,7 @@ Volume data from `SOP Volumes.xlsx` is split into three datasets based on the `T
 - **DRJ special contract parameters**: Packaging fee = $0.15/kg, margin = 10%. Same yield adjustments as Woolworths apply. Packaging (650301) is positive; margin (650311) is negated.
 
 ### Account Structure by Business Unit and Floor
-| Business Unit | Floor | GL Account | Cost Centre |
+| Business Unit | Floor | GL Account | Cost Center |
 |--------------|-------|-----------|-------------|
 | 1. Farming Operations | Farm | 400000 / 400028 | 10001812 |
 | 1. Farming Operations | V&V Gross Sales | 400350 | 10001812 |
