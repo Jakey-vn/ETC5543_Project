@@ -40,7 +40,7 @@ The main output is `GL_DB Template.csv`, structured for GL database input.
 2. Ensure all data source files are placed in the correct OneDrive path
 3. Run all chunks sequentially - the final chunk writes `GL_DB Template.csv`
 4. Optionally, open `Debug Code.qmd` and run its chunks to validate data integrity (requires the main script to have been run first in the same R session)
-5. Optionally, run `Gap_Check.R` to produce `Gap_Check.xlsx` — a weight reconciliation and data quality audit across all categories (also requires the main script to have been run first in the same R session)
+5. Optionally, run `Gap_Check.R` to produce `Gap_Check.xlsx` - a weight reconciliation and data quality audit across all categories (also requires the main script to have been run first in the same R session)
 
 ## Key Logic
 
@@ -211,7 +211,7 @@ Note: Woolworths and DRJ use a **margin** account (650311) instead of a standard
 **Freight In (500195)**
 - Filters Customer name == "Freight In" from each BU's customer data
 - Covers: 1.Farming Operations (500195-10001812), 2.Meat Processing (500195-10001816), 6.Laverton Processing (500195-10501854)
-- **Note: Currently not implemented in the pipeline** — these accounts are not present in the final output. Freight In customers in `customer_data` are included in the farm revenue path but are not yet broken out as separate 500195 rows.
+- **Note: Currently not implemented in the pipeline** - these accounts are not present in the final output. Freight In customers in `customer_data` are included in the farm revenue path but are not yet broken out as separate 500195 rows.
 
 **Trade Allowance (450050)**
 - **3.Meat Sales (450050-10001814)**: Joins VA revenue data with `Trade Allowance.xlsx` on Brand and Period. Calculates allowance as `Trade Spend % × Revenue Value` plus a fixed `Trade Spend Value`, summed by customer. Result is negated (expense).
@@ -279,7 +279,7 @@ The offal data print chunks (`Corowa_edible_check` and `Laverton_edible_check`) 
 ### Sheet 1: SOP vs DB
 Two sections in a single sheet:
 
-**Weight Comparison** — side-by-side SOP raw weight vs DB weight for every category:
+**Weight Comparison** - side-by-side SOP raw weight vs DB weight for every category:
 
 | Category | SOP Raw Weight (kg) | DB Weight (kg) |
 |----------|-------------------|----------------|
@@ -296,7 +296,7 @@ Two sections in a single sheet:
 | Meat Trade - Edible Offal (Laverton → Corowa) | … | … |
 | VA / Meat Sales | … | … |
 
-**Issues Summary** — one row per issue type showing rows affected, weight affected (kg), and suggested fix:
+**Issues Summary** - one row per issue type showing rows affected, weight affected (kg), and suggested fix:
 
 | Category | Issue | Rows Affected | Weight Affected (kg) | Fix |
 |----------|-------|---------------|---------------------|-----|
