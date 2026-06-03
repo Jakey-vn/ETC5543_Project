@@ -34,7 +34,7 @@ library(kableExtra)
 
 **Git Repository:** <https://github.com/Jakey-vn/ETC5543_Project>
 
-**Generative AI Acknowledgement:** Claude (Anthropic) was used to assist with structuring and drafting sections of this report, as well as debugging R code during development. All analysis, design decisions, and conclusions are the author's own.
+**Generative AI Acknowledgement:** Claude (Anthropic) was used to assist with structuring and drafting sections of this report, as well as debugging R code during development. All analysis, design decisions, and conclusions are made without anyone nor AI's assistance.
 
 ---
 
@@ -52,7 +52,7 @@ JBS Pork Australia, formerly known as Rivalea is the pork division of JBS in Aus
 
 ## The Finance Team
 
-The Finance Team, where the author is currently interning, is responsible for generating financial reports on a weekly and monthly basis, covering two processing sites operated by JBS Pork Australia:
+The Finance Team, where the internship take place, is responsible for generating financial reports on a weekly and monthly basis, covering two processing sites operated by JBS Pork Australia:
 
 - **Corowa** (New South Wales): the primary site, covering Farming Operations, Kill Floor, Boning Room, Boxed Meat, Offal, Commodity Bone, and Meat Trade
 - **Laverton** (Victoria): a secondary site handling Kill Floor, Boning Room, Boxed Meat, Offal, Commodity (chilled and frozen), and Sow Bone
@@ -347,6 +347,35 @@ gl_cc_data <- gl_cc_data %>%
   mutate(BU = str_replace_all(BU, "(\\d+\\.)\\s+", "\\1"))
 ```
 
+## GL Account Reference
+
+The pipeline writes to thirteen distinct GL accounts across revenue and expense categories. @tbl-gl-codes provides a consolidated reference used throughout the following sections.
+
+```{r tbl-gl-codes}
+tibble(
+  `GL Account` = c("400000", "400028", "400350", "450050", "500031",
+                   "500192", "500609", "510157", "510167",
+                   "650301", "650303", "650311", "730010"),
+  Description  = c(
+    "External Sales - revenue from sales to external customers",
+    "Intercompany Sales - internal transfers between JBS business units",
+    "Gross Sales - V&V sell and buy-back (Farming Operations)",
+    "Trade Allowance Expense (3.Meat Sales and 6.Laverton Processing)",
+    "External Meat Purchase Cost of Sales (3.Meat Sales)",
+    "Freight Out / Domestic Freight Expense",
+    "Freight Ocean / Export Freight Expense",
+    "Cost of Sales - V&V sell and buy-back (Farming Operations)",
+    "Intercompany pig purchases / meat trade cost of sales",
+    "Packaging Expense",
+    "Pallet Expense",
+    "Packaging and Margin Expense (special contracts: Woolworths, DRJ, Meat Sales)",
+    "Storage / Frozen Stock Holding Expense"
+  )
+) |>
+  kable(caption = "GL account codes used by the pipeline", booktabs = TRUE) |>
+  kable_styling(full_width = FALSE)
+```
+
 ## Revenue Account Logic
 
 ### Account Skeleton
@@ -378,7 +407,40 @@ account_rows %>%
 
 ### Value Calculation
 
-The calculation formula differs by tab type:
+The formula applied to each row depends on the floor type. @tbl-floor-formulas shows the complete set of floors, their value formulas, and the price source used by the pipeline.
+
+```{r tbl-floor-formulas}
+tibble(
+  Floor = c("Farm", "Kill", "Bone", "Boxed Meat",
+            "Offal (Edible / Inedible)", "Commodity",
+            "Meat Sales (VA)", "Meat Trade"),
+  `Value Formula` = c(
+    "Total Weight × Carcass Price",
+    "Units × Kill Fee",
+    "Units × Bone Fee",
+    "Total Weight × Item Price",
+    "Total Weight × Item Price",
+    "Total Weight × Item Price",
+    "Total Weight × Price (embedded in SOP Volumes)",
+    "Total Weight × Item Price (remapped from Laverton bone data)"
+  ),
+  `Price Source` = c(
+    "Carcass Price sheet - Prices.xlsb",
+    "Kill Fee sheet - Prices.xlsb",
+    "Bone Fee sheet - Prices.xlsb",
+    "BM PRice sheet - Prices.xlsb",
+    "BM PRice sheet - Prices.xlsb",
+    "BM PRice sheet - Prices.xlsb",
+    "Price column in SOP Volumes.xlsx (not Prices.xlsb)",
+    "BM PRice sheet - Prices.xlsb"
+  )
+) |>
+  kable(caption = "Value calculation formula and price source by revenue floor",
+        booktabs = TRUE) |>
+  kable_styling(full_width = FALSE)
+```
+
+A key distinction is that Meat Sales (VA) prices come from a `Price` column embedded directly in SOP Volumes rather than from `Prices.xlsb`. This means a missing or zero price in the SOP file silently produces a zero revenue row - one of the failure modes captured by the Gap Check (Section 4). For Farm, Kill, and Bone floors the formula is:
 
 ```{r}
 #| echo: true
@@ -446,6 +508,26 @@ coverage |>
   row_spec(crosssite_rows, background = "#fef9e7", color = "#ca6f1e")
 ```
 
+### Special Revenue Conditions
+
+Several revenue accounts require adjustments or overrides beyond the standard weight-times-price formula.
+
+**Laverton Lineage Discount ($0.51/kg)**
+
+Laverton ships three product types - Edible Offal, 6Way, and Commodity Frozen - to the Lineage cold store, which charges a combined storage and handling fee of $0.51/kg. This amount is subtracted from the calculated revenue value for each of these three lines after the standard formula is applied. The discount is the primary reason Corowa and Laverton offal and commodity accounts are maintained as separate calculation paths rather than a shared block.
+
+**Laverton Edible Offal - Intercompany Classification (GL 400028)**
+
+Laverton consolidates its edible offal with Corowa and sells it under Corowa's name. Because the transfer is internal rather than an arm's-length sale, the revenue is recorded under GL 400028 (Intercompany Sales) rather than GL 400000 (External Sales). This distinction is applied during the skeleton build by assigning Laverton Edible Offal rows a different GL account from all other Laverton product lines.
+
+**Corowa Commodity - 400000 vs 400028 Volume Split**
+
+Corowa's Commodity Bone revenue is distributed across two GL accounts. The GL 400028 (Intercompany) volume is sourced from Procurement rows in the Meat Sales tab of SOP Volumes - these represent internal purchases made by the VA business unit. The GL 400000 (External) volume is the remainder: total Commodity Bone weight minus the 400028 internal portion. This split ensures that commodity sold internally is not double-counted as external revenue.
+
+**Laverton Kill - Temporary Customer Exclusion**
+
+A temporary filter removes customers whose names contain "6WAY" or "COMMODITY" from the Laverton Kill tab. These rows are excluded while the correct account mapping for those customer groups is under review. Retaining them would produce duplicated volume across Kill and Bone account categories.
+
 ## Expense Account Logic
 
 Expense accounts follow the same skeleton-join-calculate pattern as revenue. The key difference is the rate source: instead of a price per unit, rates are joined from external files (Prices.xlsb packaging sheet, Trade Allowance, and Rates & Allocation). The value formula is consistently:
@@ -482,7 +564,26 @@ tibble(
 
 ### Packaging Variants
 
-Packaging rates in `Prices.xlsb` are structured around BOM (Bill of Materials) codes and variant numbers. An item is considered priced if either variant 3 or variant 4 provides a valid rate. The pipeline uses a grouped maximum across these two variants:
+Packaging rates in `Prices.xlsb` are structured around BOM (Bill of Materials) codes and variant numbers. The correct variant to use differs by product type, as shown in @tbl-variants.
+
+```{r tbl-variants}
+tibble(
+  `Product Type` = c(
+    "Edible Offal (Corowa and Laverton)",
+    "6 Way and Commodity (Corowa and Laverton)",
+    "VA / 3.Meat Sales"
+  ),
+  `VARIANT Used` = c(
+    "VARIANT 3 - with fallback to VARIANT 4 if price is missing or zero",
+    "VARIANT 4 directly (no fallback)",
+    "VARIANT 2"
+  )
+) |>
+  kable(caption = "Packaging VARIANT selection by product type", booktabs = TRUE) |>
+  kable_styling(full_width = FALSE)
+```
+
+For Edible Offal, prices are first looked up from VARIANT 3. If the result is `NA` or zero-weight, the pipeline falls back to VARIANT 4. This fallback is implemented by taking the grouped maximum across both variants:
 
 ```{r}
 #| echo: true
@@ -496,16 +597,54 @@ price_lookup <- packaging_price_data %>%
   mutate(PACKAGING = if_else(is.infinite(PACKAGING), NA_real_, PACKAGING))
 ```
 
-### Freight Cost Allocation
+**Laverton Sow Packaging - Temporary Hardcoded Rate**
 
-Freight is split between domestic (GL 500192) and ocean/export (GL 500609). The pipeline uses a many-to-many join to assign the correct rate to each specific export product type automatically - replacing the manual process of averaging across all export types, which was acknowledged to be imprecise.
+Sow packaging prices are currently absent from the `Packaging VA` sheet (VARIANT 4) of `Prices.xlsb`. As a temporary fix, the pipeline applies a hardcoded rate of \$0.095/kg to all Laverton Sow packaging rows unconditionally until the source data is updated.
+
+### Freight Cost Allocation (GL 500192 and GL 500609)
+
+Freight is split between Domestic (GL 500192) and Ocean/Export (GL 500609) for each product group. The pipeline uses a many-to-many join to assign the correct rate to each specific export product type automatically - replacing the prior manual approach of averaging a single rate across all export types, which was acknowledged to be imprecise.
+
+Allocation rates come from `Rates & Allocation.xlsx`, with different sheets used depending on the product category:
+
+- **3.Meat Sales Freight Out (500192-10001814)**: Uses Sheet1 (VA allocation) - a \$/kg rate and percentage weight split by Brand and State (Domestic vs Export). Volume source is the VA sales revenue data.
+- **Corowa Edible Offal**: Domestic (500192-10001816) and Ocean (500609-10001816) - uses Sheet2 Offal allocation, with a Proportion and \$/kg rate split by freight type.
+- **Corowa 6 Way**: Domestic (500192-10501816) and Ocean (500609-10501816) - uses Sheet2 6 Way allocation.
+- **Corowa Commodity**: Domestic (500192-10501816) and Export (500609-10501816) - uses Sheet2 Commodity allocation.
+- **Corowa Meat Trade**: Domestic (500192-10501816) and Ocean (500609-10501816) - uses Sheet2 allocation mapped by Service field (Edible Offal, Commodity, 6 Way).
+
+All freight values are negated (expense).
+
+### Export Carcass Packaging (GL 650301-10201854)
+
+Laverton charges a fixed fee of \$12.30 per head for export carcass packaging destined for Singapore and Malaysia. This applies to customers where `Floor == "Export Carcass"` and `Customer Group == "Export"`. The volume source is Kill service rows from `volume_farm_raw`, grouped by SOP Unicode and Month. The result is negated (expense).
+
+### Freight In (GL 500195) - Not Yet Implemented
+
+Freight In accounts exist in the Master Data for all three sites (500195-10001812 for Farming Operations, 500195-10001816 for 2.Meat Processing, 500195-10501854 for 6.Laverton Processing). Freight In customers in `customer_data` are included in the farm revenue path, but these accounts are **not currently present in the final pipeline output** - they have not yet been broken out as separate 500195 rows. This is a known gap for a future development cycle.
 
 ### Special Customer Contracts
 
-Two customers require non-standard treatment:
+Several customers deviate from the standard pipeline logic due to contractual or structural requirements.
 
-- **Woolworths** and **DRJ**: use a separate margin account (GL 650311) rather than the standard packaging GL. The pipeline applies this via a conditional filter before joining rates.
-- **VA Brand Allocation**: Value-Add products are allocated across brands using percentage weights read from Master Data. These proportions are normalised on load so they always sum to 100%:
+#### Woolworths and DRJ (Margin Contracts)
+
+Woolworths and DRJ operate under fixed-fee packaging contracts that also carry a margin component, requiring distinct GL treatment. Both customers are sourced exclusively from the Boning Room floor (filtered on Tab == "Bone" and Floor == "Bone"), unlike standard Boxed Meat lines. Their expense values are computed on bone-out weight, applying two sequential yield conversions: a hot-to-cold factor of 90.9% followed by a cold-to-meat factor of 88%.
+
+The contract parameters differ by customer:
+
+| Customer | Packaging Fee | Margin Rate |
+|----------|--------------|-------------|
+| Woolworths | \$0.137 / kg | 45.26% |
+| DRJ | \$0.15 / kg | 10.00% |
+
+Both customers produce two GL rows per period under cost centre 11901816. Packaging cost is posted to GL 650301 as a positive expense; the margin is posted to GL 650311 and negated. This contrasts with standard boning room lines, which record pallet costs to GL 650303 rather than carrying a margin account at all.
+
+A further pricing rule applies to Woolworths specifically: the `FCOROWAWoolworths` customer record inherits its carcass price from `FEXTERNALBig River Pork - Coles` during the farm price join. This inheritance is applied as a targeted override before the standard price lookup, ensuring the correct benchmark price flows through to the contract margin calculation.
+
+#### VA Brand Allocation
+
+Value-Add products sold through 3.Meat Sales are distributed across brands using percentage weights stored in Master Data. These proportions are normalised on load to ensure they always sum to 100% within each brand group, guarding against rounding drift in the source file:
 
 ```{r}
 #| echo: true
@@ -515,12 +654,127 @@ VA_allocation_data <- VA_allocation_data %>%
   mutate(`%` = `%` / sum(`%`), .by = Brand)
 ```
 
+### Cost of Sales Accounts
+
+In addition to the packaging and freight expenses above, the pipeline generates several cost of sales rows that offset revenue accounts. These cover four distinct cost categories.
+
+**V&V Sell and Buy-Back (GL 400350 and GL 510157 - Farming Operations)**
+
+The V&V (Vertically integrated Ventures) arrangement involves Farming Operations selling live pigs to an external party and buying them back as processed product. The pipeline filters the `FLAVERTONNew Team` SOP Unicode from customer data, then calculates value from external VA procurement rows (External vendor, Procurement service) joined to the carcass price ("Other Transactions" row). Two paired rows are produced per period, both under cost centre 10001812:
+
+- **Gross Sales** (GL 400350): the sell-side value, negated as a revenue offset
+- **Cost of Sales** (GL 510157): the buy-back cost
+
+**Intercompany Pig Purchase from Farm (GL 510167 - Corowa and Laverton)**
+
+This account captures the cost that Meat Processing pays to Farming Operations for pigs transferred internally. The pipeline filters non-External farm volume rows for Corowa and Laverton unicodes respectively. For Corowa, three expense row types are produced per customer per period:
+
+- **Buy**: Total Weight × Carcass Price (Farm tab)
+- **Kill**: Units × Kill Fee (Kill tab, averaged across COROWA6WAY and COROWACOMMODITY unicodes)
+- **Bone**: Units × Bone Fee (Bone tab, averaged across COROWA6WAY and COROWACOMMODITY unicodes)
+
+For Laverton, a single row type is produced: Total Weight × Carcass Price (Farm tab only). Output rows use GL 510167 under cost centre 10501816 (Corowa) and 10501854 (Laverton) respectively.
+
+> **Note:** A known mismatch between customer data and GL & CC accounts exists in this section and is still under investigation.
+
+**Meat Trade Cost of Sales (GL 510167-10501816 - 2.Meat Processing)**
+
+Corowa records an intercompany cost of sales for Laverton products that are transferred to Corowa as Meat Trade. The pipeline filters `Customer Group == "Meat Trade"` from 2.Meat Processing customer data and creates a corresponding cost row under GL 510167, cost centre 10501816.
+
+**Meat Sales Cost of Sales - Internal and External (3.Meat Sales)**
+
+The Meat Sales business unit records two cost of sales rows per period, both filtered on `Customer Group == "Meat Purchase"` from the 3.Meat Sales customer data:
+
+- **Internal purchases** (GL 510167-10001814): cost of meat sourced from within JBS
+- **External purchases** (GL 500031-10001814): cost of meat sourced from external suppliers
+
+### Trade Allowance (GL 450050)
+
+Trade allowances are negotiated rebates paid to customers, recorded as a separate expense line rather than as a reduction in the sale price.
+
+**3.Meat Sales (GL 450050-10001814)**: The pipeline joins VA revenue data with `Trade Allowance.xlsx` on Brand and Period. The allowance for each customer is calculated as:
+
+$$\text{Allowance} = (\text{Trade Spend \%} \times \text{Revenue Value}) + \text{Trade Spend Value}$$
+
+Results are summed by customer and negated before posting (expense).
+
+**6.Laverton Processing (GL 450050-10201854)**: A fixed rebate of \$5.80 per head is applied to `BE Campbells Bacon` and `B.E. Campbell` customers. Volume is sourced from Kill service rows in `volume_farm_raw`. The result is negated (expense).
+
+### Storage Expense (GL 730010)
+
+Storage costs are calculated for frozen stock held at Lineage and other cold stores. Each account produces two cost rows per period:
+
+- **Cost In**: Total Weight × \$0.14/kg
+- **Cost Out**: Total Weight × \$0.08/kg (Total Weight is recorded as 0 in the output)
+
+The accounts covered are:
+
+```{r tbl-storage-accounts}
+tibble(
+  Account = c(
+    "Corowa Edible Offal FRZ",
+    "Corowa Commodity FRZ",
+    "Corowa 6 Way FRZ",
+    "Corowa Meat Trade",
+    "Laverton Sow FRZ",
+    "Value Add / 3.Meat Sales"
+  ),
+  `GL-CC Key` = c(
+    "730010-10001816",
+    "730010-10501816",
+    "730010-10501816",
+    "730010-10501816",
+    "730010-10501854",
+    "730010-10001814"
+  ),
+  Note = c(
+    "Frozen offal only (filtered by Storage == 'FROZEN')",
+    "",
+    "",
+    "Uses combined Laverton volume from the Meat Trade revenue account",
+    "",
+    "Currently set to \\$0 as a temporary adjustment"
+  )
+) |>
+  kable(caption = "Storage expense accounts and notes", booktabs = TRUE) |>
+  kable_styling(full_width = FALSE)
+```
+
+In addition, three **Stock On Hand** rows apply a fixed monthly hold volume multiplied by a hold rate of \$0.01/kg:
+
+- **Corowa Stock On Hand** (730010-10501816): 1,100,000 kg/month
+- **Laverton Stock On Hand** (730010-10501854): 200,000 kg/month
+- **Value Add Stock On Hand** (730010-10001814): 60,000 kg/month
+
+All storage and stock-on-hand values are negated (expense).
+
 ## Cross-Site Logic
 
-Several accounts involve volume flowing between sites:
+Several accounts involve volume flowing between sites.
 
-- **Meat Trade**: Laverton volume (6 Way, Commodity Frozen, Edible Offal) is recorded under Corowa GL accounts. The pipeline handles this by filtering Laverton source rows but joining them to Corowa account skeleton rows.
-- **Laverton Edible Offal**: Edible offal from Laverton is shipped to Corowa via the Lineage cold store. This is treated as a separate line item in the Laverton expense accounts.
+### Meat Trade (Laverton → Corowa)
+
+Corowa's Boxed Meat section includes a Meat Trade category that consolidates three Laverton product lines sold commercially under Corowa's name. Source rows are drawn from Laverton bone data and remapped so that Corowa is the selling entity (`Abattoir = COROWA`, `GL Account = 400000`, `Cost Centre = 10501816`). The three product types and their source filters are:
+
+```{r tbl-meat-trade}
+tibble(
+  `Meat Trade Type` = c("6 Way", "Commodity Frozen", "Edible Offal"),
+  `Laverton Source Filter` = c(
+    'Run == "6 WAY"',
+    'Run == "COMMODITY BONE" and Storage == "FROZEN"',
+    'Type IN ("OFFALS", "BACON CUTS") and Run == "TOTAL KILL"'
+  )
+) |>
+  kable(caption = "Meat Trade product types and their Laverton source filters",
+        booktabs = TRUE) |>
+  kable_styling(full_width = FALSE)
+```
+
+The join to the customer account table uses the `Service` field as the key (values: `6 Way`, `Commodity`, `Edible Offal`). The \$0.51/kg Lineage discount is **not** applied to these Meat Trade rows - it is already deducted within the separate Laverton-side Edible Offal, 6Way, and Commodity Frozen account blocks, so applying it again here would result in double-counting.
+
+### Laverton Edible Offal
+
+Edible offal produced at Laverton is shipped to the Lineage cold store and sold under Corowa's name. From a GL perspective this is classified as an intercompany transfer (GL 400028) rather than an external sale (GL 400000), because the transaction is between JBS business units rather than with an outside customer. The \$0.51/kg Lineage handling fee is subtracted from the calculated value at the Laverton level. This account is maintained as a separate Laverton calculation path - rather than being absorbed into the Corowa offal block - specifically to isolate the Lineage discount without affecting Corowa's external offal revenue.
 
 ---
 
@@ -534,11 +788,35 @@ The Gap Check was built incrementally during pipeline development. Each check in
 
 ## Output Structure
 
-The Gap Check produces `Gap_Check.xlsx` with two sections:
+The Gap Check produces `Gap_Check.xlsx` with two sheets.
 
-**Section 1 - Weight Reconciliation**: compares total weight in the SOP raw data against the total weight that made it into the financial database, for twelve product categories. A discrepancy between these two figures (a "GAP") indicates that some volume was lost during processing - typically due to one of the issues described below.
+**Sheet 1 - SOP vs DB** contains two tables. The first is a weight reconciliation comparing SOP raw weight against the weight that entered the financial database for each of the twelve product categories:
 
-**Section 2 - Issues Detail**: lists every row that failed to enter the database, along with the reason, the affected weight, and the recommended fix.
+```{r tbl-gap-categories}
+tibble(
+  Category = c(
+    "Corowa - Offal (Inedible + Edible)",
+    "Laverton - Offal (Inedible + Edible)",
+    "Corowa - 6 Way",
+    "Laverton - 6 Way",
+    "Laverton - Sow",
+    "Corowa - Commodity (400000 + 400028)",
+    "Laverton - Commodity Chilled",
+    "Laverton - Commodity Frozen",
+    "Meat Trade - 6 Way (Laverton → Corowa)",
+    "Meat Trade - Commodity Frozen (Laverton → Corowa)",
+    "Meat Trade - Edible Offal (Laverton → Corowa)",
+    "VA / Meat Sales"
+  )
+) |>
+  kable(caption = "Weight reconciliation categories in the Gap Check (Sheet 1)",
+        booktabs = TRUE) |>
+  kable_styling(full_width = FALSE)
+```
+
+A non-zero gap in any category indicates volume that was present in the SOP source but failed to enter the database - typically because of a missing price, an unrecognised identifier, or a classification field left blank. The second table on this sheet is an Issues Summary listing all identified issue types, the number of rows affected, the weight affected in kg, and a suggested fix.
+
+**Sheet 2 - All Issues** combines every failing row across all checks into a single table, with columns for Revenue Related Issue, Expense Related Issue, Abattoir, Tab, Item Code, Item Description, Run, Storage, Type, Group, SOP Unicode, Customer name, Units, and Total Weight. This sheet is designed for direct hand-off to the data owner responsible for fixing the source file.
 
 ## Checks Implemented
 
@@ -585,7 +863,42 @@ tibble(
   column_spec(4, width = "4.5cm")
 ```
 
-In addition to the eight revenue checks, the Gap Check also covers expense-side packaging and pallet price gaps for five product categories: VA Sales, Laverton Edible Offal (packaging and pallets separately), Laverton 6 Way, Laverton Sow, and Laverton Commodity.
+In addition to the eight revenue checks, the Gap Check covers expense-side packaging and pallet price gaps for five product categories. These are flagged separately in the Issues Summary with their own Expense Related Issue labels:
+
+```{r tbl-gap-expense-checks}
+tibble(
+  `Expense Check` = c(
+    "VA Sales: Missing Packaging Price",
+    "Laverton Edible Offal: Missing Packaging Price",
+    "Laverton Edible Offal: Missing Pallet Price",
+    "Laverton 6 Way: Missing Packaging Price",
+    "Laverton Sow: Missing Packaging Price",
+    "Laverton Commodity: Missing Packaging Price"
+  ),
+  `What It Catches` = c(
+    "VA item whose BOM code has no entry in the Packaging VA sheet",
+    "Edible offal item with no packaging price in VARIANT 3 or 4",
+    "Edible offal item with no pallet price in VARIANT 3 or 4",
+    "6 Way item with no packaging price in VARIANT 4",
+    "Sow item with no packaging price (triggers the hardcoded \\$0.095/kg fallback)",
+    "Commodity item with no packaging price in VARIANT 4"
+  ),
+  `Recommended Fix` = c(
+    "Add Item Code to packaging price data",
+    "Add Item Code to packaging price data",
+    "Add Item Code to pallet price data",
+    "Add Item Code to packaging price data",
+    "Add Item Code to Packaging VA sheet (VARIANT 4)",
+    "Add Item Code to packaging price data"
+  )
+) |>
+  kable(caption = "Gap Check: expense-side packaging and pallet price checks",
+        booktabs = TRUE) |>
+  kable_styling(full_width = FALSE) |>
+  column_spec(1, width = "4.5cm") |>
+  column_spec(2, width = "5cm") |>
+  column_spec(3, width = "4cm")
+```
 
 ## Usage Workflow
 
@@ -687,7 +1000,7 @@ Beyond the core pipeline output, the development process itself improved data qu
 
 ## Current Limitations
 
-There are quite a lot of limitations to the project due to the limitation of time and the limited skill of the author:
+There are quite a lot of limitations to the project due to the limitation of time and the limited skill during the development of this project:
 
 1. **Hardcoded file paths.** The pipeline reads files from absolute OneDrive paths specific to the development machine (`C:/Users/ATran2/OneDrive - JBS/...`). Running the pipeline on any other machine requires updating these paths. A configuration file or relative path approach would make the pipeline portable across the team.
 
@@ -699,7 +1012,7 @@ There are quite a lot of limitations to the project due to the limitation of tim
 
 5. **Prices.xlsb format.** Binary `.xlsb` files are not natively supported by all R packages. The pipeline uses `openxlsx2::wb_to_df()` which handles this format, but it is slower and occasionally less robust than reading `.xlsx` files. If the Sales Team can export Prices as `.xlsx`, this dependency would be removed.
 
-6. **Limited R adoption within Rivalea.** R is not widely used or supported at JBS Pork Australia at the time of writing. This means the pipeline currently depends on the author being available to run and maintain it. A colleague unfamiliar with R would face a steep setup cost - installing R, RStudio, and the required packages - before being able to execute the pipeline at all. This limits the pipeline's resilience as a business tool if the author is unavailable.
+6. **Limited R adoption within Rivalea.** R is not widely used or supported at JBS Pork Australia at the time of writing. This means the pipeline currently depends on the owner of the project being available to run and maintain it. A colleague unfamiliar with R would face a steep setup cost - installing R, RStudio, and the required packages - before being able to execute the pipeline at all. This limits the pipeline's resilience as a business tool if the owner of the project or someone with R skills is unavailable.
 
 7. **Single-file codebase.** The entire pipeline is contained in one `.qmd` file exceeding 5,000 lines of code. While this was practical during development, it is not a maintainable structure for the long term. Navigating, debugging, or extending any one Business Unit requires scrolling through a large undivided file, and a mistake in one section can unintentionally affect another.
 
@@ -722,7 +1035,7 @@ This project successfully delivered an automated R pipeline that replaces the ma
 
 The companion Gap Check tool was an equally important contribution: by making data integrity issues visible and actionable immediately after each pipeline run, it addresses the core risk of the original workflow - that errors would propagate silently into the submitted output.
 
-The most significant practical limitations are the limited adoption of R within Rivalea, which means the pipeline currently depends on the author to run and maintain it, and the single-file codebase structure, which at over 5,000 lines is difficult to navigate and extend. Hardcoded file paths and growing conditional complexity from special contract logic are further constraints. The most important future step is a modular restructure - splitting the pipeline into per-account modules named by GL account and Cost Centre key - which would make the codebase maintainable by others and easier to extend as new Business Units or contracts are added. The foundation built here - a reproducible, version-controlled, auditable pipeline - provides a substantially better basis for financial reporting than the manual process it replaces.
+The most significant practical limitations are the limited adoption of R within Rivalea, which means the pipeline currently depends on the owner of the project to run and maintain it, and the single-file codebase structure, which at over 5,000 lines is difficult to navigate and extend. Hardcoded file paths and growing conditional complexity from special contract logic are further constraints. The most important future step is a modular restructure - splitting the pipeline into per-account modules named by GL account and Cost Centre key - which would make the codebase maintainable by others and easier to extend as new Business Units or contracts are added. The foundation built here - a reproducible, version-controlled, auditable pipeline - provides a substantially better basis for financial reporting than the manual process it replaces.
 
 ---
 
