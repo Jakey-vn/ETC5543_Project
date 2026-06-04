@@ -5,15 +5,7 @@ author:
   - name: "Andy Tran"
     affiliation: "Department of Econometrics and Business Statistics, Monash University"
 date: "June 2026"
-format:
-  html:
-    toc: true
-    toc-float: true
-    toc-depth: 3
-    number-sections: true
-    theme: cosmo
-    code-fold: true
-    df-print: paged
+format: pdf
 execute:
   echo: false
   warning: false
